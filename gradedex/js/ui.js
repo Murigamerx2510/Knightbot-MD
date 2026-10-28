@@ -59,9 +59,21 @@
   };
   const glyph = type => '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="' + GLYPHS[type] + '"/></svg>';
 
-  // ---------- Carta (arte gerada) ----------
+  // ---------- Carta: scan oficial, com a arte gerada por baixo como reserva ----------
+  const scanSrc = (card, size) => 'img/cards/' + card.id + (size === 'lg' ? '' : '-sm') + '.webp';
+  function scanImg(card, opts) {
+    const lg = opts.size === 'lg';
+    return '<img class="scan" data-fallback src="' + scanSrc(card, lg ? 'lg' : 'sm') + '" srcset="' + scanSrc(card, 'sm') + ' 260w, ' + scanSrc(card, 'lg') + ' 600w" sizes="' + (lg ? '320px' : '140px') + '" alt="" decoding="async"' + (opts.live ? '' : ' loading="lazy"') + '>';
+  }
+
   function cardFace(card, opts) {
     opts = opts || {};
+    const art = artFace(card, opts);
+    if (!card.scan) return art;
+    return '<div class="scanface' + (card.look.foil ? ' scanface--foil' : '') + '" aria-hidden="true">' + scanImg(card, opts) + art + '</div>';
+  }
+
+  function artFace(card, opts) {
     const pal = card.look.palette || D.TYPES[card.type];
     const r = D.rng('art:' + card.id);
     const x = Math.round(20 + r() * 60), y = Math.round(15 + r() * 40);
@@ -115,14 +127,19 @@
     return '<span class="gchip gchip--' + l.grader.toLowerCase() + (tone.gold ? ' is-gold' : '') + (tone.black ? ' is-black' : '') + '">' + l.grader + ' <b>' + D.fmtGrade(l.grade) + '</b>' + extra + '</span>';
   }
 
+  // Miniatura: o scan cobre a amostra de cor; se a imagem falhar, a cor aparece.
   const swatch = card => {
     const pal = card.look.palette || D.TYPES[card.type];
     const rim = card.look.rim === 'silver' ? '#B9C0CA' : card.look.rim === 'gold' ? '#D7B55A' : '#F0CC4A';
-    return '<span class="swatch" style="--a:' + pal.a + ';--b:' + pal.b + ';--rim-solid:' + rim + '" aria-hidden="true"></span>';
+    return '<span class="swatch" style="--a:' + pal.a + ';--b:' + pal.b + ';--rim-solid:' + rim + '" aria-hidden="true">' +
+      (card.scan ? '<img data-fallback src="' + scanSrc(card, 'sm') + '" alt="" loading="lazy" decoding="async">' : '') + '</span>';
   };
 
-  const rating = s => '<span class="rating">' + icons.star + '<span class="num">' + s.rating.toFixed(2).replace('.', ',') + '</span></span>';
-  const verified = s => s.verified ? '<span class="tag tag--ok" title="Loja com identidade e endereço verificados">' + icons.seal + 'Verificada</span>' : '';
+  const rating = s => s.rating == null ? '' : '<span class="rating">' + icons.star + '<span class="num">' + s.rating.toFixed(2).replace('.', ',') + '</span></span>';
+  const verified = s => s.official
+    ? '<span class="tag tag--volt" title="Anúncio da própria GradeDex">' + icons.seal + 'Loja oficial</span>'
+    : s.verified ? '<span class="tag tag--ok" title="Loja com identidade e endereço verificados">' + icons.seal + 'Verificada</span>' : '';
+  const place = s => s.city ? s.city + (s.uf ? '/' + s.uf : '') : '';
 
   // ---------- Tiles ----------
   // Melhor slab para a vitrine: maior nota; entre iguais, o mais barato.
@@ -141,9 +158,12 @@
   function cardTile(card, list, pick) {
     list = list && list.length ? list : D.listingsOf(card.id);
     const set = D.SET[card.set];
-    const shown = pick === 'cheapest' ? list.slice().sort((a, b) => a.price - b.price)[0]
+    const empty = !list.length;
+    const shown = empty ? D.refListing(card)
+      : pick === 'cheapest' ? list.slice().sort((a, b) => a.price - b.price)[0]
       : pick === 'deal' ? list.slice().sort((a, b) => a.price / a.ref - b.price / b.ref)[0]
       : showcase(list);
+    const from = empty ? 'Sem anúncios · ref. ' + shortKey(shown) : shortKey(shown) + ' · ' + plural(list.length, 'anúncio', 'anúncios');
     const t = card.trend30;
     return '<article class="tile">' +
       '<a class="tile__link" href="#/carta/' + card.id + '">' +
@@ -152,7 +172,7 @@
           '<h3 class="tile__name">' + esc(card.name) + (card.variant ? ' <span class="muted">' + esc(card.variant) + '</span>' : '') + '</h3>' +
           '<p class="tile__set">' + esc(setLabel(set)) + ' · ' + esc(card.num) + '</p>' +
           '<div class="tile__row">' +
-            '<span class="tile__pricebox"><span class="tile__from">' + shortKey(shown) + ' · ' + plural(list.length, 'anúncio', 'anúncios') + '</span><span class="tile__price">' + brl(shown.price) + '</span></span>' +
+            '<span class="tile__pricebox"><span class="tile__from">' + from + '</span><span class="tile__price">' + brl(shown.price) + '</span></span>' +
             '<span class="trend ' + (t >= 0 ? 'up' : 'down') + '" title="Variação da referência PSA ' + card.top + ' em 30 dias">' + pct(t) + '</span>' +
           '</div>' +
         '</div>' +
@@ -169,7 +189,7 @@
         '<div class="tile__body">' +
           '<h3 class="tile__name">' + esc(card.name) + (card.variant ? ' <span class="muted">' + esc(card.variant) + '</span>' : '') + '</h3>' +
           '<p class="tile__set">' + esc(setLabel(set)) + ' · ' + esc(card.num) + '</p>' +
-          '<div class="tile__tags">' + gchip(l) + (l.lang !== 'EN' ? '<span class="tag">' + l.lang + '</span>' : '') + (deal ? '<span class="tag tag--ok">Abaixo da ref.</span>' : '') + '</div>' +
+          '<div class="tile__tags">' + gchip(l) + (l.lang !== 'EN' ? '<span class="tag">' + l.lang + '</span>' : '') + (l.own ? '<span class="tag tag--volt">Oficial</span>' : '') + (deal ? '<span class="tag tag--ok">Abaixo da ref.</span>' : '') + '</div>' +
           '<div class="tile__row"><span class="tile__price">' + brl(l.price) + '</span><span class="tile__seller">' + esc(seller.name) + '</span></div>' +
         '</div>' +
       '</a>' + favBtn(card) +
@@ -245,9 +265,49 @@
     toastTimer = setTimeout(() => { el.hidden = true; }, 3600);
   }
 
+  // ---------- Lightbox: items = [{src, alt, caption} | {html, caption}] ----------
+  function lightbox(items, start) {
+    const back = document.activeElement;
+    let i = start || 0;
+    const el = document.createElement('div');
+    el.className = 'lb';
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-modal', 'true');
+    el.setAttribute('aria-label', 'Imagens ampliadas');
+    el.innerHTML = '<figure class="lb__fig"><div class="lb__stage"></div><figcaption class="lb__cap"></figcaption></figure>' +
+      '<button type="button" class="lb__btn lb__close" aria-label="Fechar">' + icons.x + '</button>' +
+      (items.length > 1 ? '<button type="button" class="lb__btn lb__prev" aria-label="Imagem anterior">‹</button><button type="button" class="lb__btn lb__next" aria-label="Próxima imagem">›</button>' : '');
+    const stage = el.querySelector('.lb__stage'), cap = el.querySelector('.lb__cap');
+    function show() {
+      const it = items[i];
+      stage.innerHTML = it.html || '<img src="' + esc(it.src) + '" alt="' + esc(it.alt || '') + '">';
+      cap.textContent = (items.length > 1 ? (i + 1) + ' de ' + items.length + (it.caption ? ' · ' : '') : '') + (it.caption || '');
+    }
+    const go = d => { i = (i + d + items.length) % items.length; show(); };
+    function close() {
+      el.remove();
+      document.removeEventListener('keydown', onKey);
+      if (back && back.focus) back.focus();
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') close();
+      else if (e.key === 'ArrowLeft' && items.length > 1) go(-1);
+      else if (e.key === 'ArrowRight' && items.length > 1) go(1);
+    }
+    el.addEventListener('click', e => {
+      if (e.target.closest('.lb__close') || e.target === el) close();
+      else if (e.target.closest('.lb__prev')) go(-1);
+      else if (e.target.closest('.lb__next')) go(1);
+    });
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(el);
+    show();
+    el.querySelector('.lb__close').focus();
+  }
+
   GD.ui = {
-    brl, int, dec, pct, esc, dateShort, dateLong, ago, agoMin, plural, setLabel, setFull, compact,
-    icons, glyph, cardFace, slab, gchip, swatch, rating, verified, showcase, favBtn, cardTile, listingTile,
-    lineChart, spark, toast, MONTHS,
+    brl, int, dec, pct, esc, dateShort, dateLong, ago, agoMin, plural, setLabel, setFull, compact, place,
+    icons, glyph, cardFace, slab, gchip, swatch, rating, verified, showcase, favBtn, cardTile, listingTile, shortKey,
+    lineChart, spark, toast, lightbox, scanSrc, MONTHS,
   };
 })(window.GD = window.GD || {});

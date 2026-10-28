@@ -87,7 +87,7 @@
 .lab--bgs { background: var(--bgs-silver); }
 .lab--bgs.is-gold { background: var(--bgs-gold); }
 .lab--bgs.is-black { background: var(--bgs-black); color: var(--gold-ink); }
-.lab__subs { display: flex; gap: 2.2cqi; font-family: var(--f-data); font-size: 3.2cqi; letter-spacing: 0; }
+.lab__meta .lab__subs { display: flex; gap: 1.4cqi; overflow: hidden; white-space: nowrap; font-family: var(--f-data); font-size: 2.7cqi; letter-spacing: 0; }
 
 .lab--cgc { box-shadow: inset 0 2.4cqi 0 var(--cgc-blue); padding-top: 4.4cqi; }
 .lab--cgc .lab__cert b { color: var(--cgc-blue); }
@@ -190,6 +190,25 @@ a:hover .tcg--foil .tcg__art::after,
 .tcg--live .tcg__art::after { animation: sheen 5s ease-in-out infinite alternate; }
 @keyframes sheen { from { background-position: 100% 100%, 0 0; } to { background-position: 0 0, 0 0; } }
 
+/* ---------- Scan oficial (a arte gerada fica por baixo e só aparece se a imagem falhar) ---------- */
+.scanface { container-type: inline-size; position: relative; width: 100%; }
+.scanface .scan { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; object-fit: cover; border-radius: 4.4cqi; background: var(--case-lo); box-shadow: 0 1px 3px rgb(0 0 0 / .35); }
+.scanface .scan:not([hidden]) + .tcg { visibility: hidden; }
+.scanface--foil::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: 4.4cqi;
+  background: linear-gradient(115deg, transparent 30%, rgb(255 255 255 / .38) 46%, transparent 62%);
+  background-size: 260% 260%;
+  background-position: 100% 100%;
+  mix-blend-mode: soft-light;
+  transition: background-position .9s ease;
+  pointer-events: none;
+}
+a:hover .scanface--foil::after, .slab:hover .scanface--foil::after { background-position: 0 0; }
+
 /* ---------- Grade chip (tables, tiles) ---------- */
 .gchip {
   display: inline-flex;
@@ -218,4 +237,5 @@ a:hover .tcg--foil .tcg__art::after,
 .gchip--tag.is-gold { color: var(--gold-ink); }
 
 /* Tiny art swatch for search suggestions and cart rows */
-.swatch { width: 34px; aspect-ratio: 63 / 88; border-radius: 3px; background: linear-gradient(150deg, var(--b), var(--a)); box-shadow: inset 0 0 0 2px var(--rim-solid, #F0CC4A); flex: none; }
+.swatch { display: inline-block; vertical-align: middle; position: relative; overflow: hidden; width: 34px; aspect-ratio: 63 / 88; border-radius: 3px; background: linear-gradient(150deg, var(--b), var(--a)); box-shadow: inset 0 0 0 2px var(--rim-solid, #F0CC4A); flex: none; }
+.swatch img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }

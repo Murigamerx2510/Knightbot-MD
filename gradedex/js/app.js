@@ -15,6 +15,9 @@
     [/^\/carrinho$/, 'carrinho'],
     [/^\/checkout$/, 'checkout'],
     [/^\/pedido$/, 'pedido'],
+    [/^\/vender$/, 'vender'],
+    [/^\/vender\/(oferta|consignacao)$/, 'venderForm', ['mode']],
+    [/^\/painel(?:\/(novo|config))?$/, 'painel', ['tab']],
   ];
   let current = '/';
 
@@ -27,8 +30,10 @@
   }
   const fromHash = () => (location.hash.indexOf('#/') === 0 ? location.hash.slice(1) : null);
 
-  function render(path) {
+  // keepScroll: re-render da mesma rota (ex.: chegaram anúncios da loja) sem voltar ao topo.
+  function render(path, keepScroll) {
     current = path;
+    const y = window.scrollY;
     const { p, params } = parse(path);
     let page = 'notfound';
     for (const [re, name, keys] of ROUTES) {
@@ -36,6 +41,7 @@
       if (m) { page = name; (keys || []).forEach((k, i) => { params[k] = m[i + 1]; }); break; }
     }
     GD.onStore = null;
+    GD.onMarket = null;
     closeSuggest();
     // Cada página recebe um <main> novo, sem ouvintes da página anterior.
     const old = document.getElementById('main');
@@ -47,8 +53,9 @@
       if (a.getAttribute('href') === '#' + path) a.setAttribute('aria-current', 'page');
       else a.removeAttribute('aria-current');
     });
-    window.scrollTo(0, 0);
+    window.scrollTo(0, keepScroll ? y : 0);
   }
+  GD.rerender = () => render(current, true);
 
   GD.go = function (path, replace) {
     try { history[replace ? 'replaceState' : 'pushState']({ path }, '', '#' + path); } catch (e) { /* sem histórico */ }
@@ -112,8 +119,9 @@
       html += '<a href="#/carta/' + c.id + '?l=' + cert.id + '" role="option">' + U.swatch(c) + '<span><span class="suggest__name">Certificado ' + cert.grader + ' ' + cert.cert + '</span><span class="suggest__set">' + U.esc(c.name) + ' · ' + D.gradeKey(cert) + '</span></span><span class="suggest__price">' + U.brl(cert.price) + '</span></a>';
     }
     html += cards.map(c => {
-      const min = D.listingsOf(c.id)[0].price;
-      return '<a href="#/carta/' + c.id + '" role="option">' + U.swatch(c) + '<span><span class="suggest__name">' + U.esc(c.name) + (c.variant ? ' · ' + U.esc(c.variant) : '') + '</span><span class="suggest__set">' + U.esc(U.setLabel(D.SET[c.set])) + ' · ' + U.esc(c.num) + '</span></span><span class="suggest__price">' + U.brl(min) + '</span></a>';
+      const ls = D.listingsOf(c.id);
+      const price = ls.length ? U.brl(ls[0].price) : '<span class="muted">sem anúncio</span>';
+      return '<a href="#/carta/' + c.id + '" role="option">' + U.swatch(c) + '<span><span class="suggest__name">' + U.esc(c.name) + (c.variant ? ' · ' + U.esc(c.variant) : '') + '</span><span class="suggest__set">' + U.esc(U.setLabel(D.SET[c.set])) + ' · ' + U.esc(c.num) + '</span></span><span class="suggest__price">' + price + '</span></a>';
     }).join('');
     html += cards.length || cert
       ? '<a class="suggest__all" href="#/busca?q=' + encodeURIComponent(v) + '">Ver todos os resultados para “' + U.esc(v) + '”</a>'
@@ -174,10 +182,31 @@
     }
   });
 
+  // Scan que não carregou: esconde a imagem e deixa a arte gerada (ou a cor) aparecer.
+  document.addEventListener('error', e => {
+    const t = e.target;
+    if (t && t.tagName === 'IMG' && t.hasAttribute('data-fallback')) t.hidden = true;
+  }, true);
+
+  // ---------- Loja oficial ----------
+  // Quando chegam anúncios ou configurações, a página atual decide (GD.onMarket) ou é redesenhada.
+  GD.market.on(() => {
+    $('#admin-link').hidden = !GD.market.canManage;
+    // Aviso de demonstração: some sem as lojas fictícias; com anúncios reais, aponta quais são.
+    const demo = D.showingDemo(), own = D.LISTINGS.some(l => l.own);
+    $('#demo-strip').hidden = !demo;
+    $('#demo-strip-text').innerHTML = own
+      ? '<b>Atenção:</b> só os anúncios com o selo Loja oficial são reais. Os das outras lojas são de demonstração.'
+      : '<b>Loja demonstrativa.</b> Anúncios, preços, certificados e lojas são fictícios.';
+    if (GD.onMarket) GD.onMarket();
+    else render(current, true);
+  });
+
   // ---------- Início ----------
   counts();
   paintThemeBtn();
   const start = fromHash() || '/';
   try { history.replaceState({ path: start }, '', '#' + start); } catch (e) { /* sem histórico */ }
   render(start);
+  GD.market.init();
 })(window.GD = window.GD || {});

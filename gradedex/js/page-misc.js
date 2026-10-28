@@ -14,17 +14,21 @@
     main.innerHTML = crumbs(U.esc(s.name)) +
       '<section class="seller panel">' +
         '<div class="seller__id"><span class="seller__avatar" aria-hidden="true">' + U.esc(initials) + '</span>' +
-          '<div><h1 class="page-title">' + U.esc(s.name) + '</h1><p class="muted">' + U.icons.pin + U.esc(s.city) + '/' + s.uf + ' · na GradeDex desde ' + s.since + '</p></div>' + U.verified(s) + '</div>' +
+          '<div><h1 class="page-title">' + U.esc(s.name) + '</h1><p class="muted">' + (U.place(s) ? U.icons.pin + U.esc(U.place(s)) + ' · ' : '') + (s.official ? 'loja oficial do site' : 'na GradeDex desde ' + s.since) + '</p></div>' + U.verified(s) + '</div>' +
         '<dl class="seller__stats">' +
-          '<div><dt>Avaliação</dt><dd>' + U.rating(s) + ' <small class="muted">' + U.int(s.reviews) + ' avaliações</small></dd></div>' +
-          '<div><dt>Vendas concluídas</dt><dd class="num">' + U.int(s.sales) + '</dd></div>' +
+          (s.official
+            ? '<div><dt>Vendas concluídas</dt><dd class="num">' + U.int(s.sales) + '</dd></div>'
+            : '<div><dt>Avaliação</dt><dd>' + U.rating(s) + ' <small class="muted">' + U.int(s.reviews) + ' avaliações</small></dd></div><div><dt>Vendas concluídas</dt><dd class="num">' + U.int(s.sales) + '</dd></div>') +
           '<div><dt>Prazo de postagem</dt><dd>até ' + U.plural(s.ships, 'dia útil', 'dias úteis') + '</dd></div>' +
           '<div><dt>Slabs à venda</dt><dd class="num">' + ls.length + '</dd></div>' +
         '</dl>' +
-        '<p class="seller__policy">' + (s.focus === 'vintage' ? 'Especialista em vintage WotC e 1ª Edição. ' : '') + 'Envia cada slab em case rígido com plástico bolha e lacre numerado. ' + (s.verified ? 'Identidade, CNPJ e endereço conferidos pela GradeDex.' : 'Loja ainda em verificação: o pagamento protegido vale normalmente.') + '</p>' +
+        '<p class="seller__policy">' + (s.official
+          ? 'Slabs do estoque da loja e de clientes em consignação, com fotos reais. Também compramos o seu: <a href="#/vender">veja como vender</a>.'
+          : (s.focus === 'vintage' ? 'Especialista em vintage WotC e 1ª Edição. ' : '') + 'Envia cada slab em case rígido com plástico bolha e lacre numerado. ' + (s.verified ? 'Identidade, CNPJ e endereço conferidos pela GradeDex.' : 'Loja ainda em verificação: o pagamento protegido vale normalmente.')) + '</p>' +
         '<p class="seller__mix">' + graders.map(([g, n]) => '<span class="tag">' + g + ' · ' + n + '</span>').join('') + '</p>' +
       '</section>' +
-      '<section class="sec"><div class="sec__head"><h2>Slabs à venda</h2><p>Do maior para o menor preço.</p></div><div class="tiles">' + ls.map(U.listingTile).join('') + '</div></section>';
+      '<section class="sec"><div class="sec__head"><h2>Slabs à venda</h2><p>Do maior para o menor preço.</p></div>' +
+        (ls.length ? '<div class="tiles">' + ls.map(U.listingTile).join('') + '</div>' : '<div class="empty"><p>Nenhum slab à venda nesta loja agora.</p></div>') + '</section>';
   };
 
   GD.pages.colecoes = function (main) {
@@ -64,7 +68,7 @@
 
   GD.pages.comparar = function (main) {
     function render() {
-      const ls = S.state.compare.map(id => D.LISTING[id]);
+      const ls = S.state.compare.map(id => D.LISTING[id]).filter(Boolean);
       if (!ls.length) {
         main.innerHTML = crumbs('Comparar') + '<div class="empty"><h2>Compare até 3 slabs</h2><p>Na página de uma carta, toque em “Comparar” no slab que quiser. Dá para comparar notas, graduadoras e lojas diferentes.</p><a class="btn btn--volt" href="#/busca?view=slabs">Ver slabs</a></div>';
         return;
@@ -84,7 +88,7 @@
           row('População nessa nota', l => '<span class="num">' + U.int(popAt(l)) + '</span>') +
           row('Idioma', l => D.LANGS[l.lang]) +
           row('Certificado', l => '<span class="num">' + l.grader + ' ' + l.cert + '</span>') +
-          row('Loja', l => { const s = D.SELLER[l.seller]; return '<a href="#/loja/' + s.id + '">' + U.esc(s.name) + '</a> ' + U.verified(s) + '<br>' + U.rating(s) + ' <span class="muted">' + U.esc(s.city) + '/' + s.uf + '</span>'; }) +
+          row('Loja', l => { const s = D.SELLER[l.seller]; return '<a href="#/loja/' + s.id + '">' + U.esc(s.name) + '</a> ' + U.verified(s) + '<br>' + U.rating(s) + ' <span class="muted">' + U.esc(U.place(s)) + '</span>'; }) +
           row('', l => '<div class="cmp__act"><button type="button" class="btn btn--sm ' + (S.inCart(l.id) ? 'is-on' : 'btn--volt') + '" data-cart="' + l.id + '">' + (S.inCart(l.id) ? 'No carrinho' : 'Adicionar') + '</button><button type="button" class="btn btn--ghost btn--sm" data-compare="' + l.id + '">Remover</button></div>') +
         '</tbody></table></div>';
     }

@@ -253,7 +253,7 @@ img, svg { max-width: 100%; }
   font: inherit;
 }
 .input:focus { border-color: var(--cobalt); outline: none; box-shadow: 0 0 0 3px var(--cobalt-soft); }
-.input[aria-invalid="true"] { border-color: var(--down); }
+.input[aria-invalid]:not([aria-invalid="false"]) { border-color: var(--down); box-shadow: 0 0 0 3px var(--down-soft); }
 .check { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-2); cursor: pointer; }
 .check input { width: 17px; height: 17px; accent-color: var(--cobalt); margin: 0; }
 

@@ -104,6 +104,22 @@
     { id: 'sylveon-ex-pre',     name: 'Sylveon ex',        set: 'pre',  num: '156/131',   rarity: 'SIR',       type: 'psychic',   hp: 270, ref: 2200,  trend: 2.9,  pop: 12900 },
   ];
 
+  // Id de cada carta no pokemontcg.io, de onde tools/baixar_scans.py baixa os scans.
+  const PTCG = {
+    'charizard-base-1ed': 'base1-4', 'charizard-base': 'base1-4', 'blastoise-base': 'base1-2', 'venusaur-base': 'base1-15',
+    'mewtwo-base': 'base1-10', 'gyarados-base': 'base1-6', 'pikachu-base': 'base1-58', 'scyther-jungle': 'base2-10',
+    'dragonite-fossil': 'base3-4', 'lugia-neo': 'neo1-9', 'typhlosion-neo': 'neo1-17', 'shining-charizard': 'neo4-107',
+    'rayquaza-star': 'ex8-107', 'umbreon-star': 'pop5-17', 'charizard-gx-sv49': 'sma-SV49', 'pikachu-vmax-rainbow': 'swsh4-188',
+    'umbreon-vmax-alt': 'swsh7-215', 'rayquaza-vmax-alt': 'swsh7-218', 'sylveon-vmax-alt': 'swsh7-212', 'glaceon-vmax-alt': 'swsh7-209',
+    'gengar-vmax-alt': 'swsh8-271', 'espeon-vmax-alt': 'swsh8-270', 'charizard-v-alt': 'swsh9-154', 'giratina-v-alt': 'swsh11-186',
+    'lugia-v-alt': 'swsh12-186', 'giratina-vstar-gold': 'swsh12pt5gg-GG69', 'charizard-ex-obf': 'sv3-223', 'charizard-ex-151': 'sv3pt5-199',
+    'mew-ex-gold': 'sv3pt5-205', 'pikachu-grey-felt': 'svp-85', 'pikachu-ex-ssp': 'sv8-238', 'umbreon-ex-pre': 'sv8pt5-161',
+    'sylveon-ex-pre': 'sv8pt5-156',
+  };
+  const SCAN_NOTES = {
+    'charizard-base-1ed': 'Scan da versão Unlimited. A 1ª Edição tem o selo Edition 1 e a moldura da arte sem sombra.',
+  };
+
   const RARITY_LOOK = {
     'Holo Rara': { foil: true }, 'Comum': {}, 'Shining': { foil: true }, 'Gold Star': { foil: true, gold: true },
     'Shiny': { full: true, foil: true }, 'Secreta': { full: true, foil: true }, 'Alt Art': { full: true },
@@ -130,10 +146,12 @@
   const GRADES = { PSA: [10, 9, 8, 7, 6], BGS: [10, 9.5, 9, 8.5, 8], CGC: [10, 9.5, 9, 8.5, 8], TAG: [10, 9, 8.5, 8] };
   const GRADE_NAMES = {
     PSA: { 10: 'Gem Mint', 9: 'Mint', 8: 'NM-MT', 7: 'Near Mint', 6: 'EX-MT' },
-    BGS: { 10: 'Pristine', 9.5: 'Gem Mint', 9: 'Mint', 8.5: 'NM-MT+', 8: 'NM-MT' },
-    CGC: { 10: 'Gem Mint', 9.5: 'Mint+', 9: 'Mint', 8.5: 'NM/Mint+', 8: 'NM/Mint' },
-    TAG: { 10: 'Gem Mint', 9: 'Mint', 8.5: 'NM-MT+', 8: 'NM-MT' },
+    BGS: { 10: 'Pristine', 9.5: 'Gem Mint', 9: 'Mint', 8.5: 'NM-MT+', 8: 'NM-MT', 7: 'Near Mint', 6: 'EX-MT' },
+    CGC: { 10: 'Gem Mint', 9.5: 'Mint+', 9: 'Mint', 8.5: 'NM/Mint+', 8: 'NM/Mint', 7: 'Near Mint', 6: 'Ex/NM' },
+    TAG: { 10: 'Gem Mint', 9: 'Mint', 8.5: 'NM-MT+', 8: 'NM-MT', 7: 'Near Mint', 6: 'EX-MT' },
   };
+  // Notas aceitas nos formulários de venda (as mesmas do pop report).
+  const SELL_GRADES = { PSA: [10, 9, 8, 7, 6], BGS: [10, 9.5, 9, 8.5, 8, 7, 6], CGC: [10, 9.5, 9, 8.5, 8, 7, 6], TAG: [10, 9, 8.5, 8, 7, 6] };
   const W_MODERN  = { 10: 46, 9.5: 20, 9: 22, 8.5: 5, 8: 5, 7: 2, 6: 1 };
   const W_VINTAGE = { 10: 6, 9.5: 7, 9: 30, 8.5: 12, 8: 24, 7: 14, 6: 7 };
   const MULT_MODERN  = { 10: 1, 9.5: .58, 9: .38, 8.5: .3, 8: .26, 7: .2, 6: .16 };
@@ -152,6 +170,9 @@
     if (c.gold) Object.assign(c.look, { gold: true, palette: { a: '#8E6A1C', b: '#F7DE86' } });
     if (c.rainbow) c.look.palette = { a: '#C9479F', b: '#86E3F2' };
     if (c.look.gold) c.look.rim = 'gold';
+    c.ptcg = PTCG[c.id];
+    c.scan = !!(GD.SCANS && GD.SCANS[c.id]);
+    c.scanNote = SCAN_NOTES[c.id] || '';
     CARD[c.id] = c;
   });
 
@@ -202,13 +223,14 @@
   }
 
   // ---------- Anúncios ----------
+  // DEMO: lojas fictícias geradas aqui. Os anúncios da loja oficial chegam por setMarket().
+  const DEMO = [];
   const LISTINGS = [], LISTING = {}, BY_CARD = {}, BY_CERT = {};
   CARDS.forEach(card => {
     const r = rng('lst:' + card.id);
     const n = 4 + Math.floor(r() * 6);
     const langs = card.langs || (card.vintage ? ['EN', 'EN', 'EN', 'EN', 'JP'] : ['EN', 'EN', 'EN', 'JP', 'JP', 'PT']);
     const W = card.vintage ? W_VINTAGE : W_MODERN;
-    BY_CARD[card.id] = [];
     for (let i = 0; i < n; i++) {
       // O primeiro anúncio de cada carta é sempre PSA na nota máxima, em inglês.
       const grader = i === 0 ? 'PSA' : weighted(r, [['PSA', 50], ['BGS', 17], ['CGC', 23], ['TAG', 10]]);
@@ -234,13 +256,38 @@
         days: Math.floor(r() * 40),
         offer: r() < 0.3,
       };
+      DEMO.push(l);
+    }
+  });
+
+  // Loja da casa: nome, cidade e prazos vêm das configurações do painel.
+  const HOUSE = { id: 'gradedex', name: 'GradeDex', city: '', uf: '', rating: null, reviews: 0, sales: 0, since: new Date().getFullYear(), verified: true, official: true, ships: 1, ship: 30 };
+  SELLER.gradedex = HOUSE;
+  let showDemo = true;
+
+  // Reconstrói os índices no lugar, para que as referências exportadas continuem válidas.
+  function index(list) {
+    LISTINGS.length = 0;
+    [LISTING, BY_CARD, BY_CERT].forEach(o => Object.keys(o).forEach(k => { delete o[k]; }));
+    CARDS.forEach(c => { BY_CARD[c.id] = []; });
+    list.forEach(l => {
       LISTINGS.push(l);
       LISTING[l.id] = l;
-      BY_CARD[card.id].push(l);
+      BY_CARD[l.card].push(l);
       BY_CERT[l.cert] = l;
-    }
-    BY_CARD[card.id].sort((a, b) => a.price - b.price);
-  });
+    });
+    CARDS.forEach(c => BY_CARD[c.id].sort((a, b) => a.price - b.price));
+  }
+  function setMarket(own, settings) {
+    settings = settings || {};
+    Object.assign(HOUSE, {
+      name: settings.storeName || 'GradeDex', city: settings.city || '', uf: settings.uf || '',
+      ships: settings.ships || 1, ship: settings.ship || 30, sales: settings.sold || 0,
+    });
+    showDemo = settings.showDemo !== false;
+    index((showDemo ? DEMO : []).concat(own || []));
+  }
+  index(DEMO);
 
   // ---------- Histórico semanal (52 semanas) ----------
   const histCache = {};
@@ -338,12 +385,20 @@
     return CARDS.filter(c => terms.every(t => c.search.includes(t)));
   }
   const findCert = q => BY_CERT[String(q || '').trim().toUpperCase()] || null;
+  const DEMO_CERTS = new Set(DEMO.map(l => l.cert));
+
+  // Slab só para exibição (carta sem anúncio): PSA na nota máxima, sem certificado.
+  const refListing = card => ({
+    id: '', card: card.id, grader: 'PSA', grade: card.top, special: null, subs: null, lang: 'EN',
+    cert: '', price: card.market, ref: card.market, seller: null, pseudo: true,
+  });
 
   GD.data = {
-    ERAS, LANGS, TYPES, SETS, SET, CARDS, CARD, SELLERS, SELLER, LISTINGS, LISTING,
-    GRADERS, GRADES, GRADE_NAMES,
+    ERAS, LANGS, TYPES, SETS, SET, CARDS, CARD, SELLERS, SELLER, LISTINGS, LISTING, HOUSE,
+    GRADERS, GRADES, GRADE_NAMES, SELL_GRADES,
     listingsOf: id => BY_CARD[id] || [],
-    gradeName, gradeKey, gradeScore, fmtGrade, fairPrice, roundPrice,
+    gradeName, gradeKey, gradeScore, fmtGrade, fairPrice, roundPrice, refListing,
     history, change, popReport, recentSales, matchCards, findCert, norm, rng, hash,
+    setMarket, showingDemo: () => showDemo, demoCertTaken: c => DEMO_CERTS.has(c),
   };
 })(window.GD = window.GD || {});

@@ -11,9 +11,11 @@
     if (raw) Object.assign(s, JSON.parse(raw));
   } catch (e) { /* armazenamento indisponível */ }
 
-  // Descarta ids que não existem mais no catálogo.
-  s.cart = s.cart.filter(id => D.LISTING[id]);
-  s.compare = s.compare.filter(id => D.LISTING[id]);
+  // Descarta ids que não existem mais no catálogo. Anúncios da loja oficial ("gd-") chegam depois,
+  // pelo banco; as páginas ignoram os que não estiverem mais à venda.
+  const known = id => D.LISTING[id] || String(id).indexOf('gd-') === 0;
+  s.cart = s.cart.filter(known);
+  s.compare = s.compare.filter(known);
   s.favs = s.favs.filter(id => D.CARD[id]);
   s.recent = s.recent.filter(id => D.CARD[id]);
   Object.keys(s.alerts).forEach(id => { if (!D.CARD[id]) delete s.alerts[id]; });

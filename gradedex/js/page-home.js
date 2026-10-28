@@ -30,10 +30,13 @@
   }
 
   function hero() {
-    const card = D.CARD['umbreon-vmax-alt'];
-    const listing = U.showcase(D.listingsOf(card.id).filter(l => l.grader === 'PSA' && l.lang === 'EN'));
-    const h = D.history(card, 'PSA', 10, null);
-    const verifiedCount = D.SELLERS.filter(s => s.verified).length;
+    // Destaque: o slab mais valioso da loja oficial; sem estoque próprio, o Umbreon VMAX.
+    const own = D.LISTINGS.filter(l => l.own).sort((a, b) => b.price - a.price)[0];
+    const card = own ? D.CARD[own.card] : D.CARD['umbreon-vmax-alt'];
+    const listing = own || U.showcase(D.listingsOf(card.id).filter(l => l.grader === 'PSA' && l.lang === 'EN')) || D.refListing(card);
+    const h = D.history(card, 'PSA', card.top, null);
+    const sellers = new Set(D.LISTINGS.map(l => l.seller));
+    const verifiedCount = Array.from(sellers).filter(id => D.SELLER[id].verified).length;
     return '<section class="hero">' +
       '<div class="hero__copy">' +
         '<p class="eyebrow">Marketplace de cartas Pokémon graduadas</p>' +
@@ -47,9 +50,9 @@
         '</dl>' +
       '</div>' +
       '<div class="hero__stage">' +
-        '<a class="hero__slab" href="#/carta/' + card.id + '?l=' + listing.id + '" aria-label="Ver ' + U.esc(card.name) + ' ' + D.gradeKey(listing) + '">' + U.slab(listing, { live: true }) + '</a>' +
-        '<a class="hero__quote" href="#/carta/' + card.id + '">' +
-          '<span class="eyebrow">Referência PSA 10</span>' +
+        '<a class="hero__slab" href="#/carta/' + card.id + (listing.id ? '?l=' + listing.id : '') + '" aria-label="Ver ' + U.esc(card.name) + ' ' + D.gradeKey(listing) + '">' + U.slab(listing, { live: true, size: 'lg' }) + '</a>' +
+        '<a class="hero__quote" href="#/carta/' + card.id + (own ? '?l=' + own.id : '') + '">' +
+          '<span class="eyebrow">' + (own ? 'Na ' + U.esc(D.HOUSE.name) + ' · ' + D.gradeKey(own) + ' por ' + U.brl(own.price) : 'Referência PSA ' + card.top) + '</span>' +
           '<span class="hero__qname">' + U.esc(card.name) + ' · ' + card.num + '</span>' +
           '<span class="hero__qprice"><span class="num">' + U.brl(card.market) + '</span> <span class="' + (card.trend30 >= 0 ? 'up' : 'down') + '">' + U.pct(card.trend30) + ' <small>30d</small></span></span>' +
           U.spark(h, 180, 44) +
@@ -60,6 +63,7 @@
   }
 
   function ticker() {
+    if (!D.showingDemo()) return '';
     const items = D.recentSales().map(s => {
       const c = D.CARD[s.card];
       return '<a class="tick" href="#/carta/' + c.id + '">' + U.swatch(c) + '<span class="tick__name">' + U.esc(c.name) + '</span>' + U.gchip(s) + '<span class="num">' + U.brl(s.price) + '</span><span class="muted">' + U.agoMin(s.mins) + '</span></a>';
@@ -92,8 +96,18 @@
       '<span class="set-tile__fan">' + fan + '</span>' +
       '<span class="set-tile__name">' + U.esc(U.setLabel(set)) + '</span>' +
       '<span class="set-tile__meta">' + set.year + ' · ' + D.ERAS[set.era] + '</span>' +
-      '<span class="set-tile__meta">' + U.plural(listings.length, 'slab', 'slabs') + ' · a partir de <span class="num">' + U.brl(min) + '</span></span>' +
+      '<span class="set-tile__meta">' + (listings.length ? U.plural(listings.length, 'slab', 'slabs') + ' · a partir de <span class="num">' + U.brl(min) + '</span>' : 'Sem anúncios agora') + '</span>' +
     '</a>';
+  }
+
+  function sellBand() {
+    const s = GD.market.settings;
+    return '<section class="sell-band">' +
+      '<div><p class="eyebrow">Venda para a ' + U.esc(D.HOUSE.name) + '</p>' +
+      '<h2>Tem slabs parados? A loja compra ou vende por você.</h2>' +
+      '<p>Oferta na hora de ' + U.dec(s.instantRate * 100, 0) + '% da referência da nota, ou consignação com ' + U.dec(s.consignFee * 100, 0) + '% de comissão só quando vender.</p></div>' +
+      '<div class="sell-band__cta"><a class="btn btn--volt btn--lg" href="#/vender/oferta">Pedir oferta</a><a class="btn btn--ghost btn--lg" href="#/vender">Como funciona</a></div>' +
+    '</section>';
   }
   GD.setTile = setTile;
 
@@ -115,16 +129,18 @@
     const vintage = D.CARDS.filter(c => c.era === 'WotC').sort((a, b) => b.market - a.market).slice(0, 6);
     const recent = GD.store.state.recent.slice(0, 6).map(id => D.CARD[id]);
     const featuredSets = ['evs', 'pre', 'bs', 'mew', 'neo1', 'fst'].map(id => D.SET[id]);
+    const house = D.LISTINGS.filter(l => l.own).sort((a, b) => a.days - b.days || b.price - a.price).slice(0, 12);
+    const listingRow = list => '<div class="tiles">' + list.map(U.listingTile).join('') + '</div>';
 
     main.innerHTML = hero() + ticker() +
+      (house.length ? section('Slabs da ' + U.esc(D.HOUSE.name), 'Vendidos e enviados pela própria loja, com fotos reais do slab.', { href: '#/loja/gradedex', text: 'Ver todos' }, listingRow(house)) : '') +
       section('Em alta nos últimos 30 dias', 'Maior valorização da referência PSA 10.', { href: '#/busca?sort=trend', text: 'Ver ranking' },
         '<div class="tiles">' + hot.map(c => U.cardTile(c)).join('') + '</div>') +
       (recent.length >= 3 ? section('Vistos recentemente', null, null, '<div class="tiles">' + recent.map(c => U.cardTile(c)).join('') + '</div>') : '') +
-      section('Abaixo da referência', 'Slabs anunciados por menos que o preço de referência da mesma nota.', { href: '#/busca?view=slabs&sort=deal', text: 'Ver todas as ofertas' },
-        '<div class="tiles">' + deals.map(U.listingTile).join('') + '</div>') +
+      (deals.length ? section('Abaixo da referência', 'Slabs anunciados por menos que o preço de referência da mesma nota.', { href: '#/busca?view=slabs&sort=deal', text: 'Ver todas as ofertas' }, listingRow(deals)) : '') +
+      sellBand() +
       graders() +
-      section('Chegaram esta semana', null, { href: '#/busca?view=slabs&sort=new', text: 'Ver novos anúncios' },
-        '<div class="tiles">' + fresh.map(U.listingTile).join('') + '</div>') +
+      (fresh.length ? section('Chegaram esta semana', null, { href: '#/busca?view=slabs&sort=new', text: 'Ver novos anúncios' }, listingRow(fresh)) : '') +
       section('Vintage WotC', 'Base Set, Jungle, Fossil e Neo: as cartas de 1999 a 2002.', { href: '#/busca?era=WotC', text: 'Ver todo o vintage' },
         '<div class="tiles">' + vintage.map(c => U.cardTile(c)).join('') + '</div>') +
       section('Coleções em destaque', null, { href: '#/colecoes', text: 'Todas as coleções' },

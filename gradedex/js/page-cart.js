@@ -20,8 +20,11 @@
   function summary() {
     const st = S.state;
     const groups = {};
+    let count = 0;
     st.cart.forEach(id => {
       const l = D.LISTING[id];
+      if (!l) return; // anúncio pausado, vendido ou ainda carregando
+      count++;
       (groups[l.seller] = groups[l.seller] || []).push(l);
     });
     const out = Object.keys(groups).map(sid => {
@@ -36,7 +39,7 @@
     const shipping = out.reduce((s, g) => s + g.ship.price, 0);
     const insurance = st.insure ? Math.round(items * INSURE_RATE * 100) / 100 : 0;
     const total = items + shipping + insurance;
-    return { groups: out, count: st.cart.length, items, shipping, insurance, total, pix: Math.round(total * (1 - PIX_OFF) * 100) / 100 };
+    return { groups: out, count, items, shipping, insurance, total, pix: Math.round(total * (1 - PIX_OFF) * 100) / 100 };
   }
 
   function totalsBox(sm, cta) {
@@ -68,7 +71,7 @@
         '<div class="cart-layout">' +
           '<div class="cart-groups">' + sm.groups.map(g =>
             '<section class="cart-group panel" aria-label="Itens de ' + U.esc(g.seller.name) + '">' +
-              '<header class="cart-group__head"><div><a class="cart-group__seller" href="#/loja/' + g.seller.id + '">' + U.esc(g.seller.name) + '</a> ' + U.verified(g.seller) + '<span class="muted"> · ' + U.esc(g.seller.city) + '/' + g.seller.uf + '</span></div><span class="muted">' + U.rating(g.seller) + '</span></header>' +
+              '<header class="cart-group__head"><div><a class="cart-group__seller" href="#/loja/' + g.seller.id + '">' + U.esc(g.seller.name) + '</a> ' + U.verified(g.seller) + (U.place(g.seller) ? '<span class="muted"> · ' + U.esc(U.place(g.seller)) + '</span>' : '') + '</div><span class="muted">' + U.rating(g.seller) + '</span></header>' +
               '<ul class="cart-items">' + g.items.map(l => {
                 const c = D.CARD[l.card];
                 return '<li class="cart-item">' +
@@ -102,9 +105,13 @@
   GD.pages.checkout = function (main) {
     const sm = summary();
     if (!sm.count) { GD.go('/carrinho', true); return; }
+    const official = sm.groups.some(g => g.seller.official);
     main.innerHTML = '<nav class="crumbs" aria-label="Você está em"><a href="#/">Início</a><span aria-hidden="true">/</span><a href="#/carrinho">Carrinho</a><span aria-hidden="true">/</span><span>Pagamento</span></nav>' +
       '<h1 class="page-title">Pagamento</h1>' +
-      '<p class="demo-note">' + U.icons.lock + '<span>Loja demonstrativa: nenhum dado sai deste navegador e nenhum pagamento é processado. Não use dados reais.</span></p>' +
+      '<p class="demo-note">' + U.icons.lock + '<span>' + (official
+        ? 'Os slabs da ' + U.esc(D.HOUSE.name) + ' você paga combinando direto com a loja pelo WhatsApp, logo depois de confirmar. Nenhum dado de pagamento é pedido aqui.' +
+          (sm.groups.length > 1 ? ' Os demais anúncios são de lojas de demonstração e não geram compra real.' : '')
+        : 'Loja demonstrativa: nenhum dado sai deste navegador e nenhum pagamento é processado. Não use dados reais.') + '</span></p>' +
       '<div class="cart-layout">' +
         '<form id="co" class="checkout" novalidate>' +
           '<section class="panel"><h2 class="panel__title">Entrega</h2><div class="form-grid">' +
@@ -121,7 +128,7 @@
             '<label class="pay__opt"><input type="radio" name="pay" value="card"><span><b>Cartão de crédito</b><span class="muted" id="co-inst"></span></span><span class="num" id="co-card"></span></label>' +
           '</div><p class="muted form-note">Na loja real, o pagamento seria feito em ambiente do intermediador. Aqui a etapa é apenas ilustrativa.</p></section>' +
           '<p class="form-error" id="co-err" role="alert" hidden></p>' +
-          '<button type="submit" class="btn btn--volt btn--lg btn--block">Confirmar pedido (simulação)</button>' +
+          '<button type="submit" class="btn btn--volt btn--lg btn--block">' + (official ? 'Confirmar pedido' : 'Confirmar pedido (simulação)') + '</button>' +
         '</form>' +
         '<div id="co-totals"></div>' +
       '</div>';
@@ -144,6 +151,7 @@
     }
     main.addEventListener('change', e => { if (e.target.id === 'insure') S.setInsure(e.target.checked); });
     GD.onStore = paint;
+    GD.onMarket = paint;
     paint();
     main.addEventListener('submit', e => {
       e.preventDefault();
@@ -158,10 +166,15 @@
       }
       const pay = new FormData($('co')).get('pay');
       const sm = summary();
+      const house = sm.groups.find(g => g.seller.official);
       const order = {
         no: 'GD-' + new Date().getFullYear() + '-' + String(D.hash(S.state.cart.join() + Date.now()) % 100000).padStart(5, '0'),
         total: pay === 'pix' ? sm.pix : sm.total, pay, groups: sm.groups.length, count: sm.count,
-        city: $('co-city').value.trim(), uf: $('co-uf').value,
+        name: $('co-name').value.trim(), cep: $('co-cep').value, city: $('co-city').value.trim(), uf: $('co-uf').value,
+        house: house ? {
+          items: house.items.map(l => ({ name: D.CARD[l.card].name, set: D.SET[D.CARD[l.card].set].name, num: D.CARD[l.card].num, key: D.gradeKey(l), cert: l.cert, price: l.price })),
+          subtotal: house.subtotal, ship: house.ship,
+        } : null,
       };
       S.clearCart();
       GD.lastOrder = order;
@@ -169,22 +182,56 @@
     });
   };
 
+  // Mensagem do pedido para a loja oficial (os demais itens são de demonstração).
+  function houseMessage(o) {
+    const h = o.house;
+    return ['Olá, ' + D.HOUSE.name + '! Quero comprar (pedido ' + o.no + '):']
+      .concat(h.items.map(i => '• ' + i.name + ' — ' + i.set + ' ' + i.num + ' · ' + i.key + ' · cert. ' + i.cert + ' · ' + U.brl(i.price)))
+      .concat([
+        'Frete: ' + h.ship.name + (h.ship.price ? ' ' + U.brl(h.ship.price) : ' grátis') + ' · Total: ' + U.brl(h.subtotal + h.ship.price),
+        'Pagamento: ' + (o.pay === 'pix' ? 'PIX' : 'cartão'),
+        'Entrega: ' + o.name + ' · CEP ' + o.cep + ' · ' + o.city + '/' + o.uf,
+      ]).join('\n');
+  }
+
   GD.pages.pedido = function (main) {
     const o = GD.lastOrder;
     if (!o) { GD.go('/', true); return; }
-    const steps = [
+    let steps = [
       ['Pagamento confirmado', o.pay === 'pix' ? 'PIX aprovado na hora.' : 'Cartão aprovado.'],
       ['Lojas preparam o envio', 'Cada loja embala o slab em case rígido e envia com rastreio.'],
       ['Em trânsito', 'Você acompanha o rastreio de cada pacote.'],
       ['Você confirma o recebimento', 'Só então o valor é liberado para as lojas.'],
     ];
+    let house = '';
+    if (o.house) {
+      steps = [
+        ['Mande o pedido para a loja', 'A ' + D.HOUSE.name + ' confirma a disponibilidade e passa os dados do pagamento.'],
+        ['Pague direto à loja', o.pay === 'pix' ? 'PIX com os dados enviados pela loja.' : 'Link de pagamento enviado pela loja.'],
+        ['Receba com rastreio', 'O slab vai em case rígido, com seguro.'],
+      ];
+      const text = houseMessage(o);
+      const wa = GD.market.waLink(text);
+      const demo = o.count - o.house.items.length;
+      house = '<div class="house-order panel">' +
+        '<h2 class="panel__title">' + U.icons.seal + 'Falta combinar com a ' + U.esc(D.HOUSE.name) + '</h2>' +
+        '<p>' + U.plural(o.house.items.length, 'slab', 'slabs') + ' da loja oficial · ' + U.brl(o.house.subtotal + o.house.ship.price) + ' com frete.</p>' +
+        (wa
+          ? '<a class="btn btn--volt btn--lg" href="' + U.esc(wa) + '" target="_blank" rel="noopener">' + U.icons.arrow + 'Enviar pedido pelo WhatsApp</a>'
+          : '<p class="form-note">A loja ainda não informou um WhatsApp. Copie o texto abaixo e envie pelo contato da loja.</p>') +
+        '<details class="quote__text"' + (wa ? '' : ' open') + '><summary>Ver texto do pedido</summary><textarea class="input textarea" rows="7" readonly>' + U.esc(text) + '</textarea></details>' +
+        (demo ? '<p class="form-note">' + U.plural(demo, 'outro slab do pedido é', 'outros slabs do pedido são') + ' de lojas de demonstração e não ' + (demo === 1 ? 'gera' : 'geram') + ' compra real.</p>' : '') +
+      '</div>';
+    }
     main.innerHTML = '<div class="done panel">' +
       '<span class="done__icon">' + U.icons.check + '</span>' +
-      '<p class="eyebrow">Pedido simulado</p>' +
-      '<h1 class="page-title">Pedido ' + o.no + ' registrado</h1>' +
+      '<p class="eyebrow">' + (o.house ? 'Pedido criado' : 'Pedido simulado') + '</p>' +
+      '<h1 class="page-title">Pedido ' + o.no + (o.house ? '' : ' registrado') + '</h1>' +
       '<p class="muted">' + U.plural(o.count, 'slab', 'slabs') + ' de ' + U.plural(o.groups, 'loja', 'lojas') + ' · total ' + U.brl(o.total, true) + ' · entrega em ' + U.esc(o.city) + '/' + U.esc(o.uf) + '</p>' +
-      '<ol class="steps">' + steps.map((s, i) => '<li class="' + (i === 0 ? 'is-done' : '') + '"><b>' + s[0] + '</b><span>' + s[1] + '</span></li>').join('') + '</ol>' +
-      '<a class="btn btn--volt" href="#/busca">Continuar comprando</a>' +
+      house +
+      '<ol class="steps">' + steps.map((s, i) => '<li class="' + (i === 0 && !o.house ? 'is-done' : '') + '"><b>' + s[0] + '</b><span>' + s[1] + '</span></li>').join('') + '</ol>' +
+      '<a class="btn btn--ghost" href="#/busca">Continuar comprando</a>' +
     '</div>';
+    GD.onMarket = () => {};
   };
 })(window.GD = window.GD || {});

@@ -20,10 +20,18 @@
   }
 
   function buyPanel(card, l) {
+    if (l.pseudo) {
+      return '<div class="buy__row"><div class="buy__what"><span class="lbl">Nenhum anúncio desta carta agora</span><span class="muted">Crie um alerta abaixo para saber quando aparecer.</span></div>' +
+        '<div class="buy__price"><span class="num">' + U.brl(l.ref) + '</span><span class="buy__ref">Referência ' + D.gradeKey(l) + '</span></div></div>' +
+        '<div class="buy__actions"><a class="btn btn--volt btn--lg" href="#/vender/oferta?card=' + card.id + '">Tem essa carta? Venda para nós</a></div>';
+    }
     const seller = D.SELLER[l.seller];
     const diff = (l.price / l.ref - 1) * 100;
     const inCart = S.inCart(l.id), inCmp = S.inCompare(l.id);
-    return '<div class="buy__row">' +
+    const from = U.place(seller);
+    return (l.own ? '<p class="buy__official">' + U.verified(seller) + '<span>Vendido e enviado pela própria ' + U.esc(seller.name) + (l.origin === 'consign' ? ' (slab em consignação)' : '') + '.</span></p>' : '') +
+      (l.notes ? '<p class="buy__notes">' + U.esc(l.notes) + '</p>' : '') +
+      '<div class="buy__row">' +
         '<div class="buy__what"><span class="lbl">Slab selecionado</span><span class="buy__chips">' + U.gchip(l) + (l.lang !== 'EN' ? '<span class="tag">' + D.LANGS[l.lang] + '</span>' : '') + (l.offer ? '<span class="tag">Aceita oferta</span>' : '') + '</span></div>' +
         '<div class="buy__price"><span class="num">' + U.brl(l.price) + '</span>' +
           '<span class="buy__ref">Referência ' + D.gradeKey(l) + ': <span class="num">' + U.brl(l.ref) + '</span> ' +
@@ -35,7 +43,7 @@
       '</div>' +
       '<ul class="buy__assure">' +
         '<li>' + U.icons.shield + '<span><b>Pagamento protegido.</b> O valor só é liberado à loja quando você confirma o recebimento.</span></li>' +
-        '<li>' + U.icons.truck + '<span>Vendido por <a href="#/loja/' + seller.id + '">' + U.esc(seller.name) + '</a> ' + U.rating(seller) + ' · envia de ' + U.esc(seller.city) + '/' + seller.uf + ' em até ' + U.plural(seller.ships, 'dia útil', 'dias úteis') + '.</span></li>' +
+        '<li>' + U.icons.truck + '<span>Vendido por <a href="#/loja/' + seller.id + '">' + U.esc(seller.name) + '</a> ' + U.rating(seller) + ' · envia' + (from ? ' de ' + U.esc(from) : '') + ' em até ' + U.plural(seller.ships, 'dia útil', 'dias úteis') + '.</span></li>' +
       '</ul>';
   }
 
@@ -51,7 +59,7 @@
           '<td class="o-slab">' + U.gchip(l) + (l.subs ? '<span class="subs num" title="Centralização · Cantos · Bordas · Superfície">' + l.subs.join(' · ') + '</span>' : '') + '</td>' +
           '<td class="o-lang" data-label="Idioma">' + D.LANGS[l.lang] + '</td>' +
           '<td class="o-cert num" data-label="Certificado">' + l.cert + '</td>' +
-          '<td class="o-seller"><a href="#/loja/' + s.id + '">' + U.esc(s.name) + '</a> ' + U.verified(s) + '<span class="muted o-sub">' + U.rating(s) + ' · ' + U.int(s.sales) + ' vendas · ' + U.esc(s.city) + '/' + s.uf + '</span></td>' +
+          '<td class="o-seller"><a href="#/loja/' + s.id + '">' + U.esc(s.name) + '</a> ' + U.verified(s) + '<span class="muted o-sub">' + [U.rating(s), s.official ? (l.photos && l.photos.length ? U.plural(l.photos.length, 'foto real', 'fotos reais') : '') : U.int(s.sales) + ' vendas', U.esc(U.place(s))].filter(Boolean).join(' · ') + '</span></td>' +
           '<td class="o-ship" data-label="Envio">' + U.plural(s.ships, 'dia útil', 'dias úteis') + '<span class="muted o-sub">' + l.days + 'd anunciado</span></td>' +
           '<td class="o-price r"><span class="num o-amount">' + U.brl(l.price) + '</span>' + (diff <= -5 ? '<span class="tag tag--ok">' + U.pct(diff) + ' ref.</span>' : '') + '</td>' +
           '<td class="o-act"><button type="button" class="btn btn--ghost btn--sm" data-select="' + l.id + '">Ver slab</button><button type="button" class="btn btn--sm ' + (inCart ? 'is-on' : 'btn--volt') + '" data-cart="' + l.id + '" aria-label="' + (inCart ? 'Remover do carrinho' : 'Adicionar ao carrinho') + '">' + (inCart ? U.icons.check : U.icons.cart) + '</button></td>' +
@@ -93,7 +101,8 @@
     const set = D.SET[card.set];
     const all = D.listingsOf(card.id);
     const keys = keysOf(card, all);
-    let sel = D.LISTING[params.l] && D.LISTING[params.l].card === card.id ? D.LISTING[params.l] : U.showcase(all.filter(l => l.lang === 'EN').length ? all.filter(l => l.lang === 'EN') : all);
+    const en = all.filter(l => l.lang === 'EN');
+    let sel = D.LISTING[params.l] && D.LISTING[params.l].card === card.id ? D.LISTING[params.l] : (U.showcase(en.length ? en : all) || D.refListing(card));
     let filterKey = null;
     let chartKey = D.gradeKey(sel);
     let range = 52;
@@ -110,8 +119,10 @@
       '<nav class="crumbs" aria-label="Você está em"><a href="#/">Início</a><span aria-hidden="true">/</span><a href="#/busca?set=' + set.id + '">' + U.esc(U.setLabel(set)) + '</a><span aria-hidden="true">/</span><span>' + U.esc(card.name) + '</span></nav>' +
       '<div class="pdp">' +
         '<div class="pdp__media">' +
-          '<div class="pdp__slab" id="p-slab"></div>' +
+          '<div class="pdp__slab" id="p-slab" role="button" tabindex="0" data-zoom="0" aria-label="Ampliar imagem"></div>' +
+          '<div class="pdp__thumbs" id="p-thumbs"></div>' +
           '<div class="pdp__cert" id="p-cert"></div>' +
+          (card.scanNote && card.scan ? '<p class="pdp__note">' + U.esc(card.scanNote) + '</p>' : '') +
         '</div>' +
         '<div class="pdp__info">' +
           '<p class="eyebrow">' + U.esc(U.setFull(set)) + ' · ' + set.year + '</p>' +
@@ -119,6 +130,7 @@
           '<p class="pdp__sub"><span class="tag">' + U.esc(card.num) + '</span><span class="tag">' + U.esc(card.rarity) + '</span><span class="tag">' + D.TYPES[card.type].pt + '</span><span class="tag">' + D.ERAS[card.era] + '</span></p>' +
           '<div class="buy panel" id="p-buy"></div>' +
           '<div class="pdp__grades"><h2 class="h-sm">Menor preço por nota</h2><div class="gcells" id="p-gcells"></div></div>' +
+          '<a class="sell-cta" href="#/vender/oferta?card=' + card.id + '"><span>Tem esse slab?</span><b>Venda para a ' + U.esc(D.HOUSE.name) + '</b>' + U.icons.arrow + '</a>' +
         '</div>' +
       '</div>' +
       '<section class="sec" id="anuncios"><div class="sec__head"><h2 id="p-offers-title"></h2><span class="muted" id="p-offers-filter"></span></div><div id="p-offers"></div></section>' +
@@ -137,16 +149,28 @@
           '<div class="field"><label for="a-price">Pagar até (R$)</label><input id="a-price" class="input" type="number" min="1" step="any" inputmode="numeric" required></div>' +
           '<button class="btn btn--ink" type="submit">Criar alerta</button></form><div id="p-alert-state" class="form-note"></div></section>' +
         '<section class="panel" aria-labelledby="h-cert"><h2 id="h-cert" class="panel__title">' + U.icons.seal + 'Conferir certificado</h2>' +
-          '<form id="p-certform" class="inline-form"><div class="field field--grow"><label for="c-no">Número do certificado</label><input id="c-no" class="input num" type="text" autocomplete="off" placeholder="Ex.: ' + all[0].cert + '" required></div>' +
+          '<form id="p-certform" class="inline-form"><div class="field field--grow"><label for="c-no">Número do certificado</label><input id="c-no" class="input num" type="text" autocomplete="off" placeholder="Ex.: ' + (all.length ? all[0].cert : '84512230') + '" required></div>' +
           '<button class="btn btn--ink" type="submit">Conferir</button></form><div id="p-certres" class="form-note" role="status"></div></section>' +
       '</div>' +
       (related.length ? '<section class="sec"><div class="sec__head"><h2>Relacionadas</h2></div><div class="tiles">' + related.map(c => U.cardTile(c)).join('') + '</div></section>' : '');
 
     const $ = id => main.querySelector('#' + id);
 
+    // Imagens do zoom: scan oficial (ou o slab, sem scan) e as fotos reais do anúncio da loja.
+    function zoomItems() {
+      const first = card.scan
+        ? { src: U.scanSrc(card, 'lg'), alt: card.name + ', scan da carta', caption: 'Scan oficial · ' + set.name + ' ' + card.num }
+        : { html: '<div class="lb__slab">' + U.slab(sel, { live: true, size: 'lg' }) + '</div>', caption: sel.pseudo ? D.gradeKey(sel) : D.gradeKey(sel) + ' · certificado ' + sel.cert };
+      return [first].concat((sel.photos || []).map((src, i) => ({ src, alt: 'Foto ' + (i + 1) + ' do slab', caption: 'Foto real do slab à venda' })));
+    }
     function renderSel() {
-      $('p-slab').innerHTML = U.slab(sel, { live: true });
-      $('p-cert').innerHTML = '<span class="lbl">Certificado</span><span class="num" id="p-certno">' + sel.grader + ' ' + sel.cert + '</span><button type="button" class="btn btn--ghost btn--sm" data-copy="' + sel.cert + '">Copiar</button>';
+      $('p-slab').innerHTML = U.slab(sel, { live: true, size: 'lg' });
+      const photos = sel.photos || [];
+      $('p-thumbs').innerHTML = photos.length
+        ? '<button type="button" class="pthumb" data-zoom="0">' + (card.scan ? 'Scan' : 'Slab') + '</button>' +
+          photos.map((src, i) => '<button type="button" class="pthumb pthumb--img" data-zoom="' + (i + 1) + '" aria-label="Ver foto ' + (i + 1) + ' do slab"><img src="' + U.esc(src) + '" alt=""></button>').join('')
+        : '';
+      $('p-cert').innerHTML = sel.pseudo ? '' : '<span class="lbl">Certificado</span><span class="num" id="p-certno">' + sel.grader + ' ' + sel.cert + '</span><button type="button" class="btn btn--ghost btn--sm" data-copy="' + sel.cert + '">Copiar</button>';
       $('p-buy').innerHTML = buyPanel(card, sel);
       main.querySelectorAll('tr[data-row]').forEach(tr => tr.classList.toggle('is-sel', tr.dataset.row === sel.id));
     }
@@ -249,7 +273,13 @@
         try {
           navigator.clipboard.writeText(text).then(() => U.toast('Certificado ' + text + ' copiado.'), fallback);
         } catch (err) { fallback(); }
+        return;
       }
+      const zoom = t.closest('[data-zoom]');
+      if (zoom) U.lightbox(zoomItems(), Number(zoom.dataset.zoom));
+    });
+    main.addEventListener('keydown', e => {
+      if ((e.key === 'Enter' || e.key === ' ') && e.target.id === 'p-slab') { e.preventDefault(); U.lightbox(zoomItems(), 0); }
     });
     main.addEventListener('submit', e => {
       e.preventDefault();
@@ -285,6 +315,12 @@
 
     // Atualiza botões de carrinho/comparar quando o estado muda.
     GD.onStore = () => { renderSel(); renderOffers(); };
+    // Anúncios da loja chegaram ou mudaram: redesenha, a menos que a pessoa esteja digitando aqui.
+    GD.onMarket = () => {
+      const a = document.activeElement;
+      if (a && main.contains(a) && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)) return;
+      GD.rerender();
+    };
 
     renderSel(); renderCells(); renderOffers(); renderChart(); renderPop(); renderAlert();
   };
