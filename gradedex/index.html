@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GradeDex</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Marketplace de cartas Pokémon graduadas: compare PSA, BGS, CGC e TAG, veja histórico de preço por nota e confira o certificado.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/slab.css">
+<link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+<!--app:start-->
+<a class="skip" href="#main">Pular para o conteúdo</a>
+<div class="demo-strip" id="demo-strip"><div class="wrap" id="demo-strip-text"><b>Loja demonstrativa.</b> Anúncios, preços, certificados e lojas são fictícios.</div></div>
+<header class="top">
+  <div class="top__in wrap">
+    <a class="brand" href="#/" aria-label="GradeDex, página inicial"><span class="brand__mark" aria-hidden="true"></span><span>Grade<b>Dex</b></span></a>
+    <form class="search" id="search-form" role="search" autocomplete="off">
+      <svg class="search__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <label class="sr" for="q">Buscar cartas graduadas</label>
+      <input id="q" name="q" type="search" placeholder="Carta, coleção, número ou certificado" aria-controls="suggest" aria-expanded="false" aria-autocomplete="list">
+      <button class="btn btn--volt" type="submit">Buscar</button>
+      <div class="suggest" id="suggest" role="listbox" aria-label="Sugestões" hidden></div>
+    </form>
+    <nav class="top__nav" aria-label="Sua conta">
+      <a class="icon-btn" href="#/painel" id="admin-link" aria-label="Painel da loja" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5 5.5 4h13L20 9.5"/><path d="M4 9.5a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0"/><path d="M5.5 12.5V20h13v-7.5"/><path d="M10 20v-4.5h4V20"/></svg></a>
+      <a class="icon-btn" href="#/favoritos" aria-label="Favoritos e alertas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7-4.4-9.2-9A5 5 0 0 1 12 6a5 5 0 0 1 9.2 5c-2.2 4.6-9.2 9-9.2 9z"/></svg><span class="count" id="fav-count"></span></a>
+      <a class="icon-btn" href="#/comparar" aria-label="Comparar slabs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/></svg><span class="count" id="cmp-count"></span></a>
+      <a class="icon-btn" href="#/carrinho" id="cart-link" aria-label="Carrinho"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h8.9a1 1 0 0 0 1-.8L20 8H6"/><circle cx="9" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/></svg><span class="count" id="cart-count"></span></a>
+      <button class="icon-btn" id="theme-btn" type="button" aria-label="Alternar tema"></button>
+    </nav>
+  </div>
+  <nav class="cats wrap" aria-label="Categorias">
+    <a href="#/busca">Todos os slabs</a>
+    <a href="#/busca?grader=PSA">PSA</a>
+    <a href="#/busca?grader=BGS">BGS</a>
+    <a href="#/busca?grader=CGC">CGC</a>
+    <a href="#/busca?grader=TAG">TAG</a>
+    <a href="#/busca?min=10">Nota 10</a>
+    <a href="#/busca?special=1">Black Label e Pristine</a>
+    <a href="#/busca?era=WotC">Vintage WotC</a>
+    <a href="#/busca?lang=JP">Japonesas</a>
+    <a href="#/busca?view=slabs&amp;sort=deal">Abaixo da referência</a>
+    <a href="#/colecoes">Coleções</a>
+    <a href="#/vender" class="cats__sell">Vender</a>
+  </nav>
+</header>
+
+<main id="main" class="wrap" tabindex="-1"></main>
+
+<footer class="foot">
+  <div class="foot__in wrap">
+    <div class="foot__brand">
+      <a class="brand" href="#/"><span class="brand__mark" aria-hidden="true"></span><span>Grade<b>Dex</b></span></a>
+      <p>Marketplace de cartas Pokémon graduadas, com preço de referência por nota, pop report e pagamento retido até a entrega.</p>
+    </div>
+    <div>
+      <h4>Comprar</h4>
+      <ul>
+        <li><a href="#/busca">Todos os slabs</a></li>
+        <li><a href="#/colecoes">Coleções</a></li>
+        <li><a href="#/busca?view=slabs&amp;sort=new">Novos anúncios</a></li>
+        <li><a href="#/busca?view=slabs&amp;sort=deal">Abaixo da referência</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Vender</h4>
+      <ul>
+        <li><a href="#/vender">Como vender</a></li>
+        <li><a href="#/vender/oferta">Venda instantânea</a></li>
+        <li><a href="#/vender/consignacao">Consignação</a></li>
+        <li><a href="#/loja/gradedex">Loja oficial</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Sua conta</h4>
+      <ul>
+        <li><a href="#/favoritos">Favoritos e alertas</a></li>
+        <li><a href="#/comparar">Comparar slabs</a></li>
+        <li><a href="#/carrinho">Carrinho</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot__legal wrap">Pokémon e os nomes das cartas pertencem aos seus detentores; PSA, BGS, CGC e TAG são marcas das respectivas graduadoras. Nenhuma afiliação.</div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="js/scans.js"></script>
+<script src="js/data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/market.js"></script>
+<script src="js/forms.js"></script>
+<script src="js/page-home.js"></script>
+<script src="js/page-search.js"></script>
+<script src="js/page-card.js"></script>
+<script src="js/page-cart.js"></script>
+<script src="js/page-misc.js"></script>
+<script src="js/page-sell.js"></script>
+<script src="js/page-admin.js"></script>
+<script src="js/app.js"></script>
+<!--app:end-->
+</body>
+</html>
