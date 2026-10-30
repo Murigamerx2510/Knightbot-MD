@@ -1641,16 +1641,50 @@ local function onCharacterAdded(player: Player, character: Model)
 	Sync.markDirty(player) -- recria as ferramentas na mochila nova
 end
 
+-- Os comandos aceitam nomes sem acento e sem espaco ("luadesangue", "unicornio")
+local ACCENTS = {
+	["á"] = "a", ["à"] = "a", ["â"] = "a", ["ã"] = "a", ["é"] = "e", ["ê"] = "e", ["í"] = "i",
+	["ó"] = "o", ["ô"] = "o", ["õ"] = "o", ["ú"] = "u", ["ç"] = "c",
+	["Á"] = "a", ["À"] = "a", ["Â"] = "a", ["Ã"] = "a", ["É"] = "e", ["Ê"] = "e", ["Í"] = "i",
+	["Ó"] = "o", ["Ô"] = "o", ["Õ"] = "o", ["Ú"] = "u", ["Ç"] = "c",
+}
+
+local function plain(text: string): string
+	text = string.lower(text)
+	for accented, letter in ACCENTS do
+		text = string.gsub(text, accented, letter)
+	end
+	return (string.gsub(text, "[%s%-]", ""))
+end
+
 local function findWeather(name: string)
+	name = plain(name)
 	for _, weather in Config.WeatherList do
-		if string.lower(weather.id) == name or string.lower(weather.name) == name then
+		if plain(weather.id) == name or plain(weather.name) == name then
 			return weather
 		end
 	end
-	-- aceita nomes com espaco digitados juntos ("luadesangue")
-	for _, weather in Config.WeatherList do
-		if string.gsub(string.lower(weather.name), " ", "") == name then
-			return weather
+	return nil
+end
+
+local function findPet(name: string)
+	name = plain(name)
+	for _, pet in Config.PetList do
+		if plain(pet.id) == name or plain(pet.name) == name then
+			return pet
+		end
+	end
+	return nil
+end
+
+local function findPetVariant(name: string?): string?
+	if not name then
+		return nil
+	end
+	name = plain(name)
+	for _, variant in Config.PetVariants do
+		if plain(variant.id) == name or (variant.name ~= "" and plain(variant.name) == name) then
+			return variant.id
 		end
 	end
 	return nil
@@ -1692,12 +1726,15 @@ local function handleCommand(player: Player, message: string)
 		ShopService.fillStock(data)
 		Sync.notify(player, "[Teste] Estoque das lojas cheio!", "info")
 	elseif command == "/pet" then
-		local wanted = words[2] or ""
-		for _, pet in Config.PetList do
-			if string.lower(pet.id) == wanted or string.lower(pet.name) == wanted then
-				PetService.addPet(player, data, pet.id, words[3] and string.upper(string.sub(words[3], 1, 1)) .. string.sub(words[3], 2) or nil)
-				Sync.notify(player, "[Teste] Pet " .. pet.name .. " adicionado!", "info")
-			end
+		-- "/pet libelula dourada mega": a ultima palavra pode ser a variante
+		local variantId = findPetVariant(words[#words])
+		local last = if variantId and #words > 2 then #words - 1 else #words
+		local pet = findPet(table.concat(words, "", 2, last))
+		if pet then
+			PetService.addPet(player, data, pet.id, variantId)
+			Sync.notify(player, "[Teste] Pet " .. pet.name .. " adicionado!", "info")
+		else
+			Sync.notify(player, "[Teste] Pet não encontrado. Ex.: /pet unicornio, /pet dragao mega", "error")
 		end
 	end
 	Sync.markDirty(player)

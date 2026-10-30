@@ -656,6 +656,20 @@ local fruitsBefore = #data.fruits
 chat(p1, "/crescer")
 H.run(50)
 check(#data.fruits > fruitsBefore, "Pintarroxo/Macaco colhem sozinhos")
+-- comandos aceitam nomes em portugues sem acento
+local petsBefore = #data.pets
+chat(p1, "/pet unicornio")
+chat(p1, "/pet libelula dourada grande")
+local unicorn, dragonfly = false, false
+for index = petsBefore + 1, #data.pets do
+	local pet = data.pets[index]
+	if pet.p == "Unicorn" then
+		unicorn = true
+	elseif pet.p == "GoldenDragonfly" and pet.v == "Big" then
+		dragonfly = true
+	end
+end
+check(unicorn and dragonfly, "/pet aceita nome sem acento e variante em portugues")
 
 ---------------------------------------------------------------------
 section("Missoes")
