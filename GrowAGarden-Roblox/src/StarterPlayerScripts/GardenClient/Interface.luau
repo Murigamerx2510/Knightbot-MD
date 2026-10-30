@@ -1,4 +1,5 @@
--- Interface: toda a interface do jogador (HUD, lojas, venda, inventario, pets, avisos).
+-- Interface: toda a interface do jogador (HUD, lojas, venda, inventario, pets,
+-- missoes, indice de mutacoes, avisos, dia/noite e roubo).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -16,17 +17,22 @@ local FONT = Enum.Font.FredokaOne
 local COLORS = {
 	panel = Color3.fromRGB(255, 246, 226),
 	row = Color3.fromRGB(242, 226, 194),
+	header = Color3.fromRGB(228, 206, 165),
 	border = Color3.fromRGB(110, 72, 38),
 	text = Color3.fromRGB(70, 45, 20),
+	soft = Color3.fromRGB(120, 85, 45),
 	green = Color3.fromRGB(85, 190, 70),
 	darkGreen = Color3.fromRGB(50, 140, 40),
 	yellow = Color3.fromRGB(245, 185, 40),
 	red = Color3.fromRGB(225, 75, 60),
 	blue = Color3.fromRGB(70, 150, 230),
 	purple = Color3.fromRGB(170, 90, 220),
+	pink = Color3.fromRGB(230, 120, 160),
+	brown = Color3.fromRGB(160, 110, 60),
 	gray = Color3.fromRGB(150, 150, 150),
 	white = Color3.fromRGB(255, 255, 255),
 	money = Color3.fromRGB(130, 235, 95),
+	night = Color3.fromRGB(40, 50, 110),
 }
 
 local NOTIFY_COLORS = {
@@ -36,10 +42,10 @@ local NOTIFY_COLORS = {
 	info = COLORS.blue,
 }
 
-local WEATHER_COLORS = {
-	Rain = Color3.fromRGB(70, 120, 200),
-	Frost = Color3.fromRGB(120, 190, 230),
-	Thunderstorm = Color3.fromRGB(80, 70, 140),
+local PHASE_TEXT = {
+	Day = { "☀️ Dia", Color3.fromRGB(255, 220, 90) },
+	Sunset = { "🌅 Pôr do sol", Color3.fromRGB(255, 160, 80) },
+	Night = { "🌙 Noite", Color3.fromRGB(170, 180, 255) },
 }
 
 ---------------------------------------------------------------------
@@ -135,7 +141,7 @@ local function pill(parent: Instance, value: string, color: Color3, position: UD
 		Size = UDim2.fromScale(1, 1),
 		Font = FONT,
 		Text = value,
-		TextSize = 14,
+		TextSize = 13,
 		TextColor3 = COLORS.white,
 		TextStrokeTransparency = 0.4,
 		Parent = frame,
@@ -153,6 +159,23 @@ local function swatch(parent: Instance, color: Color3)
 	corner(frame, 23)
 	stroke(frame, darker(color), 3)
 	return frame
+end
+
+local function progressBar(parent: Instance, fraction: number, position: UDim2, size: UDim2, color: Color3)
+	local back = new("Frame", {
+		BackgroundColor3 = COLORS.header,
+		Position = position,
+		Size = size,
+		Parent = parent,
+	})
+	corner(back, 6)
+	local fill = new("Frame", {
+		BackgroundColor3 = color,
+		Size = UDim2.fromScale(math.clamp(fraction, 0, 1), 1),
+		Parent = back,
+	})
+	corner(fill, 6)
+	return back
 end
 
 local function clearList(list: Instance)
@@ -174,10 +197,28 @@ local function makeRow(list: Instance, order: number, height: number): Frame
 	return row
 end
 
+local function sectionRow(list: Instance, order: number, title: string)
+	local row = new("Frame", {
+		BackgroundColor3 = COLORS.header,
+		Size = UDim2.new(1, -12, 0, 30),
+		LayoutOrder = order,
+		Parent = list,
+	})
+	corner(row, 8)
+	text(row, title, UDim2.fromOffset(12, 0), UDim2.new(1, -24, 1, 0), 18, COLORS.text)
+end
+
 local function fruitTitle(fruit): string
+	return string.format("%s  •  %s  •  %s", Formulas.fruitName(fruit.s, fruit.v), Formulas.formatWeight(fruit.w), fruit.sz or "")
+end
+
+local function fruitColor(fruit): Color3
 	local seed = Config.Seeds[fruit.s]
-	local name = if seed then seed.name else fruit.s
-	return string.format("%s  •  %s", name, Formulas.formatWeight(fruit.w))
+	if not seed then
+		return COLORS.gray
+	end
+	local variant = Formulas.variantInfo(seed, fruit.v)
+	return if variant then variant.color else seed.fruitColor
 end
 
 ---------------------------------------------------------------------
@@ -228,7 +269,7 @@ function Interface.create(remotes)
 			AutomaticSize = Enum.AutomaticSize.Y,
 			Font = FONT,
 			Text = message,
-			TextSize = 20,
+			TextSize = 19,
 			TextColor3 = COLORS.white,
 			TextStrokeTransparency = 0.5,
 			TextWrapped = true,
@@ -255,7 +296,7 @@ function Interface.create(remotes)
 		for i = 1, #list - 5 do
 			list[i]:Destroy()
 		end
-		task.delay(4, function()
+		task.delay(4.5, function()
 			if toast.Parent then
 				local tween = TweenService:Create(toast, TweenInfo.new(0.5), { BackgroundTransparency = 1, TextTransparency = 1, TextStrokeTransparency = 1 })
 				tween:Play()
@@ -274,7 +315,7 @@ function Interface.create(remotes)
 		Name = "Avisos",
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -100),
-		Size = UDim2.fromOffset(470, 320),
+		Size = UDim2.fromOffset(480, 330),
 		BackgroundTransparency = 1,
 		Parent = gui,
 	})
@@ -288,12 +329,12 @@ function Interface.create(remotes)
 	})
 	addScale(toasts)
 
-	-- dinheiro e botoes laterais
+	-- dinheiro, dia/noite e botoes laterais
 	local side = new("Frame", {
 		Name = "Lateral",
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 12, 0.45, 0),
-		Size = UDim2.fromOffset(220, 210),
+		Position = UDim2.new(0, 12, 0.5, 0),
+		Size = UDim2.fromOffset(220, 330),
 		BackgroundTransparency = 1,
 		Parent = gui,
 	})
@@ -318,7 +359,12 @@ function Interface.create(remotes)
 		Parent = moneyFrame,
 	})
 	new("UITextSizeConstraint", { MaxTextSize = 38, Parent = moneyLabel })
-	local plantsLabel = text(side, "🌱 0/" .. Config.MaxPlantsPerGarden .. " plantas", UDim2.fromOffset(4, 58), UDim2.fromOffset(216, 24), 18, COLORS.white)
+	-- ate 2 linhas (a noite mostra se o jardim esta protegido); TextScaled diminui o texto se precisar
+	local phaseLabel = text(side, "", UDim2.fromOffset(4, 58), UDim2.fromOffset(216, 44), 17, COLORS.white)
+	phaseLabel.TextStrokeTransparency = 0.3
+	phaseLabel.TextScaled = true
+	new("UITextSizeConstraint", { MaxTextSize = 17, Parent = phaseLabel })
+	local plantsLabel = text(side, "🌱 0/" .. Config.MaxPlantsPerGarden .. " plantas", UDim2.fromOffset(4, 103), UDim2.fromOffset(216, 20), 17, COLORS.white)
 	plantsLabel.TextStrokeTransparency = 0.3
 
 	---------------------------------------------------------------
@@ -339,7 +385,7 @@ function Interface.create(remotes)
 			Name = "Painel" .. name,
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.53),
-			Size = UDim2.fromOffset(580, 440),
+			Size = UDim2.fromOffset(600, 450),
 			BackgroundColor3 = COLORS.panel,
 			Visible = false,
 			Parent = gui,
@@ -360,12 +406,12 @@ function Interface.create(remotes)
 			Size = UDim2.new(1, 0, 0, 14),
 			Parent = titleBar,
 		})
-		local titleLabel = text(titleBar, title, UDim2.fromOffset(16, 0), UDim2.new(1, -80, 1, 0), 30, COLORS.white)
+		local titleLabel = text(titleBar, title, UDim2.fromOffset(16, 0), UDim2.new(1, -80, 1, 0), 28, COLORS.white)
 		titleLabel.TextStrokeTransparency = 0.4
 		titleLabel.ZIndex = 2
 		local closeButton = button(titleBar, "X", COLORS.red, UDim2.new(1, -46, 0, 6), UDim2.fromOffset(38, 38), closePanels)
 		closeButton.ZIndex = 2
-		local info = text(frame, "", UDim2.fromOffset(14, 56), UDim2.new(1, -240, 0, 32), 18, COLORS.text)
+		local info = text(frame, "", UDim2.fromOffset(14, 56), UDim2.new(1, -240, 0, 34), 16, COLORS.text)
 		local header = new("Frame", {
 			BackgroundTransparency = 1,
 			AnchorPoint = Vector2.new(1, 0),
@@ -400,11 +446,13 @@ function Interface.create(remotes)
 	end
 
 	local seedsPanel = makePanel("Seeds", "🌱 Sementes do Sam", COLORS.green)
-	local gearPanel = makePanel("Gear", "🔧 Equipamentos da Eloise", COLORS.blue)
-	local eggsPanel = makePanel("Eggs", "🥚 Ovos do Ray", COLORS.purple)
+	local gearPanel = makePanel("Gear", "🔧 Equipamentos do George", COLORS.blue)
+	local eggsPanel = makePanel("Eggs", "🥚 Ovos & Pets da Eloise", COLORS.purple)
 	local sellPanel = makePanel("Sell", "💰 Venda do Steven", COLORS.yellow)
-	local inventoryPanel = makePanel("Inventory", "🎒 Inventário", Color3.fromRGB(160, 110, 60))
-	local petsPanel = makePanel("Pets", "🐾 Meus Pets", Color3.fromRGB(230, 120, 160))
+	local inventoryPanel = makePanel("Inventory", "🎒 Inventário", COLORS.brown)
+	local petsPanel = makePanel("Pets", "🐾 Meus Pets", COLORS.pink)
+	local questsPanel = makePanel("Quests", "📜 Missões do Dia", Color3.fromRGB(90, 160, 130))
+	local indexPanel = makePanel("Index", "✨ Índice de Mutações", Color3.fromRGB(120, 90, 200))
 
 	local function invoke(remote: RemoteFunction, ...): (boolean, string)
 		if busy then
@@ -428,10 +476,6 @@ function Interface.create(remotes)
 		end
 	end
 
-	local function buy(category: string, id: string)
-		report(invoke(remotes.Buy, category, id))
-	end
-
 	local function restockText(): string
 		if not state then
 			return ""
@@ -439,20 +483,25 @@ function Interface.create(remotes)
 		return "🔄 Reabastece em " .. Formulas.formatTime(state.restockAt - workspace:GetServerTimeNow())
 	end
 
-	local function shopRow(list: Instance, item, category: string, stock: number, owned: number, subtitle: string, color: Color3)
-		local row = makeRow(list, item.order, 76)
+	local function shopRow(list: Instance, item, category: string, stock: number, owned: number, subtitle: string, color: Color3, badges: { { string } }?)
+		local row = makeRow(list, item.order, 78)
 		swatch(row, color)
-		text(row, item.name, UDim2.fromOffset(66, 4), UDim2.new(1, -220, 0, 26), 22, COLORS.text)
+		text(row, item.name, UDim2.fromOffset(66, 4), UDim2.new(1, -220, 0, 26), 21, COLORS.text)
 		local rarity = Config.Rarities[item.rarity]
-		pill(row, rarity.name, rarity.color, UDim2.fromOffset(66, 31), 90)
-		text(row, "Você tem: " .. owned, UDim2.fromOffset(162, 31), UDim2.fromOffset(150, 20), 15, COLORS.text)
-		text(row, subtitle, UDim2.fromOffset(66, 52), UDim2.new(1, -220, 0, 20), 14, darker(COLORS.text, -0.4))
+		pill(row, rarity.name, if item.rarity == "Secret" then Color3.fromRGB(60, 60, 60) else rarity.color, UDim2.fromOffset(66, 31), 84)
+		local x = 156
+		for _, badge in badges or {} do
+			pill(row, badge[1], badge[2], UDim2.fromOffset(x, 31), 84)
+			x += 90
+		end
+		text(row, "Você tem: " .. owned, UDim2.fromOffset(x + 2, 31), UDim2.fromOffset(120, 20), 14, COLORS.text)
+		text(row, subtitle, UDim2.fromOffset(66, 53), UDim2.new(1, -220, 0, 22), 13, COLORS.soft)
 		text(row, Formulas.formatMoney(item.price), UDim2.new(1, -146, 0, 4), UDim2.fromOffset(136, 26), 20, COLORS.darkGreen, Enum.TextXAlignment.Right)
 		local affordable = state and state.sheckles >= item.price
 		local label = if stock > 0 then "Comprar (x" .. stock .. ")" else "Sem estoque"
 		local color2 = if stock > 0 and affordable then COLORS.green elseif stock > 0 then COLORS.yellow else COLORS.gray
-		button(row, label, color2, UDim2.new(1, -146, 0, 34), UDim2.fromOffset(136, 34), function()
-			buy(category, item.id)
+		button(row, label, color2, UDim2.new(1, -146, 0, 36), UDim2.fromOffset(136, 34), function()
+			report(invoke(remotes.Buy, category, item.id))
 		end)
 	end
 
@@ -461,14 +510,25 @@ function Interface.create(remotes)
 		panel.info.Text = restockText()
 		clearList(panel.list)
 		for _, seed in Config.SeedList do
-			local stock = state.stock.seeds[seed.id] or 0
-			local subtitle = string.format(
-				"%s • cresce em %s • vale ~%s",
-				if seed.multiHarvest then "Várias colheitas" else "Colheita única",
-				Formulas.formatTime(seed.growTime),
-				Formulas.formatMoney(seed.baseValue)
-			)
-			shopRow(panel.list, seed, "Seeds", stock, state.seeds[seed.id] or 0, subtitle, seed.fruitColor)
+			if seed.inShop then
+				local stock = state.stock.seeds[seed.id] or 0
+				local subtitle = string.format(
+					"%s • cresce em %s • vale ~%s",
+					if seed.multiHarvest then "Várias colheitas" else "Colheita única",
+					Formulas.formatTime(seed.growTime),
+					Formulas.formatMoney(seed.baseValue)
+				)
+				local badges = {}
+				if seed.defense then
+					table.insert(badges, { "🛡️ Defesa", Color3.fromRGB(200, 70, 60) })
+				end
+				if seed.limited then
+					table.insert(badges, { "⏳ Limitada", Color3.fromRGB(230, 120, 40) })
+				elseif seed.classic then
+					table.insert(badges, { "Clássica", Color3.fromRGB(120, 120, 140) })
+				end
+				shopRow(panel.list, seed, "Seeds", stock, state.seeds[seed.id] or 0, subtitle, seed.fruitColor, badges)
+			end
 		end
 	end
 
@@ -484,7 +544,7 @@ function Interface.create(remotes)
 
 	local function renderEggs()
 		local panel = eggsPanel
-		panel.info.Text = restockText()
+		panel.info.Text = restockText() .. "  •  Variantes: Grande 10%, Arco-íris 4%, Mega 1%"
 		clearList(panel.list)
 		for _, egg in Config.EggList do
 			local stock = state.stock.eggs[egg.id] or 0
@@ -505,10 +565,10 @@ function Interface.create(remotes)
 	local function sortedFruits()
 		local list = table.clone(state.fruits)
 		table.sort(list, function(a, b)
-			if a.v == b.v then
+			if a.val == b.val then
 				return a.i < b.i
 			end
-			return a.v > b.v
+			return a.val > b.val
 		end)
 		return list
 	end
@@ -516,20 +576,19 @@ function Interface.create(remotes)
 	local function totalValue(): number
 		local total = 0
 		for _, fruit in state.fruits do
-			total += fruit.v
+			total += fruit.val
 		end
 		return total
 	end
 
 	local function fruitRow(list: Instance, fruit, order: number, withSell: boolean)
-		local seed = Config.Seeds[fruit.s]
 		local row = makeRow(list, order, 62)
-		swatch(row, if seed then seed.fruitColor else COLORS.gray)
-		text(row, fruitTitle(fruit), UDim2.fromOffset(66, 4), UDim2.new(1, -230, 0, 26), 20, COLORS.text)
+		swatch(row, fruitColor(fruit))
+		text(row, fruitTitle(fruit), UDim2.fromOffset(66, 4), UDim2.new(1, -230, 0, 26), 18, COLORS.text)
 		local mutations = Formulas.mutationNames(fruit.m)
 		local mutationText = if mutations ~= "" then "✨ " .. mutations .. " (x" .. Formulas.formatNumber(Formulas.mutationMultiplier(fruit.m)) .. ")" else "Sem mutações"
-		text(row, mutationText, UDim2.fromOffset(66, 32), UDim2.new(1, -230, 0, 22), 15, if mutations ~= "" then COLORS.purple else darker(COLORS.text, -0.4))
-		text(row, Formulas.formatMoney(fruit.v), UDim2.new(1, -156, 0, if withSell then 2 else 18), UDim2.fromOffset(146, 26), 20, COLORS.darkGreen, Enum.TextXAlignment.Right)
+		text(row, mutationText, UDim2.fromOffset(66, 32), UDim2.new(1, -230, 0, 22), 14, if mutations ~= "" then COLORS.purple else COLORS.soft)
+		text(row, Formulas.formatMoney(fruit.val), UDim2.new(1, -156, 0, if withSell then 2 else 18), UDim2.fromOffset(146, 26), 19, COLORS.darkGreen, Enum.TextXAlignment.Right)
 		if withSell then
 			button(row, "Vender", COLORS.yellow, UDim2.new(1, -116, 0, 28), UDim2.fromOffset(106, 30), function()
 				report(invoke(remotes.Sell, "one", fruit.i, fruit.s, fruit.w))
@@ -544,7 +603,7 @@ function Interface.create(remotes)
 
 	local function emptyRow(list: Instance, message: string)
 		local row = makeRow(list, 1, 60)
-		text(row, message, UDim2.fromOffset(12, 0), UDim2.new(1, -24, 1, 0), 18, COLORS.text, Enum.TextXAlignment.Center)
+		text(row, message, UDim2.fromOffset(12, 0), UDim2.new(1, -24, 1, 0), 17, COLORS.text, Enum.TextXAlignment.Center)
 	end
 
 	local function renderSell()
@@ -565,18 +624,28 @@ function Interface.create(remotes)
 		panel.info.Text = string.format(
 			"Frutos: %d/%d • Valor: %s",
 			#state.fruits,
-			Config.MaxFruitsInInventory,
+			state.capacity or Config.MaxFruitsInInventory,
 			Formulas.formatMoney(totalValue())
 		)
 		clearList(panel.list)
 		local stats = state.stats or {}
-		local statsRow = makeRow(panel.list, 0, 40)
+		local statsRow = makeRow(panel.list, 0, 58)
 		text(
 			statsRow,
-			string.format("Plantados: %d • Colhidos: %d • Ganhos: %s", stats.planted or 0, stats.harvested or 0, Formulas.formatMoney(stats.earned or 0)),
+			string.format(
+				"Plantados: %d • Colhidos: %d • Vendidos: %d • Ganhos: %s\nRoubados por você: %d • Roubados de você: %d • Pets chocados: %d • Fusões: %d",
+				stats.planted or 0,
+				stats.harvested or 0,
+				stats.sold or 0,
+				Formulas.formatMoney(stats.earned or 0),
+				stats.stolen or 0,
+				stats.stolenFrom or 0,
+				stats.hatched or 0,
+				stats.merged or 0
+			),
 			UDim2.fromOffset(12, 0),
 			UDim2.new(1, -24, 1, 0),
-			16,
+			14,
 			COLORS.text,
 			Enum.TextXAlignment.Center
 		)
@@ -591,7 +660,7 @@ function Interface.create(remotes)
 
 	local function renderPets()
 		local panel = petsPanel
-		local bonuses = state.bonuses or { Growth = 0, Sell = 0, Luck = 0 }
+		local bonuses = state.bonuses or {}
 		local equipped = 0
 		for _, pet in state.pets do
 			if pet.eq then
@@ -599,17 +668,18 @@ function Interface.create(remotes)
 			end
 		end
 		panel.info.Text = string.format(
-			"Equipados %d/%d • Cresc. +%s • Venda +%s • Sorte +%s",
+			"Equipados %d/%d • Cresc. +%s • Venda +%s • Sorte +%s • Tamanho +%s",
 			equipped,
 			Config.MaxPetsEquipped,
-			Formulas.formatPercent(bonuses.Growth),
-			Formulas.formatPercent(bonuses.Sell),
-			Formulas.formatPercent(bonuses.Luck)
+			Formulas.formatPercent(bonuses.Growth or 0),
+			Formulas.formatPercent(bonuses.Sell or 0),
+			Formulas.formatPercent(bonuses.Luck or 0),
+			Formulas.formatPercent(bonuses.Size or 0)
 		)
-		panel.info.Size = UDim2.new(1, -28, 0, 32)
+		panel.info.Size = UDim2.new(1, -28, 0, 34)
 		clearList(panel.list)
 		if #state.pets == 0 then
-			emptyRow(panel.list, "Você ainda não tem pets. Compre um ovo com o Ray e choque no seu jardim!")
+			emptyRow(panel.list, "Você ainda não tem pets. Compre um ovo com a Eloise e choque no seu jardim!")
 			return
 		end
 		local list = table.clone(state.pets)
@@ -627,16 +697,122 @@ function Interface.create(remotes)
 		for order, pet in list do
 			local info = Config.Pets[pet.p]
 			local rarity = Config.Rarities[info.rarity]
-			local row = makeRow(panel.list, order, 62)
+			local variant = Formulas.petVariant(pet.v ~= "" and pet.v or nil)
+			local row = makeRow(panel.list, order, 84)
 			swatch(row, info.color)
-			text(row, info.name .. (if pet.eq then "  ✅" else ""), UDim2.fromOffset(66, 4), UDim2.new(1, -220, 0, 26), 20, COLORS.text)
-			pill(row, rarity.name, rarity.color, UDim2.fromOffset(66, 34), 90)
-			text(row, Config.PetBonusNames[info.bonusType] .. " +" .. Formulas.formatPercent(info.bonus), UDim2.fromOffset(164, 34), UDim2.fromOffset(200, 20), 16, COLORS.text)
+			local name = info.name .. (if variant.name ~= "" then " " .. variant.name else "") .. (if pet.eq then "  ✅" else "")
+			text(row, name, UDim2.fromOffset(66, 4), UDim2.new(1, -230, 0, 24), 19, COLORS.text)
+			pill(row, rarity.name, if info.rarity == "Secret" then Color3.fromRGB(60, 60, 60) else rarity.color, UDim2.fromOffset(66, 30), 84)
+			pill(row, "Nv " .. pet.lvl, COLORS.blue, UDim2.fromOffset(156, 30), 60)
+			text(row, table.concat(pet.ab, " • "), UDim2.fromOffset(222, 30), UDim2.new(1, -370, 0, 22), 13, COLORS.text)
+			local fraction = if pet.nextXp > 0 then pet.xp / pet.nextXp else 1
+			progressBar(row, fraction, UDim2.fromOffset(66, 58), UDim2.new(1, -220, 0, 10), COLORS.blue)
 			local action = if pet.eq then "unequip" else "equip"
 			button(row, if pet.eq then "Guardar" else "Equipar", if pet.eq then COLORS.gray else COLORS.green, UDim2.new(1, -126, 0.5, -17), UDim2.fromOffset(116, 34), function()
 				report(invoke(remotes.PetAction, action, pet.id))
 			end)
 		end
+	end
+
+	local function renderQuests()
+		local panel = questsPanel
+		local now = workspace:GetServerTimeNow()
+		panel.info.Text = "Novas missões em " .. Formulas.formatTime(86400 - now % 86400)
+		clearList(panel.list)
+		local quests = state.quests or {}
+		if #quests == 0 then
+			emptyRow(panel.list, "Carregando missões...")
+			return
+		end
+		for order, quest in quests do
+			local row = makeRow(panel.list, order, 78)
+			local done = quest.progress >= quest.target
+			local icon = swatch(row, if quest.claimed then COLORS.gray elseif done then COLORS.green else COLORS.yellow)
+			text(icon, quest.icon or "📜", UDim2.fromScale(0, 0), UDim2.fromScale(1, 1), 24, COLORS.white, Enum.TextXAlignment.Center)
+			text(row, quest.text, UDim2.fromOffset(66, 4), UDim2.new(1, -230, 0, 26), 19, COLORS.text)
+			progressBar(row, quest.progress / quest.target, UDim2.fromOffset(66, 36), UDim2.new(1, -230, 0, 14), COLORS.green)
+			text(row, string.format("%d / %d", quest.progress, quest.target), UDim2.fromOffset(66, 52), UDim2.fromOffset(120, 22), 14, COLORS.soft)
+			text(row, "🎁 " .. Formulas.formatMoney(quest.reward), UDim2.new(1, -146, 0, 4), UDim2.fromOffset(136, 26), 18, COLORS.darkGreen, Enum.TextXAlignment.Right)
+			local label = if quest.claimed then "Feita ✓" elseif done then "Pegar!" else "Em andamento"
+			local color = if quest.claimed then COLORS.gray elseif done then COLORS.green else COLORS.yellow
+			button(row, label, color, UDim2.new(1, -146, 0, 36), UDim2.fromOffset(136, 34), function()
+				report(invoke(remotes.QuestAction, quest.i))
+			end)
+		end
+	end
+
+	local function renderIndex()
+		local panel = indexPanel
+		panel.info.Text = "Valor = Crescimento x (1 + soma dos climas). Combine mutações para multiplicadores enormes!"
+		panel.info.Size = UDim2.new(1, -28, 0, 34)
+		clearList(panel.list)
+		local order = 0
+		local function nextOrder()
+			order += 1
+			return order
+		end
+		sectionRow(panel.list, nextOrder(), "🌱 Mutações de crescimento (aparecem quando o fruto nasce)")
+		local growth, env = {}, {}
+		for _, id in Config.MutationOrder do
+			local mutation = Config.Mutations[id]
+			if mutation then
+				table.insert(if mutation.kind == "growth" then growth else env, id)
+			end
+		end
+		local function mutationRow(id: string)
+			local mutation = Config.Mutations[id]
+			local row = makeRow(panel.list, nextOrder(), 52)
+			local dot = swatch(row, mutation.color)
+			dot.Size = UDim2.fromOffset(34, 34)
+			dot.Position = UDim2.new(0, 12, 0.5, -17)
+			text(row, string.format("%s  (x%s)", mutation.name, Formulas.formatNumber(mutation.mult)), UDim2.fromOffset(60, 2), UDim2.new(1, -70, 0, 26), 18, COLORS.text)
+			text(row, mutation.source or "", UDim2.fromOffset(60, 26), UDim2.new(1, -70, 0, 22), 14, COLORS.soft)
+		end
+		for _, id in growth do
+			mutationRow(id)
+		end
+		sectionRow(panel.list, nextOrder(), "🌦️ Mutações de clima, noite, pets e plantas (somam entre si)")
+		table.sort(env, function(a, b)
+			return Config.Mutations[a].mult < Config.Mutations[b].mult
+		end)
+		for _, id in env do
+			mutationRow(id)
+		end
+		sectionRow(panel.list, nextOrder(), "🧪 Combinações automáticas")
+		for _, combo in Config.MutationCombos do
+			local names = {}
+			for _, id in combo.requires do
+				table.insert(names, Config.Mutations[id].name)
+			end
+			local result = Config.Mutations[combo.result]
+			local row = makeRow(panel.list, nextOrder(), 40)
+			text(row, string.format("%s  =  %s (x%s)", table.concat(names, " + "), result.name, Formulas.formatNumber(result.mult)), UDim2.fromOffset(14, 0), UDim2.new(1, -28, 1, 0), 16, COLORS.text)
+		end
+		sectionRow(panel.list, nextOrder(), "🔮 Fusões secretas (use a Espátula em duas plantas adultas)")
+		for _, recipe in Config.MergeRecipes do
+			local row = makeRow(panel.list, nextOrder(), 40)
+			text(row, string.format("%s  +  %s  =  %s", Config.Seeds[recipe.a].name, Config.Seeds[recipe.b].name, Config.Seeds[recipe.result].name), UDim2.fromOffset(14, 0), UDim2.new(1, -28, 1, 0), 16, COLORS.text)
+		end
+		sectionRow(panel.list, nextOrder(), "💎 Variantes e tamanhos")
+		local sizes = {}
+		for _, class in Config.SizeClasses do
+			table.insert(sizes, class.name)
+		end
+		local row = makeRow(panel.list, nextOrder(), 64)
+		text(
+			row,
+			string.format(
+				"Variante de cor: %d%% das plantas (x1.6). Variante de Cristal: %d%% (x%s).\nTamanhos: %s",
+				math.floor(Config.VariantChance * 100),
+				math.floor(Config.CrystalChance * 100),
+				tostring(Config.CrystalVariant.mult),
+				table.concat(sizes, ", ")
+			),
+			UDim2.fromOffset(14, 0),
+			UDim2.new(1, -28, 1, 0),
+			15,
+			COLORS.text
+		)
 	end
 
 	local renderers = {
@@ -646,6 +822,8 @@ function Interface.create(remotes)
 		Sell = renderSell,
 		Inventory = renderInventory,
 		Pets = renderPets,
+		Quests = renderQuests,
+		Index = renderIndex,
 	}
 
 	local function refresh()
@@ -681,12 +859,18 @@ function Interface.create(remotes)
 		end
 	end
 
-	button(side, "🎒 Inventário", Color3.fromRGB(160, 110, 60), UDim2.fromOffset(0, 88), UDim2.fromOffset(220, 46), function()
-		togglePanel("Inventory")
-	end).TextSize = 22
-	button(side, "🐾 Pets", Color3.fromRGB(230, 120, 160), UDim2.fromOffset(0, 142), UDim2.fromOffset(220, 46), function()
-		togglePanel("Pets")
-	end).TextSize = 22
+	local sideButtons = {
+		{ "🎒 Inventário", COLORS.brown, "Inventory" },
+		{ "🐾 Pets", COLORS.pink, "Pets" },
+		{ "📜 Missões", Color3.fromRGB(90, 160, 130), "Quests" },
+		{ "✨ Mutações", Color3.fromRGB(120, 90, 200), "Index" },
+	}
+	for index, info in sideButtons do
+		local b = button(side, info[1], info[2], UDim2.fromOffset(0, 126 + (index - 1) * 50), UDim2.fromOffset(220, 44), function()
+			togglePanel(info[3])
+		end)
+		b.TextSize = 21
+	end
 
 	-- botoes de teleporte no topo
 	local top = new("Frame", {
@@ -708,7 +892,7 @@ function Interface.create(remotes)
 	local teleports = {
 		{ label = "🌱 Sementes", place = "Seeds", panel = "Seeds", color = COLORS.green },
 		{ label = "💰 Vender", place = "Sell", panel = "Sell", color = COLORS.yellow },
-		{ label = "🏡 Jardim", place = "Garden", panel = nil, color = Color3.fromRGB(160, 110, 60) },
+		{ label = "🏡 Jardim", place = "Garden", panel = nil, color = COLORS.brown },
 		{ label = "🔧 Equip.", place = "Gear", panel = "Gear", color = COLORS.blue },
 		{ label = "🥚 Ovos", place = "Eggs", panel = "Eggs", color = COLORS.purple },
 	}
@@ -730,15 +914,30 @@ function Interface.create(remotes)
 		Name = "Clima",
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 58),
-		Size = UDim2.fromOffset(580, 52),
+		Size = UDim2.fromOffset(600, 52),
 		BackgroundColor3 = COLORS.blue,
 		Visible = false,
 		Parent = gui,
 	})
 	corner(weatherBanner, 10)
 	addScale(weatherBanner)
-	local weatherLabel = text(weatherBanner, "", UDim2.fromOffset(10, 0), UDim2.new(1, -20, 1, 0), 17, COLORS.white, Enum.TextXAlignment.Center)
+	local weatherLabel = text(weatherBanner, "", UDim2.fromOffset(10, 0), UDim2.new(1, -20, 1, 0), 16, COLORS.white, Enum.TextXAlignment.Center)
 	weatherLabel.TextStrokeTransparency = 0.4
+
+	-- faixa de roubo (quando voce carrega um fruto roubado)
+	local carryBanner = new("Frame", {
+		Name = "Roubo",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 116),
+		Size = UDim2.fromOffset(560, 40),
+		BackgroundColor3 = COLORS.red,
+		Visible = false,
+		Parent = gui,
+	})
+	corner(carryBanner, 10)
+	addScale(carryBanner)
+	local carryLabel = text(carryBanner, "", UDim2.fromOffset(10, 0), UDim2.new(1, -20, 1, 0), 17, COLORS.white, Enum.TextXAlignment.Center)
+	carryLabel.TextStrokeTransparency = 0.4
 
 	-- dica ao passar o mouse nas plantas
 	local tooltip = new("TextLabel", {
@@ -749,7 +948,7 @@ function Interface.create(remotes)
 		Size = UDim2.fromOffset(0, 0),
 		Font = FONT,
 		Text = "",
-		TextSize = 17,
+		TextSize = 16,
 		TextColor3 = COLORS.white,
 		Visible = false,
 		ZIndex = 10,
@@ -785,22 +984,48 @@ function Interface.create(remotes)
 		return openName ~= nil
 	end
 
+	local function myPlotLocked(): boolean
+		local index = player:GetAttribute("PlotIndex")
+		local mapFolder = workspace:FindFirstChild("Mapa")
+		local plot = mapFolder and mapFolder:FindFirstChild("Jardim" .. tostring(index))
+		return plot ~= nil and plot:GetAttribute("Locked") == true
+	end
+
 	-- atualiza contadores a cada segundo
 	task.spawn(function()
 		while gui.Parent do
+			local now = workspace:GetServerTimeNow()
 			local weatherId = workspace:GetAttribute("Weather")
 			local weather = if type(weatherId) == "string" then Config.Weather[weatherId] else nil
 			if weather then
 				local ends = workspace:GetAttribute("WeatherEnds")
-				local remaining = if type(ends) == "number" then ends - workspace:GetServerTimeNow() else 0
-				weatherBanner.BackgroundColor3 = WEATHER_COLORS[weather.id] or COLORS.blue
+				local remaining = if type(ends) == "number" then ends - now else 0
+				weatherBanner.BackgroundColor3 = (weather.sky and weather.sky.color or COLORS.blue):Lerp(Color3.new(0, 0, 0), 0.45)
 				weatherLabel.Text = string.format("%s %s (%s) — %s", weather.emoji, weather.name, Formulas.formatTime(remaining), weather.description)
 				weatherBanner.Visible = true
 			else
 				weatherBanner.Visible = false
 			end
+			local phase = workspace:GetAttribute("Phase")
+			local phaseEnds = workspace:GetAttribute("PhaseEnds")
+			local phaseInfo = PHASE_TEXT[phase or "Day"] or PHASE_TEXT.Day
+			local remaining = if type(phaseEnds) == "number" then Formulas.formatTime(phaseEnds - now) else "--:--"
+			if phase == "Night" then
+				phaseLabel.Text = string.format("%s • %s\n%s", phaseInfo[1], remaining, if myPlotLocked() then "🔒 Jardim protegido" else "🔓 Ladrões à solta!")
+			else
+				phaseLabel.Text = string.format("%s • %s %s", phaseInfo[1], if phase == "Day" then "noite em" else "termina em", remaining)
+			end
+			phaseLabel.TextColor3 = phaseInfo[2]
+			if player:GetAttribute("Carrying") then
+				local untilTime = player:GetAttribute("CarryUntil")
+				local left = if type(untilTime) == "number" then untilTime - now else 0
+				carryLabel.Text = string.format("🏃 Carregando %s! Leve ao SEU jardim (%s)", tostring(player:GetAttribute("CarryName")), Formulas.formatTime(left))
+				carryBanner.Visible = true
+			else
+				carryBanner.Visible = false
+			end
 			if state and (openName == "Seeds" or openName == "Gear" or openName == "Eggs") then
-				panels[openName].info.Text = restockText()
+				panels[openName].info.Text = restockText() .. (if openName == "Eggs" then "  •  Variantes: Grande 10%, Arco-íris 4%, Mega 1%" else "")
 			end
 			task.wait(1)
 		end

@@ -28,7 +28,7 @@ local function wantedItems(data): { Wanted }
 			local label
 			if gear.kind == "water" then
 				label = string.format("%s [%d usos]", gear.name, count)
-			elseif gear.kind == "shovel" then
+			elseif gear.unique then
 				label = gear.name
 			else
 				label = string.format("%s [x%d]", gear.name, count)

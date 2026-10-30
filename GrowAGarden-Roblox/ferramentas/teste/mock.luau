@@ -1878,6 +1878,24 @@ implementations.RunService = {
 	end,
 }
 
+-- Humanoid
+implementations.Humanoid = {
+	TakeDamage = function(humanoid, amount)
+		checkNumber(amount, "Humanoid:TakeDamage")
+		local st = state[humanoid]
+		local health = humanoid.Health
+		if health <= 0 then
+			return
+		end
+		local newHealth = math.max(0, health - amount)
+		st.props.Health = newHealth
+		st.propsSet.Health = true
+		if newHealth <= 0 then
+			fire(getSignal(humanoid, "Died"))
+		end
+	end,
+}
+
 -- Debris
 implementations.Debris = {
 	AddItem = function(_, item, lifetime)
@@ -1896,7 +1914,11 @@ implementations.CollectionService = {
 		if not isInstance(inst) or type(tag) ~= "string" then
 			error("CollectionService:AddTag argumentos invalidos", 3)
 		end
+		local had = state[inst].tags[tag]
 		state[inst].tags[tag] = true
+		if not had and H.tagSignals and H.tagSignals[tag] then
+			fire(H.tagSignals[tag], inst)
+		end
 	end,
 	RemoveTag = function(_, inst, tag)
 		if not isInstance(inst) or type(tag) ~= "string" then
@@ -1906,6 +1928,11 @@ implementations.CollectionService = {
 	end,
 	HasTag = function(_, inst, tag)
 		return state[inst].tags[tag] == true
+	end,
+	GetInstanceAddedSignal = function(_, tag)
+		H.tagSignals = H.tagSignals or {}
+		H.tagSignals[tag] = H.tagSignals[tag] or newSignal("TagAdded:" .. tag)
+		return H.tagSignals[tag]
 	end,
 	GetTagged = function(_, tag)
 		local list = {}

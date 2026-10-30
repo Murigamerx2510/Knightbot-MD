@@ -1,5 +1,6 @@
 -- GardenClient: script principal do jogador.
--- Liga a interface, os efeitos e o uso das ferramentas (sementes, regador, etc).
+-- Liga a interface, os efeitos e o uso das ferramentas (sementes, regador, espatula,
+-- cogumelos, atirador de morango etc).
 
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
@@ -17,6 +18,7 @@ local remotes = {
 	Buy = remotesFolder:WaitForChild("Buy") :: RemoteFunction,
 	Sell = remotesFolder:WaitForChild("Sell") :: RemoteFunction,
 	PetAction = remotesFolder:WaitForChild("PetAction") :: RemoteFunction,
+	QuestAction = remotesFolder:WaitForChild("QuestAction") :: RemoteFunction,
 }
 
 local Interface = require(script:WaitForChild("Interface"))

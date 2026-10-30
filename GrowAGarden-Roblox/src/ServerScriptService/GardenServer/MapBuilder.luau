@@ -1,6 +1,7 @@
 -- MapBuilder: cria o mapa inteiro (chao, rua, 6 jardins, lojas, decoracao).
 -- Tudo e gerado por codigo, entao o jogo funciona mesmo em um lugar vazio.
 
+local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
 
 local MapBuilder = {}
@@ -33,6 +34,25 @@ local function part(parent: Instance, name: string, size: Vector3, cf: CFrame, c
 	p.Color = color
 	p.Size = size
 	p.CFrame = cf
+	p.Parent = parent
+	return p
+end
+
+local BLACK = Color3.fromRGB(20, 20, 20)
+
+-- Cilindro em pe
+local function cylinderPart(parent: Instance, name: string, height: number, diameter: number, cf: CFrame, color: Color3): Part
+	local p = Instance.new("Part")
+	p.Name = name
+	p.Shape = Enum.PartType.Cylinder
+	p.Anchored = true
+	p.CanCollide = false
+	p.TopSurface = SMOOTH
+	p.BottomSurface = SMOOTH
+	p.Material = Enum.Material.SmoothPlastic
+	p.Color = color
+	p.Size = Vector3.new(height, diameter, diameter)
+	p.CFrame = cf * CFrame.Angles(0, 0, math.pi / 2)
 	p.Parent = parent
 	return p
 end
@@ -159,30 +179,114 @@ end
 -- Lojas
 ---------------------------------------------------------------------
 
-local function buildNpc(parent: Instance, cf: CFrame, shirt: Color3, name: string)
-	local skin = Color3.fromRGB(255, 205, 160)
-	local pieces = {
-		part(parent, "Pernas", Vector3.new(2, 2, 1), cf * CFrame.new(0, 1, 0), Color3.fromRGB(60, 70, 120)),
-		part(parent, "Tronco", Vector3.new(2, 2, 1), cf * CFrame.new(0, 3, 0), shirt),
-		part(parent, "BracoEsquerdo", Vector3.new(1, 2, 1), cf * CFrame.new(-1.5, 3, 0), skin),
-		part(parent, "BracoDireito", Vector3.new(1, 2, 1), cf * CFrame.new(1.5, 3, 0), skin),
-	}
-	local head = part(parent, "Cabeca", Vector3.new(2, 1, 1), cf * CFrame.new(0, 4.5, 0), skin)
+-- NPC com avatar no estilo Roblox (cabeca, tronco, bracos, pernas, cabelo, chapeu, roupa)
+local function buildNpc(parent: Instance, cf: CFrame, look, name: string, role: string)
+	local npc = Instance.new("Model")
+	npc.Name = "NPC_" .. name
+	local pieces = {}
+	local function add(piece: BasePart)
+		piece.CanCollide = false
+		table.insert(pieces, piece)
+		return piece
+	end
+	local function at(x: number, y: number, z: number): CFrame
+		return cf * CFrame.new(x, y, z)
+	end
+	local skin = look.skin
+	-- pernas e sapatos
+	for _, x in { -0.5, 0.5 } do
+		add(part(npc, if x < 0 then "PernaEsquerda" else "PernaDireita", Vector3.new(1, 2, 1), at(x, 1, 0), look.pants))
+		add(part(npc, "Sapato", Vector3.new(1.05, 0.35, 1.15), at(x, 0.18, -0.05), look.shoes))
+	end
+	add(part(npc, "Tronco", Vector3.new(2, 2, 1), at(0, 3, 0), look.shirt))
+	add(part(npc, "BracoEsquerdo", Vector3.new(1, 2, 1), at(-1.5, 3, 0), look.sleeves or look.shirt))
+	add(part(npc, "BracoDireito", Vector3.new(1, 2, 1), at(1.5, 3, 0), look.sleeves or look.shirt))
+	for _, x in { -1.5, 1.5 } do
+		add(part(npc, "Mao", Vector3.new(0.95, 0.45, 0.95), at(x, 1.85, 0), skin))
+	end
+	local head = add(part(npc, "Cabeca", Vector3.new(2, 1, 1), at(0, 4.5, 0), skin))
 	local mesh = Instance.new("SpecialMesh")
 	mesh.MeshType = Enum.MeshType.Head
 	mesh.Scale = Vector3.new(1.25, 1.25, 1.25)
 	mesh.Parent = head
-	table.insert(pieces, head)
-	for _, x in { -0.3, 0.3 } do
-		table.insert(pieces, ball(parent, "Olho", Vector3.new(0.2, 0.25, 0.1), cf * CFrame.new(x, 4.6, -0.6), Color3.fromRGB(20, 20, 20)))
+	-- rosto
+	for _, x in { -0.25, 0.25 } do
+		add(ball(npc, "Olho", Vector3.new(0.2, 0.28, 0.08), at(x, 4.62, -0.6), BLACK))
+		add(ball(npc, "Brilho", Vector3.new(0.07, 0.08, 0.04), at(x + 0.04, 4.68, -0.64), WHITE))
+		add(part(npc, "Sobrancelha", Vector3.new(0.28, 0.06, 0.04), at(x, 4.86, -0.61), look.hair))
 	end
-	table.insert(pieces, part(parent, "Sorriso", Vector3.new(0.5, 0.1, 0.05), cf * CFrame.new(0, 4.25, -0.62), Color3.fromRGB(20, 20, 20)))
-	table.insert(pieces, part(parent, "Chapeu", Vector3.new(2.6, 0.2, 2.6), cf * CFrame.new(0, 5.2, 0), Color3.fromRGB(230, 200, 120)))
-	table.insert(pieces, part(parent, "TopoChapeu", Vector3.new(1.4, 0.6, 1.4), cf * CFrame.new(0, 5.5, 0), Color3.fromRGB(230, 200, 120)))
+	add(part(npc, "Sorriso", Vector3.new(0.36, 0.07, 0.04), at(0, 4.27, -0.62), BLACK))
+	for _, x in { -0.2, 0.2 } do
+		add(part(npc, "Sorriso", Vector3.new(0.1, 0.07, 0.04), at(x, 4.31, -0.62), BLACK))
+		add(ball(npc, "Bochecha", Vector3.new(0.2, 0.12, 0.04), at(x * 2.1, 4.4, -0.58), Color3.fromRGB(255, 160, 160)))
+	end
+	-- cabelo
+	if look.hairStyle ~= "bald" then
+		add(part(npc, "Cabelo", Vector3.new(1.32, 0.35, 1.3), at(0, 5.12, 0.02), look.hair))
+		add(part(npc, "Cabelo", Vector3.new(1.32, 0.9, 0.3), at(0, 4.72, 0.52), look.hair))
+		if look.hairStyle == "long" then
+			add(part(npc, "Cabelo", Vector3.new(1.45, 1.9, 0.35), at(0, 4.05, 0.58), look.hair))
+			for _, x in { -0.68, 0.68 } do
+				add(part(npc, "Cabelo", Vector3.new(0.18, 1.4, 0.9), at(x, 4.35, 0.12), look.hair))
+			end
+		end
+	end
+	if look.beard then
+		add(ball(npc, "Barba", Vector3.new(1.05, 0.65, 0.5), at(0, 4.1, -0.42), look.beard))
+		add(part(npc, "Bigode", Vector3.new(0.6, 0.12, 0.1), at(0, 4.36, -0.64), look.beard))
+	end
+	if look.glasses then
+		for _, x in { -0.25, 0.25 } do
+			local lens = add(ball(npc, "Lente", Vector3.new(0.38, 0.32, 0.05), at(x, 4.62, -0.66), Color3.fromRGB(40, 40, 50)))
+			lens.Transparency = 0.45
+		end
+		add(part(npc, "Armacao", Vector3.new(0.22, 0.05, 0.05), at(0, 4.64, -0.67), BLACK))
+	end
+	-- chapeu
+	if look.hat == "straw" then
+		add(cylinderPart(npc, "Chapeu", 0.12, 2.7, at(0, 5.28, 0), look.hatColor))
+		add(cylinderPart(npc, "Chapeu", 0.6, 1.4, at(0, 5.6, 0), look.hatColor))
+		add(cylinderPart(npc, "Fita", 0.16, 1.43, at(0, 5.38, 0), Color3.fromRGB(200, 60, 50)))
+	elseif look.hat == "hardhat" then
+		add(ball(npc, "Capacete", Vector3.new(1.5, 0.8, 1.5), at(0, 5.18, 0), look.hatColor))
+		add(cylinderPart(npc, "Aba", 0.08, 1.75, at(0, 4.98, 0), look.hatColor))
+	elseif look.hat == "cap" then
+		add(ball(npc, "Bone", Vector3.new(1.38, 0.62, 1.38), at(0, 5.15, 0), look.hatColor))
+		add(part(npc, "Aba", Vector3.new(1, 0.08, 0.65), at(0, 5, -0.78), look.hatColor))
+	elseif look.hat == "bow" then
+		for _, x in { -0.32, 0.32 } do
+			add(ball(npc, "Laco", Vector3.new(0.5, 0.42, 0.2), at(x, 5.32, 0.35), look.hatColor))
+		end
+		add(ball(npc, "Laco", Vector3.new(0.22, 0.22, 0.22), at(0, 5.32, 0.35), look.hatColor))
+	end
+	-- roupa por cima
+	if look.outfit == "overalls" then
+		add(part(npc, "Macacao", Vector3.new(1.5, 1.0, 0.12), at(0, 2.7, -0.52), look.outfitColor))
+		for _, x in { -0.55, 0.55 } do
+			add(part(npc, "Alca", Vector3.new(0.22, 1.1, 0.1), at(x, 3.45, -0.53), look.outfitColor))
+			add(ball(npc, "Botao", Vector3.new(0.12, 0.12, 0.05), at(x, 3.05, -0.6), Color3.fromRGB(240, 200, 60)))
+		end
+	elseif look.outfit == "apron" then
+		add(part(npc, "Avental", Vector3.new(1.6, 2.1, 0.1), at(0, 2.55, -0.55), look.outfitColor))
+		add(part(npc, "Bolso", Vector3.new(0.8, 0.4, 0.06), at(0, 2.2, -0.62), look.outfitColor:Lerp(Color3.new(0, 0, 0), 0.15)))
+	elseif look.outfit == "vest" then
+		for _, x in { -0.6, 0.6 } do
+			add(part(npc, "Colete", Vector3.new(0.75, 2, 0.1), at(x, 3, -0.53), look.outfitColor))
+			add(part(npc, "Faixa", Vector3.new(0.75, 0.12, 0.06), at(x, 2.6, -0.6), Color3.fromRGB(230, 230, 230)))
+		end
+		add(part(npc, "Cinto", Vector3.new(2.05, 0.25, 1.05), at(0, 2.1, 0), Color3.fromRGB(90, 60, 40)))
+	elseif look.outfit == "dress" then
+		add(part(npc, "Vestido", Vector3.new(2.3, 1.7, 1.3), at(0, 1.45, 0), look.outfitColor))
+	end
 	for _, piece in pieces do
-		piece.CanCollide = false
+		piece.CastShadow = true
 	end
-	billboard(head, name, WHITE, 2.5)
+	npc.PrimaryPart = head
+	npc:SetAttribute("Npc", name)
+	CollectionService:AddTag(npc, "LojaNpc")
+	npc.Parent = parent
+	billboard(head, name .. "\n" .. role, WHITE, 3)
+	return npc
 end
 
 local function buildStall(parent: Instance, info)
@@ -211,7 +315,7 @@ local function buildStall(parent: Instance, info)
 		ball(model, "Produto", Vector3.new(1, 1, 1), cf * CFrame.new(-5 + i * 1.7, 3.9, -3), color)
 	end
 
-	buildNpc(model, cf * CFrame.new(0, 0, 0.8), info.roofA, info.npc)
+	buildNpc(model, cf * CFrame.new(0, 0, 0.8), info.look, info.npc, info.title)
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "AbrirLoja"
@@ -248,6 +352,7 @@ local function buildLamp(parent: Instance, position: Vector3)
 	light.Brightness = 1.5
 	light.Color = Color3.fromRGB(255, 220, 160)
 	light.Parent = lamp
+	return light
 end
 
 local function setupLighting()
@@ -317,24 +422,48 @@ function MapBuilder.build()
 			position = Vector3.new(-40, 0, 30), rotation = 0,
 			roofA = Color3.fromRGB(70, 160, 60), roofB = Color3.fromRGB(240, 240, 230),
 			goods = { Color3.fromRGB(255, 140, 30), Color3.fromRGB(225, 30, 55), Color3.fromRGB(60, 80, 210) },
+			look = {
+				skin = Color3.fromRGB(255, 205, 160), hair = Color3.fromRGB(110, 70, 40), hairStyle = "short",
+				hat = "straw", hatColor = Color3.fromRGB(235, 205, 120),
+				shirt = Color3.fromRGB(90, 170, 70), pants = Color3.fromRGB(60, 90, 150), shoes = Color3.fromRGB(90, 60, 40),
+				outfit = "overalls", outfitColor = Color3.fromRGB(60, 90, 150),
+			},
 		},
 		{
 			id = "Sell", title = "Venda", npc = "Steven", action = "Vender frutos",
 			position = Vector3.new(40, 0, 30), rotation = 0,
 			roofA = Color3.fromRGB(230, 170, 30), roofB = Color3.fromRGB(240, 240, 230),
 			goods = { Color3.fromRGB(255, 205, 40), Color3.fromRGB(255, 230, 120) },
+			look = {
+				skin = Color3.fromRGB(240, 190, 150), hair = Color3.fromRGB(240, 210, 110), hairStyle = "short",
+				hat = "cap", hatColor = Color3.fromRGB(230, 170, 30), glasses = true,
+				shirt = Color3.fromRGB(70, 130, 210), pants = Color3.fromRGB(90, 90, 100), shoes = Color3.fromRGB(40, 40, 45),
+				outfit = "apron", outfitColor = Color3.fromRGB(245, 205, 70),
+			},
 		},
 		{
-			id = "Gear", title = "Equipamentos", npc = "Eloise", action = "Comprar equipamentos",
+			id = "Gear", title = "Equipamentos", npc = "George", action = "Comprar equipamentos",
 			position = Vector3.new(-40, 0, -30), rotation = math.pi,
 			roofA = Color3.fromRGB(60, 120, 210), roofB = Color3.fromRGB(240, 240, 230),
 			goods = { Color3.fromRGB(80, 140, 230), Color3.fromRGB(170, 170, 180) },
+			look = {
+				skin = Color3.fromRGB(230, 180, 140), hair = Color3.fromRGB(150, 150, 150), hairStyle = "short",
+				hat = "hardhat", hatColor = Color3.fromRGB(250, 200, 40), beard = Color3.fromRGB(170, 170, 170),
+				shirt = Color3.fromRGB(110, 110, 120), pants = Color3.fromRGB(50, 50, 60), shoes = Color3.fromRGB(70, 50, 35),
+				outfit = "vest", outfitColor = Color3.fromRGB(250, 130, 40),
+			},
 		},
 		{
-			id = "Eggs", title = "Ovos & Pets", npc = "Ray", action = "Comprar ovos",
+			id = "Eggs", title = "Ovos & Pets", npc = "Eloise", action = "Comprar ovos",
 			position = Vector3.new(40, 0, -30), rotation = math.pi,
 			roofA = Color3.fromRGB(200, 90, 200), roofB = Color3.fromRGB(240, 240, 230),
 			goods = { Color3.fromRGB(240, 235, 220), Color3.fromRGB(150, 230, 140), Color3.fromRGB(120, 170, 255) },
+			look = {
+				skin = Color3.fromRGB(255, 215, 185), hair = Color3.fromRGB(250, 140, 190), hairStyle = "long",
+				hat = "bow", hatColor = Color3.fromRGB(255, 255, 255),
+				shirt = Color3.fromRGB(250, 240, 250), sleeves = Color3.fromRGB(170, 90, 210), pants = Color3.fromRGB(170, 90, 210), shoes = Color3.fromRGB(250, 250, 250),
+				outfit = "dress", outfitColor = Color3.fromRGB(170, 90, 210),
+			},
 		},
 	}
 	local locations = {}
@@ -350,9 +479,10 @@ function MapBuilder.build()
 	decor.Name = "Decoracao"
 	decor.Parent = map
 	-- postes entre as entradas dos jardins (x = -140, -100, ..., 140)
+	local lights = {}
 	for x = -140, 140, 40 do
 		for _, z in { -19, 19 } do
-			buildLamp(decor, Vector3.new(x, 0, z))
+			table.insert(lights, buildLamp(decor, Vector3.new(x, 0, z)))
 		end
 	end
 	for x = -180, 180, 30 do
@@ -385,6 +515,7 @@ function MapBuilder.build()
 		plots = plots,
 		locations = locations,
 		shopPositions = shopPositions,
+		lights = lights,
 	}
 end
 

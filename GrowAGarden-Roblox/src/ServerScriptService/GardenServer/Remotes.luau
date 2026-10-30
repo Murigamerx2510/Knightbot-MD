@@ -30,6 +30,7 @@ Remotes.RequestState = make("RemoteEvent", "RequestState") :: RemoteEvent
 Remotes.Buy = make("RemoteFunction", "Buy") :: RemoteFunction
 Remotes.Sell = make("RemoteFunction", "Sell") :: RemoteFunction
 Remotes.PetAction = make("RemoteFunction", "PetAction") :: RemoteFunction
+Remotes.QuestAction = make("RemoteFunction", "QuestAction") :: RemoteFunction
 
 folder.Parent = ReplicatedStorage
 

@@ -7,6 +7,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
 local DataService = require(script.Parent.DataService)
+local QuestService = require(script.Parent.QuestService)
 local Sync = require(script.Parent.Sync)
 
 local ShopService = {}
@@ -113,11 +114,13 @@ function ShopService.sell(player: Player, mode: any, index: any, seedId: any, we
 		end
 		local total = 0
 		for _, fruit in data.fruits do
-			total += Formulas.fruitValue(fruit.s, fruit.w, fruit.m, bonuses.Sell)
+			total += Formulas.fruitValue(fruit.s, fruit.w, fruit.m, bonuses.Sell, fruit.v)
 		end
 		table.clear(data.fruits)
 		data.sheckles += total
 		data.stats.earned += total
+		data.stats.sold += count
+		QuestService.progress(player, "sell", count)
 		Sync.markDirty(player)
 		return true, string.format("Vendeu %d fruto(s) por %s!", count, Formulas.formatMoney(total))
 	elseif mode == "one" then
@@ -128,12 +131,14 @@ function ShopService.sell(player: Player, mode: any, index: any, seedId: any, we
 		if not fruit or fruit.s ~= seedId or fruit.w ~= weight then
 			return false, "Fruto não encontrado. Tente de novo."
 		end
-		local value = Formulas.fruitValue(fruit.s, fruit.w, fruit.m, bonuses.Sell)
+		local value = Formulas.fruitValue(fruit.s, fruit.w, fruit.m, bonuses.Sell, fruit.v)
 		table.remove(data.fruits, index)
 		data.sheckles += value
 		data.stats.earned += value
+		data.stats.sold += 1
+		QuestService.progress(player, "sell", 1)
 		Sync.markDirty(player)
-		return true, string.format("Vendeu %s por %s!", Config.Seeds[fruit.s].name, Formulas.formatMoney(value))
+		return true, string.format("Vendeu %s por %s!", Formulas.fruitName(fruit.s, fruit.v), Formulas.formatMoney(value))
 	end
 	return false, "Pedido inválido."
 end

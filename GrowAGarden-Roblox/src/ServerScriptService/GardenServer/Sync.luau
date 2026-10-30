@@ -44,12 +44,30 @@ local function buildSnapshot(player: Player, data)
 			s = fruit.s,
 			w = fruit.w,
 			m = fruit.m,
-			v = Formulas.fruitValue(fruit.s, fruit.w, fruit.m, bonuses.Sell),
+			v = fruit.v,
+			sz = Formulas.sizeClass(fruit.s, fruit.w),
+			val = Formulas.fruitValue(fruit.s, fruit.w, fruit.m, bonuses.Sell, fruit.v),
 		})
 	end
 	local pets = {}
 	for _, pet in data.pets do
-		table.insert(pets, { id = pet.id, p = pet.p, eq = table.find(data.equippedPets, pet.id) ~= nil })
+		local info = Config.Pets[pet.p]
+		local strength = Formulas.petStrength(pet)
+		local level = Formulas.petLevel(pet.xp)
+		local abilities = {}
+		for _, ability in info.abilities do
+			table.insert(abilities, Formulas.abilityText(ability, strength))
+		end
+		table.insert(pets, {
+			id = pet.id,
+			p = pet.p,
+			v = pet.v or "",
+			lvl = level,
+			xp = math.floor(pet.xp or 0),
+			nextXp = if level < Config.PetMaxLevel then Formulas.petXpForLevel(level + 1) else 0,
+			ab = abilities,
+			eq = table.find(data.equippedPets, pet.id) ~= nil,
+		})
 	end
 	local snapshot = {
 		sheckles = data.sheckles,
@@ -57,8 +75,17 @@ local function buildSnapshot(player: Player, data)
 		gear = data.gear,
 		eggs = data.eggs,
 		fruits = fruits,
+		capacity = Config.MaxFruitsInInventory + math.max(0, bonuses.Inventory),
 		pets = pets,
-		bonuses = bonuses,
+		bonuses = {
+			Growth = bonuses.Growth,
+			Sell = bonuses.Sell,
+			Luck = bonuses.Luck,
+			NightLuck = bonuses.NightLuck,
+			Gold = bonuses.Gold,
+			Rainbow = bonuses.Rainbow,
+			Size = bonuses.Size,
+		},
 		stock = { seeds = data.stock.seeds, gear = data.stock.gear, eggs = data.stock.eggs },
 		restockAt = (data.stock.window + 1) * Config.RestockInterval,
 		plantCount = #data.plants,

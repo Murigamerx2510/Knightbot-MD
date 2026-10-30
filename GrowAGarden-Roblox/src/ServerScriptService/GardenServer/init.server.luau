@@ -11,18 +11,40 @@ local DataService = require(script.DataService)
 local MapBuilder = require(script.MapBuilder)
 local Sync = require(script.Sync)
 local PetService = require(script.PetService)
+local QuestService = require(script.QuestService)
 local GardenService = require(script.GardenService)
 local ShopService = require(script.ShopService)
+local DayNightService = require(script.DayNightService)
 local WeatherService = require(script.WeatherService)
+local StealService = require(script.StealService)
 
 local map = MapBuilder.build()
 GardenService.init(map)
 ShopService.init(map)
 
+-- ligacoes entre servicos
+GardenService.hooks.steal = StealService.trySteal
+GardenService.hooks.bonk = StealService.bonk
+GardenService.hooks.snipe = StealService.snipe
+GardenService.hooks.consume = StealService.consume
+GardenService.hooks.weatherTrigger = function(weatherId)
+	WeatherService.trigger(weatherId)
+end
+PetService.onChanged(GardenService.invalidateBonuses)
+Sync.addProvider(function(player, snapshot)
+	local data = DataService.get(player)
+	if data then
+		QuestService.ensure(player, data)
+		snapshot.quests = QuestService.snapshot(data)
+	end
+end)
+
 Sync.start()
 GardenService.start()
 ShopService.start()
+DayNightService.start(map)
 WeatherService.start()
+StealService.start()
 
 ---------------------------------------------------------------------
 -- Jogadores
@@ -50,6 +72,21 @@ local function onCharacterAdded(player: Player, character: Model)
 	Sync.markDirty(player) -- recria as ferramentas na mochila nova
 end
 
+local function findWeather(name: string)
+	for _, weather in Config.WeatherList do
+		if string.lower(weather.id) == name or string.lower(weather.name) == name then
+			return weather
+		end
+	end
+	-- aceita nomes com espaco digitados juntos ("luadesangue")
+	for _, weather in Config.WeatherList do
+		if string.gsub(string.lower(weather.name), " ", "") == name then
+			return weather
+		end
+	end
+	return nil
+end
+
 local function handleCommand(player: Player, message: string)
 	local data = DataService.get(player)
 	if not data then
@@ -62,22 +99,37 @@ local function handleCommand(player: Player, message: string)
 		data.sheckles += math.floor(amount)
 		Sync.notify(player, "[Teste] +" .. amount .. " Sheckles", "info")
 	elseif command == "/clima" then
-		local wanted = words[2] or ""
+		local wanted = table.concat(words, "", 2)
 		if wanted == "parar" then
 			WeatherService.stopEvent()
 		else
-			for _, weather in Config.WeatherList do
-				if string.lower(weather.id) == wanted or string.lower(weather.name) == wanted then
-					WeatherService.startEvent(weather.id)
-				end
+			local weather = findWeather(wanted)
+			if weather then
+				WeatherService.startEvent(weather.id)
+			else
+				Sync.notify(player, "[Teste] Clima não encontrado. Ex.: /clima chuva, /clima luadesangue, /clima eclipse", "error")
 			end
 		end
+	elseif command == "/noite" then
+		DayNightService.skipTo("Night")
+		Sync.notify(player, "[Teste] Virou noite!", "info")
+	elseif command == "/dia" then
+		DayNightService.skipTo("Day")
+		Sync.notify(player, "[Teste] Virou dia!", "info")
 	elseif command == "/crescer" then
 		GardenService.growAll(player)
 		Sync.notify(player, "[Teste] Todas as plantas cresceram!", "info")
 	elseif command == "/estoque" then
 		ShopService.fillStock(data)
 		Sync.notify(player, "[Teste] Estoque das lojas cheio!", "info")
+	elseif command == "/pet" then
+		local wanted = words[2] or ""
+		for _, pet in Config.PetList do
+			if string.lower(pet.id) == wanted or string.lower(pet.name) == wanted then
+				PetService.addPet(player, data, pet.id, words[3] and string.upper(string.sub(words[3], 1, 1)) .. string.sub(words[3], 2) or nil)
+				Sync.notify(player, "[Teste] Pet " .. pet.name .. " adicionado!", "info")
+			end
+		end
 	end
 	Sync.markDirty(player)
 end
@@ -108,6 +160,7 @@ local function onPlayerAdded(player: Player)
 	end
 	ShopService.ensureStock(data)
 	PetService.setup(player, data)
+	QuestService.ensure(player, data)
 	if not GardenService.assignPlot(player, data) then
 		DataService.release(player)
 		player:Kick("Este servidor está cheio (máximo de 6 jardins). Tente outro servidor!")
@@ -119,7 +172,7 @@ local function onPlayerAdded(player: Player)
 		Sync.notify(player, "⚠️ Salvamento indisponível: seu progresso NÃO será salvo nesta sessão.", "error")
 	end
 	if RunService:IsStudio() then
-		Sync.notify(player, "Modo Studio: comandos /sheckles 1000, /crescer, /estoque, /clima chuva", "info")
+		Sync.notify(player, "Modo Studio: /sheckles 1000, /crescer, /estoque, /noite, /dia, /clima chuva, /pet unicornio", "info")
 		player.Chatted:Connect(function(message)
 			handleCommand(player, message)
 		end)
@@ -172,6 +225,7 @@ end
 Remotes.Buy.OnServerInvoke = safe(ShopService.buy)
 Remotes.Sell.OnServerInvoke = safe(ShopService.sell)
 Remotes.PetAction.OnServerInvoke = safe(PetService.handleAction)
+Remotes.QuestAction.OnServerInvoke = safe(QuestService.claim)
 
 Remotes.UseItem.OnServerEvent:Connect(function(player, kind, id, position)
 	GardenService.useItem(player, kind, id, position)
@@ -180,6 +234,10 @@ end)
 local lastTeleport: { [Player]: number } = {}
 Remotes.Teleport.OnServerEvent:Connect(function(player, place)
 	if type(place) ~= "string" then
+		return
+	end
+	if StealService.isCarrying(player) then
+		Sync.notify(player, "Você não pode se teletransportar carregando um fruto roubado!", "error")
 		return
 	end
 	local now = os.clock()

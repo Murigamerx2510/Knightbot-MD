@@ -44,7 +44,7 @@ end
 
 function DataService.defaultData()
 	return {
-		version = 1,
+		version = 2,
 		sheckles = Config.StartingSheckles,
 		seeds = deepCopy(Config.StartingSeeds),
 		gear = {},
@@ -52,13 +52,26 @@ function DataService.defaultData()
 		fruits = {},
 		plants = {},
 		sprinklers = {},
+		props = {},
 		placedEggs = {},
 		pets = {},
 		equippedPets = {},
 		stock = { window = -1, seeds = {}, gear = {}, eggs = {} },
+		quests = { day = -1, list = {} },
 		nextId = 1,
-		stats = { harvested = 0, earned = 0, planted = 0 },
+		stats = { harvested = 0, earned = 0, planted = 0, sold = 0, stolen = 0, stolenFrom = 0, hatched = 0, merged = 0 },
 	}
+end
+
+-- Troca ids antigos (de versoes anteriores) pelos novos
+local function migrateIds(map: { [string]: any }, legacy: { [string]: string })
+	for oldId, newId in legacy do
+		local count = map[oldId]
+		if type(count) == "number" then
+			map[oldId] = nil
+			map[newId] = (map[newId] or 0) + count
+		end
+	end
 end
 
 -- Garante que dados antigos tenham todos os campos novos
@@ -70,13 +83,15 @@ local function reconcile(data)
 			data[key] = deepCopy(value)
 		end
 	end
-	for _, key in { "stock", "stats" } do
+	for _, key in { "stock", "stats", "quests" } do
 		for subKey, value in template[key] do
 			if data[key][subKey] == nil then
 				data[key][subKey] = deepCopy(value)
 			end
 		end
 	end
+	migrateIds(data.gear, Config.LegacyIds.gear)
+	migrateIds(data.seeds, Config.LegacyIds.seeds)
 	for _, key in { "seeds", "gear", "eggs" } do
 		for id, count in data[key] do
 			if type(count) ~= "number" or count <= 0 then
@@ -101,6 +116,9 @@ local function reconcile(data)
 	end
 	for i = #data.plants, 1, -1 do
 		local plant = data.plants[i]
+		if type(plant) == "table" and Config.LegacyIds.seeds[plant.s] then
+			plant.s = Config.LegacyIds.seeds[plant.s]
+		end
 		local seed = type(plant) == "table" and Config.Seeds[plant.s]
 		local valid = seed
 			and type(plant.x) == "number"
@@ -111,10 +129,28 @@ local function reconcile(data)
 			table.remove(data.plants, i)
 		else
 			plant.b = if type(plant.b) == "number" then plant.b else 0
+			if plant.v ~= nil and type(plant.v) ~= "string" then
+				plant.v = nil
+			end
+			local fruits = if seed.multiHarvest then plant.slots else { plant.f }
+			for _, fruit in fruits do
+				if type(fruit.m) ~= "table" then
+					fruit.m = {}
+				end
+				if type(fruit.w) ~= "number" then
+					fruit.w = seed.baseWeight
+				end
+				if type(fruit.a) ~= "number" then
+					fruit.a = 0
+				end
+			end
 		end
 	end
 	for i = #data.fruits, 1, -1 do
 		local fruit = data.fruits[i]
+		if type(fruit) == "table" and Config.LegacyIds.seeds[fruit.s] then
+			fruit.s = Config.LegacyIds.seeds[fruit.s]
+		end
 		if type(fruit) ~= "table" or not Config.Seeds[fruit.s] or type(fruit.w) ~= "number" then
 			table.remove(data.fruits, i)
 		elseif type(fruit.m) ~= "table" then
@@ -123,8 +159,17 @@ local function reconcile(data)
 	end
 	for i = #data.sprinklers, 1, -1 do
 		local sprinkler = data.sprinklers[i]
+		if type(sprinkler) == "table" and Config.LegacyIds.gear[sprinkler.g] then
+			sprinkler.g = Config.LegacyIds.gear[sprinkler.g]
+		end
 		if type(sprinkler) ~= "table" or not Config.Gear[sprinkler.g] then
 			table.remove(data.sprinklers, i)
+		end
+	end
+	for i = #data.props, 1, -1 do
+		local prop = data.props[i]
+		if type(prop) ~= "table" or not Config.Gear[prop.g] then
+			table.remove(data.props, i)
 		end
 	end
 	for i = #data.placedEggs, 1, -1 do
@@ -135,13 +180,24 @@ local function reconcile(data)
 	end
 	for i = #data.pets, 1, -1 do
 		local pet = data.pets[i]
+		if type(pet) == "table" and Config.LegacyIds.pets[pet.p] then
+			pet.p = Config.LegacyIds.pets[pet.p]
+		end
 		if type(pet) ~= "table" or not Config.Pets[pet.p] then
 			table.remove(data.pets, i)
+		else
+			pet.xp = if type(pet.xp) == "number" then pet.xp else 0
+			if pet.v ~= nil and type(pet.v) ~= "string" then
+				pet.v = nil
+			end
 		end
+	end
+	if type(data.quests.list) ~= "table" then
+		data.quests.list = {}
 	end
 	-- o maior id em uso define o proximo id livre
 	local maxId = 0
-	for _, list in { data.plants, data.sprinklers, data.placedEggs, data.pets } do
+	for _, list in { data.plants, data.sprinklers, data.props, data.placedEggs, data.pets } do
 		for _, item in list do
 			if type(item.id) == "number" then
 				maxId = math.max(maxId, item.id)
@@ -149,6 +205,7 @@ local function reconcile(data)
 		end
 	end
 	data.nextId = math.max(data.nextId, maxId + 1)
+	data.version = 2
 	return data
 end
 

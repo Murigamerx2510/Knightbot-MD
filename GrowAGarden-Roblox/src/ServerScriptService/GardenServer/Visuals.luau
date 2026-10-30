@@ -1,28 +1,39 @@
--- Visuals: constroi os modelos 3D de plantas, frutos, sprinklers e ovos.
+-- Visuals: constroi os modelos 3D de plantas, brotos, frutos, sprinklers, ovos,
+-- lanternas, gnomos e os efeitos (raios, meteoros, estrelas, tornado, tiros das defesas).
 --
 -- Modelos feitos no Blender: importe-os para ReplicatedStorage/Modelos com os nomes
 --   Planta_<IdDaSemente>  (ex.: Planta_Carrot)  -> corpo da planta
 --   Fruto_<IdDaSemente>   (ex.: Fruto_Apple)    -> fruto de plantas de varias colheitas
---   Sprinkler_<IdDoItem>  (ex.: Sprinkler_BasicSprinkler)
+--   Sprinkler_<IdDoItem>  (ex.: Sprinkler_CommonSprinkler)
 --   Ovo_<IdDoOvo>         (ex.: Ovo_CommonEgg)
+--   Gnomo, Lanterna
 -- Se o modelo nao existir, o jogo cria um modelo com Parts automaticamente.
--- Partes cujo nome contem "Produto" mudam de cor com as mutacoes.
+-- Partes cujo nome contem "Produto" mudam de cor com as mutacoes e ao amadurecer.
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
-local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared:WaitForChild("Config"))
+local Formulas = require(Shared:WaitForChild("Formulas"))
 
 local Visuals = {}
 
 local STEM_COLOR = Color3.fromRGB(85, 140, 60)
 local WOOD_COLOR = Color3.fromRGB(115, 78, 48)
 local WHITE = Color3.fromRGB(255, 255, 255)
-
--- Mutacoes de clima so "tingem" a cor original do fruto
-local BLEND = { Wet = 0.45, Chilled = 0.55 }
+local BLACK = Color3.fromRGB(20, 20, 20)
+local DIRT = Color3.fromRGB(110, 72, 45)
+local RAINBOW = {
+	Color3.fromRGB(255, 70, 70),
+	Color3.fromRGB(255, 160, 50),
+	Color3.fromRGB(255, 230, 60),
+	Color3.fromRGB(90, 220, 90),
+	Color3.fromRGB(70, 150, 255),
+	Color3.fromRGB(170, 90, 255),
+}
 
 local function basePart(parent: Instance, name: string, size: Vector3, cf: CFrame, color: Color3, shape: Enum.PartType?): Part
 	local part = Instance.new("Part")
@@ -66,6 +77,32 @@ local function markProduce(part: BasePart)
 	part:SetAttribute("Produce", true)
 	part:SetAttribute("BaseColor", part.Color)
 	part:SetAttribute("BaseMaterial", part.Material.Name)
+end
+
+local function addLight(part: BasePart, color: Color3, range: number, brightness: number)
+	local light = Instance.new("PointLight")
+	light.Color = color
+	light.Range = range
+	light.Brightness = brightness
+	light.Parent = part
+	return light
+end
+
+-- Petalas caindo da copa (Cerejeira)
+local function addPetals(part: BasePart)
+	local petals = Instance.new("ParticleEmitter")
+	petals.Name = "Petalas"
+	petals.Color = ColorSequence.new(Color3.fromRGB(255, 190, 220))
+	petals.Size = NumberSequence.new(0.18)
+	petals.Lifetime = NumberRange.new(3, 4.5)
+	petals.Speed = NumberRange.new(0.5, 1.2)
+	petals.SpreadAngle = Vector2.new(180, 180)
+	petals.Acceleration = Vector3.new(0.6, -1.4, 0.3)
+	petals.Rotation = NumberRange.new(0, 360)
+	petals.RotSpeed = NumberRange.new(-60, 60)
+	petals.Rate = 5
+	petals.Parent = part
+	return petals
 end
 
 Visuals.block = block
@@ -144,6 +181,40 @@ local function fromLibrary(name: string, targetSize: number, useHeight: boolean,
 	end
 	normalize(model, targetSize, useHeight, baseAtBottom)
 	return model
+end
+
+-- Marca as partes "Produto" de um modelo importado (se nao houver nenhuma e
+-- markAllIfNone for true, o modelo inteiro conta como fruto).
+-- A textura do Blender fica guardada no atributo "Texture": ela aparece no fruto maduro
+-- e some quando o fruto precisa de outra cor (verde, variante ou mutacao).
+local function markLibraryProduce(model: Model, markAllIfNone: boolean, color: Color3)
+	local parts = {}
+	for _, descendant in model:GetDescendants() do
+		if descendant:IsA("BasePart") and string.find(string.lower(descendant.Name), "produto", 1, true) then
+			table.insert(parts, descendant)
+		end
+	end
+	if #parts == 0 and markAllIfNone then
+		for _, descendant in model:GetDescendants() do
+			if descendant:IsA("BasePart") then
+				table.insert(parts, descendant)
+			end
+		end
+	end
+	for _, part in parts do
+		if part:IsA("MeshPart") and part.TextureID ~= "" then
+			part:SetAttribute("Texture", part.TextureID)
+		end
+		part.Color = color
+		markProduce(part)
+	end
+end
+
+local function showTexture(part: BasePart, visible: boolean)
+	local texture = part:GetAttribute("Texture")
+	if part:IsA("MeshPart") and type(texture) == "string" then
+		part.TextureID = if visible then texture else ""
+	end
 end
 
 ---------------------------------------------------------------------
@@ -254,6 +325,11 @@ function builders.cactus(model: Model, seed)
 		cylinder(model, "Braco", h * 0.22, h * 0.13, CFrame.new(side * h * 0.25, armY + h * 0.1, 0), color)
 		sphere(model, "Braco", Vector3.new(h * 0.13, h * 0.13, h * 0.13), CFrame.new(side * h * 0.25, armY + h * 0.21, 0), color)
 	end
+	-- espinhos
+	for i = 1, 8 do
+		local cf = CFrame.new(0, h * (0.15 + 0.07 * i), 0) * CFrame.Angles(0, i * 2.4, 0) * CFrame.new(h * 0.13, 0, 0)
+		block(model, "Espinho", Vector3.new(0.18, 0.04, 0.04), cf, Color3.fromRGB(245, 240, 200))
+	end
 end
 
 function builders.mushroom(model: Model, seed)
@@ -284,22 +360,224 @@ function builders.beanstalk(model: Model, seed)
 	end
 end
 
--- Marca as partes "Produto" de um modelo importado (se nao houver nenhuma e
--- markAllIfNone for true, o modelo inteiro conta como fruto)
-local function markLibraryProduce(model: Model, markAllIfNone: boolean)
-	local found = false
-	for _, descendant in model:GetDescendants() do
-		if descendant:IsA("BasePart") and string.find(string.lower(descendant.Name), "produto", 1, true) then
-			markProduce(descendant)
-			found = true
-		end
+-- Trepadeira em trelica de madeira (Uva, Feijao Verde, Hera Venenosa)
+function builders.vine(model: Model, seed)
+	local h = seed.height
+	for _, x in { -0.9, 0.9 } do
+		local post = cylinder(model, "Estaca", h, 0.15, CFrame.new(x, h / 2, 0), WOOD_COLOR)
+		post.Material = Enum.Material.Wood
 	end
-	if not found and markAllIfNone then
-		for _, descendant in model:GetDescendants() do
-			if descendant:IsA("BasePart") then
-				markProduce(descendant)
+	for _, y in { 0.4, 0.7, 0.95 } do
+		local bar = block(model, "Trelica", Vector3.new(1.9, 0.08, 0.08), CFrame.new(0, h * y, 0), WOOD_COLOR)
+		bar.Material = Enum.Material.Wood
+	end
+	for i = 1, 3 do
+		local cf = CFrame.new(-0.6 + (i - 1) * 0.6, h * 0.45, 0) * CFrame.Angles(0, 0, math.rad(if i % 2 == 0 then 12 else -12))
+		cylinder(model, "Ramo", h * 0.9, 0.09, cf, STEM_COLOR)
+	end
+	for i = 1, 12 do
+		local x = -0.8 + ((i * 0.37) % 1) * 1.6
+		local y = h * (0.25 + ((i * 0.53) % 1) * 0.7)
+		local z = if i % 2 == 0 then 0.12 else -0.12
+		sphere(model, "Folha", Vector3.new(0.45, 0.35, 0.12), CFrame.new(x, y, z) * CFrame.Angles(0, 0, i), seed.leafColor:Lerp(WHITE, (i % 3) * 0.05))
+	end
+end
+
+-- Samambaia (Samambaia de Fogo)
+function builders.fern(model: Model, seed)
+	local h = seed.height
+	sphere(model, "Base", Vector3.new(0.7, 0.3, 0.7), CFrame.new(0, 0.1, 0), seed.leafColor:Lerp(Color3.new(0, 0, 0), 0.3))
+	for i = 1, 8 do
+		local tilt = if i % 2 == 0 then 35 else 55
+		local cf = CFrame.Angles(0, i * math.pi / 4, 0) * CFrame.Angles(math.rad(tilt), 0, 0) * CFrame.new(0, h * 0.35, 0)
+		sphere(model, "Fronde", Vector3.new(0.35, h * 0.7, 0.08), cf, seed.leafColor)
+		local tip = sphere(model, "Ponta", Vector3.new(0.18, 0.18, 0.18), cf * CFrame.new(0, h * 0.35, 0), seed.fruitColor)
+		tip.Material = Enum.Material.Neon
+	end
+end
+
+-- Dioneia: hastes com "bocas" que mordem ladroes
+local TRAP_COUNT = 5
+function builders.flytrap(model: Model, seed)
+	local h = seed.height
+	sphere(model, "Base", Vector3.new(1.2, 0.3, 1.2), CFrame.new(0, 0.12, 0), seed.leafColor:Lerp(Color3.new(0, 0, 0), 0.2))
+	for k = 0, TRAP_COUNT - 1 do
+		local angle = k * (math.pi * 2 / TRAP_COUNT) + 0.4
+		local headPos = Vector3.new(math.cos(angle) * h * 0.36, h * 0.72, math.sin(angle) * h * 0.36)
+		local stemMid = headPos / 2
+		local stem = block(model, "Haste", Vector3.new(0.12, 0.12, headPos.Magnitude), CFrame.lookAt(stemMid, headPos, Vector3.xAxis), STEM_COLOR)
+		stem.Name = "Haste"
+		local head = CFrame.lookAt(headPos, headPos + Vector3.new(math.cos(angle), 0.3, math.sin(angle)), Vector3.yAxis)
+		for _, side in { 1, -1 } do
+			local jaw = head * CFrame.Angles(math.rad(25 * side), 0, 0) * CFrame.new(0, 0.18 * side, -0.2)
+			sphere(model, "Mandibula", Vector3.new(0.7, 0.18, 0.6), jaw, seed.leafColor)
+			sphere(model, "Boca", Vector3.new(0.6, 0.1, 0.5), jaw * CFrame.new(0, -0.05 * side, 0), Color3.fromRGB(200, 40, 50))
+			for t = 1, 4 do
+				block(model, "Dente", Vector3.new(0.05, 0.16, 0.05), jaw * CFrame.new(-0.27 + t * 0.11, 0.08 * side, -0.3), WHITE)
 			end
 		end
+	end
+end
+
+-- Flor gigante brilhante (Flor da Lua, Flor do Sol, Flor do Eclipse, Flor Hipnotica, Semente Arco-iris)
+function builders.bloom(model: Model, seed)
+	local h = seed.height
+	cylinder(model, "Caule", h * 0.6, 0.3, CFrame.new(0, h * 0.3, 0), STEM_COLOR)
+	for i = 1, 2 do
+		local cf = CFrame.new(0, h * 0.15, 0) * CFrame.Angles(0, i * math.pi + 0.5, 0) * CFrame.Angles(math.rad(60), 0, 0) * CFrame.new(0, h * 0.18, 0)
+		sphere(model, "Folha", Vector3.new(0.9, h * 0.45, 0.12), cf, seed.leafColor)
+	end
+	local headY = h * 0.66
+	local special = seed.special or {}
+	for i = 1, 8 do
+		local petalColor = if special.rainbowPetals then RAINBOW[(i - 1) % #RAINBOW + 1] else seed.fruitColor:Lerp(WHITE, 0.25)
+		local cf = CFrame.new(0, headY, 0) * CFrame.Angles(0, i * math.pi / 4, 0) * CFrame.Angles(math.rad(60), 0, 0) * CFrame.new(0, h * 0.16, 0)
+		sphere(model, "Petala", Vector3.new(h * 0.16, h * 0.32, 0.1), cf, petalColor)
+	end
+	local center = sphere(model, "Centro", Vector3.new(h * 0.18, h * 0.12, h * 0.18), CFrame.new(0, headY + 0.05, 0), seed.fruitColor)
+	center.Material = Enum.Material.Neon
+	if special.glow then
+		addLight(center, seed.fruitColor, 12, 1.5)
+	end
+end
+
+-- Girassol
+function builders.sunflower(model: Model, seed)
+	local h = seed.height
+	cylinder(model, "Caule", h * 0.85, 0.28, CFrame.new(0, h * 0.425, 0), STEM_COLOR)
+	for i = 1, 3 do
+		local cf = CFrame.new(0, h * (0.2 + 0.18 * i), 0) * CFrame.Angles(0, i * 2.2, 0) * CFrame.Angles(math.rad(55), 0, 0) * CFrame.new(0, 0.4, 0)
+		sphere(model, "Folha", Vector3.new(0.6, 0.9, 0.08), cf, seed.leafColor)
+	end
+	local head = CFrame.new(0, h * 0.88, 0) * CFrame.Angles(math.rad(-15), 0, 0)
+	cylinder(model, "Miolo", 0.25, h * 0.26, head * CFrame.Angles(math.pi / 2, 0, 0), Color3.fromRGB(110, 70, 30))
+	for i = 1, 12 do
+		local cf = head * CFrame.Angles(0, 0, i * math.pi / 6) * CFrame.new(0, h * 0.2, 0)
+		sphere(model, "Petala", Vector3.new(h * 0.08, h * 0.16, 0.08), cf, Color3.fromRGB(255, 205, 40))
+	end
+end
+
+-- Cuspidor (Cuspidor de Veneno, Sopro do Dragao)
+function builders.spitter(model: Model, seed)
+	local h = seed.height
+	sphere(model, "Corpo", Vector3.new(h * 0.55, h * 0.5, h * 0.55), CFrame.new(0, h * 0.3, 0), seed.leafColor)
+	for i = 1, 4 do
+		local cf = CFrame.Angles(0, i * math.pi / 2 + 0.4, 0) * CFrame.Angles(math.rad(70), 0, 0) * CFrame.new(0, h * 0.25, 0)
+		sphere(model, "Folha", Vector3.new(0.5, h * 0.5, 0.1), cf, seed.leafColor:Lerp(Color3.new(0, 0, 0), 0.15))
+	end
+	local neck = CFrame.new(0, h * 0.62, -h * 0.08) * CFrame.Angles(math.rad(-35), 0, 0)
+	cylinder(model, "Pescoco", h * 0.35, h * 0.16, neck, seed.leafColor)
+	local mouth = neck * CFrame.new(0, h * 0.2, 0)
+	cylinder(model, "Boca", 0.2, h * 0.22, mouth, seed.leafColor:Lerp(Color3.new(0, 0, 0), 0.25))
+	local inside = cylinder(model, "Garganta", 0.05, h * 0.15, mouth * CFrame.new(0, 0.11, 0), seed.fruitColor)
+	inside.Material = Enum.Material.Neon
+	for i = 1, 6 do
+		local cf = CFrame.new(0, h * 0.3, 0) * CFrame.Angles(0, i * 1.05, 0) * CFrame.Angles(0, 0, math.rad(-60)) * CFrame.new(0, h * 0.27, 0)
+		block(model, "Espinho", Vector3.new(0.12, 0.35, 0.12), cf, seed.fruitColor:Lerp(WHITE, 0.3))
+	end
+end
+
+-- Picole Foguete (fruto unico, colhido inteiro)
+function builders.popsicle(model: Model, seed)
+	local fs = seed.fruitSize
+	local stick = block(model, "Palito", Vector3.new(0.16, 0.7, 0.06), CFrame.new(0, 0.35, 0), Color3.fromRGB(220, 190, 130))
+	stick.Material = Enum.Material.Wood
+	local layer = fs.Y / 3
+	local colors = { Color3.fromRGB(60, 110, 230), WHITE, seed.fruitColor }
+	for i = 1, 3 do
+		local cf = CFrame.new(0, 0.7 + layer * (i - 0.5), 0)
+		markProduce(block(model, "Produto", Vector3.new(fs.X, layer, fs.Z), cf, colors[i]))
+	end
+	for i = 1, 2 do
+		local cf = CFrame.Angles(0, i * math.pi, 0) * CFrame.Angles(math.rad(50), 0, 0) * CFrame.new(0, 0.3, 0)
+		sphere(model, "Folha", Vector3.new(0.3, 0.6, 0.08), cf, seed.leafColor)
+	end
+end
+
+-- Abacaxi
+function builders.pineapple(model: Model, seed)
+	local h = seed.height
+	for i = 1, 10 do
+		local tilt = if i % 2 == 0 then 30 else 55
+		local cf = CFrame.Angles(0, i * math.pi / 5, 0) * CFrame.Angles(math.rad(tilt), 0, 0) * CFrame.new(0, h * 0.25, 0)
+		block(model, "Folha", Vector3.new(0.18, h * 0.5, 0.05), cf, seed.leafColor:Lerp(WHITE, (i % 3) * 0.06))
+	end
+	cylinder(model, "Caule", h * 0.3, 0.3, CFrame.new(0, h * 0.15, 0), seed.leafColor:Lerp(Color3.new(0, 0, 0), 0.2))
+end
+
+-- Cogumelos brilhantes
+function builders.glowshroom(model: Model, seed)
+	local h = seed.height
+	local spots = {
+		{ Vector3.new(0, 0, 0), 0.5, 1 },
+		{ Vector3.new(0.45, 0, 0.2), 0.35, 0.7 },
+		{ Vector3.new(-0.35, 0, -0.3), 0.25, 0.55 },
+	}
+	for index, info in spots do
+		local pos, stemHeight, capScale = info[1], h * info[2], info[3]
+		cylinder(model, "Caule", stemHeight, 0.22 * capScale + 0.1, CFrame.new(pos.X, stemHeight / 2, pos.Z), seed.leafColor)
+		local cap = sphere(model, "Chapeu", Vector3.new(0.9, 0.45, 0.9) * capScale, CFrame.new(pos.X, stemHeight, pos.Z), seed.fruitColor)
+		cap.Material = Enum.Material.Neon
+		if index == 1 then
+			addLight(cap, seed.fruitColor, 10, 1.2)
+		end
+	end
+end
+
+-- Cerejeira (Cherry Blossom): copa rosa com petalas caindo
+function builders.blossom(model: Model, seed)
+	local h = seed.height
+	local trunk1 = cylinder(model, "Tronco", h * 0.35, h * 0.09, CFrame.new(0, h * 0.175, 0) * CFrame.Angles(0, 0, math.rad(6)), Color3.fromRGB(90, 55, 40))
+	trunk1.Material = Enum.Material.Wood
+	local trunk2 = cylinder(model, "Tronco", h * 0.3, h * 0.07, CFrame.new(-h * 0.04, h * 0.45, 0) * CFrame.Angles(0, 0, math.rad(-10)), Color3.fromRGB(90, 55, 40))
+	trunk2.Material = Enum.Material.Wood
+	local canopy = sphere(model, "Copa", Vector3.new(h * 0.8, h * 0.5, h * 0.8), CFrame.new(0, h * 0.7, 0), seed.leafColor)
+	sphere(model, "Copa", Vector3.new(h * 0.5, h * 0.38, h * 0.5), CFrame.new(h * 0.25, h * 0.8, h * 0.05), seed.leafColor:Lerp(WHITE, 0.15))
+	sphere(model, "Copa", Vector3.new(h * 0.45, h * 0.35, h * 0.45), CFrame.new(-h * 0.24, h * 0.76, -h * 0.12), seed.leafColor:Lerp(Color3.fromRGB(255, 120, 170), 0.2))
+	addPetals(canopy)
+end
+
+-- Broto que aparece no inicio do crescimento
+function Visuals.buildSprout(seed): Model
+	local model = Instance.new("Model")
+	model.Name = "Broto"
+	sphere(model, "Monte", Vector3.new(0.9, 0.28, 0.9), CFrame.new(0, 0.05, 0), DIRT)
+	cylinder(model, "Caule", 0.4, 0.07, CFrame.new(0, 0.25, 0), STEM_COLOR)
+	for _, side in { 1, -1 } do
+		local cf = CFrame.new(0, 0.42, 0) * CFrame.Angles(0, 0, math.rad(35 * side)) * CFrame.new(0.14 * side, 0, 0)
+		sphere(model, "Folhinha", Vector3.new(0.3, 0.08, 0.18), cf, seed.leafColor)
+	end
+	model.WorldPivot = CFrame.new()
+	return model
+end
+
+local function decorate(model: Model, seed)
+	local special = seed.special or {}
+	if special.ghostly then
+		for _, part in Visuals.produceParts(model) do
+			part.Transparency = 0.35
+		end
+	end
+end
+
+-- Modelos do Blender: a parte "Brilho" ganha luz e a "Copa" da Cerejeira solta petalas
+local function decorateLibrary(model: Model, seed)
+	local glow, canopy = nil, nil
+	for _, descendant in model:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			local name = string.lower(descendant.Name)
+			if not glow and string.find(name, "brilho", 1, true) then
+				glow = descendant
+			elseif not canopy and string.find(name, "copa", 1, true) then
+				canopy = descendant
+			end
+		end
+	end
+	if glow then
+		addLight(glow, seed.fruitColor, 12, 1.5)
+	end
+	if canopy and (seed.special or {}).petals then
+		addPetals(canopy)
 	end
 end
 
@@ -308,13 +586,16 @@ function Visuals.buildPlant(seed): Model
 	local model = fromLibrary("Planta_" .. seed.id, seed.height, true, true)
 	if model then
 		model.Name = "Corpo"
-		markLibraryProduce(model, not seed.multiHarvest)
+		markLibraryProduce(model, not seed.multiHarvest, seed.fruitColor)
+		decorateLibrary(model, seed)
+		decorate(model, seed)
 		return model
 	end
 	model = Instance.new("Model")
 	model.Name = "Corpo"
 	local builder = builders[seed.plantType] or builders.bush
 	builder(model, seed)
+	decorate(model, seed)
 	model.WorldPivot = CFrame.new()
 	return model
 end
@@ -325,14 +606,35 @@ function Visuals.buildFruit(seed): Model
 	local model = fromLibrary("Fruto_" .. seed.id, math.max(fs.X, fs.Y, fs.Z), false, false)
 	if model then
 		model.Name = "Fruto"
-		markLibraryProduce(model, true)
+		markLibraryProduce(model, true, seed.fruitColor)
+		decorate(model, seed)
 		return model
 	end
 	model = Instance.new("Model")
 	model.Name = "Fruto"
-	local main = sphere(model, "Produto", fs, CFrame.new(), seed.fruitColor)
+	local main
+	if seed.id == "Grape" then
+		-- cacho de uvas
+		main = sphere(model, "Produto", fs * 0.55, CFrame.new(0, fs.Y * 0.15, 0), seed.fruitColor)
+		for i = 1, 5 do
+			local cf = CFrame.Angles(0, i * 1.26, 0) * CFrame.new(fs.X * 0.25, -fs.Y * 0.12 - (i % 2) * fs.Y * 0.12, 0)
+			markProduce(sphere(model, "Produto", fs * 0.4, cf, seed.fruitColor))
+		end
+	else
+		main = sphere(model, "Produto", fs, CFrame.new(), seed.fruitColor)
+	end
 	markProduce(main)
 	block(model, "Cabo", Vector3.new(0.1, 0.25, 0.1), CFrame.new(0, fs.Y / 2 + 0.08, 0), STEM_COLOR)
+	local special = seed.special or {}
+	if special.ghostly then
+		for _, part in Visuals.produceParts(model) do
+			part.Transparency = 0.35
+		end
+	end
+	if special.glow then
+		main.Material = Enum.Material.Neon
+		main:SetAttribute("BaseMaterial", "Neon")
+	end
 	model.PrimaryPart = main
 	model.WorldPivot = CFrame.new()
 	return model
@@ -350,7 +652,7 @@ function Visuals.fruitOffsets(seed): { Vector3 }
 		if t == "bush" then
 			radius = h * 0.42
 			y = h * (if i % 2 == 0 then 0.68 else 0.42)
-		elseif t == "tree" then
+		elseif t == "tree" or t == "blossom" then
 			radius = h * 0.37
 			y = h * (0.52 + 0.06 * (i % 3))
 		elseif t == "palm" then
@@ -365,6 +667,33 @@ function Visuals.fruitOffsets(seed): { Vector3 }
 		elseif t == "beanstalk" then
 			radius = 0.85
 			y = h * (0.2 + 0.7 * (i - 1) / math.max(count - 1, 1))
+		elseif t == "vine" then
+			local x = -0.6 + 1.2 * (i - 1) / math.max(count - 1, 1)
+			offsets[i] = Vector3.new(x, h * (0.35 + ((i * 0.37) % 1) * 0.45), if i % 2 == 0 then 0.32 else -0.32)
+			continue
+		elseif t == "fern" then
+			radius = h * 0.38
+			y = h * (0.45 + 0.12 * (i % 2))
+		elseif t == "flytrap" then
+			-- dentro das bocas
+			angle = (i - 1) * (math.pi * 2 / TRAP_COUNT) + 0.4
+			radius = h * 0.36
+			y = h * 0.72
+		elseif t == "bloom" then
+			radius = h * 0.36
+			y = h * (0.66 + 0.08 * (i % 2))
+		elseif t == "sunflower" then
+			radius = 0.5
+			y = h * (0.55 + 0.1 * (i % 2))
+		elseif t == "spitter" then
+			radius = h * 0.32
+			y = h * 0.32
+		elseif t == "pineapple" then
+			radius = 0.3
+			y = h * 0.42
+		elseif t == "glowshroom" then
+			radius = h * 0.42
+			y = h * (0.25 + 0.15 * (i % 3))
 		else
 			radius = h * 0.4
 			y = h * 0.5
@@ -384,19 +713,48 @@ function Visuals.produceParts(root: Instance): { BasePart }
 	return parts
 end
 
--- Muda a aparencia das partes do fruto conforme as mutacoes
-function Visuals.applyMutations(parts: { BasePart }, mutations: { string })
-	local top: string? = nil
-	for _, id in Config.MutationVisualPriority do
-		if table.find(mutations, id) then
-			top = id
-			break
-		end
+-- Variante de cor (ex.: Morango Branco) ou de Cristal
+function Visuals.applyVariant(parts: { BasePart }, seed, variantId: string?)
+	local variant = Formulas.variantInfo(seed, variantId)
+	if not variant then
+		return
 	end
 	for _, part in parts do
+		part:SetAttribute("BaseColor", variant.color)
+		part:SetAttribute("Variant", variant.id)
+		part.Color = variant.color
+		showTexture(part, false)
+		if variant.id == Config.CrystalVariant.id then
+			part.Material = Enum.Material.Glass
+			part.Transparency = 0.25
+			part:SetAttribute("BaseMaterial", "Glass")
+		end
+	end
+end
+
+-- Frutos nascem verdes e mudam para a cor final conforme amadurecem
+function Visuals.setRipeness(parts: { BasePart }, alpha: number)
+	alpha = math.clamp(alpha, 0, 1)
+	for _, part in parts do
+		if not part:GetAttribute("Mutated") then
+			local base = part:GetAttribute("BaseColor")
+			if typeof(base) == "Color3" then
+				part.Color = Config.Growth.unripeColor:Lerp(base, alpha)
+			end
+			showTexture(part, alpha >= 1 and part:GetAttribute("Variant") == nil)
+		end
+	end
+end
+
+-- Muda a aparencia das partes do fruto conforme as mutacoes
+function Visuals.applyMutations(parts: { BasePart }, mutations: { string })
+	local top = Formulas.topMutation(mutations)
+	local hasRainbow = table.find(mutations, "Rainbow") ~= nil
+	for _, part in parts do
 		local old = part:FindFirstChild("EfeitoMutacao")
-		if old then
+		while old do
 			old:Destroy()
+			old = part:FindFirstChild("EfeitoMutacao")
 		end
 		CollectionService:RemoveTag(part, "RainbowFruit")
 		local baseColor = part:GetAttribute("BaseColor")
@@ -405,26 +763,41 @@ function Visuals.applyMutations(parts: { BasePart }, mutations: { string })
 		end
 		if top then
 			local mutation = Config.Mutations[top]
-			if part:IsA("MeshPart") then
-				part.TextureID = ""
-			end
+			part:SetAttribute("Mutated", true)
+			showTexture(part, false)
 			local appearance = part:FindFirstChildOfClass("SurfaceAppearance")
 			if appearance then
 				appearance:Destroy()
 			end
-			local blend = BLEND[top]
-			part.Color = if blend then baseColor:Lerp(mutation.color, blend) else mutation.color
+			part.Color = if mutation.blend then baseColor:Lerp(mutation.color, mutation.blend) else mutation.color
 			part.Material = Enum.Material[mutation.material]
-			if top == "Rainbow" then
+			if hasRainbow and (top == "Rainbow" or Config.Mutations[top].kind == "growth") then
 				CollectionService:AddTag(part, "RainbowFruit")
 			end
-			if top == "Gold" or top == "Rainbow" or top == "Shocked" or top == "Frozen" then
+			if mutation.effect == "sparkles" then
 				local sparkles = Instance.new("Sparkles")
 				sparkles.Name = "EfeitoMutacao"
 				sparkles.SparkleColor = mutation.color
 				sparkles.Parent = part
+			elseif mutation.effect == "fire" then
+				local fire = Instance.new("Fire")
+				fire.Name = "EfeitoMutacao"
+				fire.Color = mutation.color
+				fire.SecondaryColor = mutation.color:Lerp(WHITE, 0.4)
+				fire.Size = 2
+				fire.Heat = 4
+				fire.Parent = part
+			elseif mutation.effect == "smoke" then
+				local smoke = Instance.new("Smoke")
+				smoke.Name = "EfeitoMutacao"
+				smoke.Color = mutation.color
+				smoke.Opacity = 0.08
+				smoke.RiseVelocity = 1
+				smoke.Size = 0.6
+				smoke.Parent = part
 			end
 		else
+			part:SetAttribute("Mutated", nil)
 			part.Color = baseColor
 			local materialName = part:GetAttribute("BaseMaterial")
 			if type(materialName) == "string" then
@@ -440,7 +813,7 @@ function Visuals.applyMutations(parts: { BasePart }, mutations: { string })
 end
 
 ---------------------------------------------------------------------
--- Sprinklers e ovos
+-- Sprinklers, ovos, lanternas e gnomos
 ---------------------------------------------------------------------
 
 function Visuals.buildSprinkler(gear): Model
@@ -450,6 +823,9 @@ function Visuals.buildSprinkler(gear): Model
 		cylinder(model, "Base", 0.4, 1.4, CFrame.new(0, 0.2, 0), Color3.fromRGB(90, 90, 100))
 		cylinder(model, "Cano", 1.6, 0.3, CFrame.new(0, 1, 0), Color3.fromRGB(150, 150, 160))
 		local head = sphere(model, "Cabeca", Vector3.new(0.8, 0.8, 0.8), CFrame.new(0, 1.9, 0), gear.color)
+		for i = 1, 4 do
+			block(model, "Bico", Vector3.new(0.35, 0.12, 0.12), CFrame.new(0, 1.95, 0) * CFrame.Angles(0, i * math.pi / 2, 0) * CFrame.new(0.45, 0, 0), gear.color)
+		end
 		model.PrimaryPart = head
 		model.WorldPivot = CFrame.new()
 	end
@@ -480,6 +856,27 @@ function Visuals.buildSprinkler(gear): Model
 	return model
 end
 
+local function infoLabel(model: Model, text: string, height: number): TextLabel
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "Info"
+	gui.Size = UDim2.fromOffset(170, 50)
+	gui.StudsOffset = Vector3.new(0, height, 0)
+	gui.MaxDistance = 70
+	gui.Adornee = model.PrimaryPart
+	local label = Instance.new("TextLabel")
+	label.Name = "Texto"
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundTransparency = 1
+	label.Font = Enum.Font.FredokaOne
+	label.TextScaled = true
+	label.TextColor3 = WHITE
+	label.TextStrokeTransparency = 0.3
+	label.Text = text
+	label.Parent = gui
+	gui.Parent = model
+	return label
+end
+
 function Visuals.buildEgg(egg): (Model, TextLabel)
 	local model = fromLibrary("Ovo_" .. egg.id, 2, true, true)
 	if not model then
@@ -493,24 +890,54 @@ function Visuals.buildEgg(egg): (Model, TextLabel)
 		model.WorldPivot = CFrame.new()
 	end
 	model.Name = egg.name
-	local gui = Instance.new("BillboardGui")
-	gui.Name = "Info"
-	gui.Size = UDim2.fromOffset(170, 50)
-	gui.StudsOffset = Vector3.new(0, 3, 0)
-	gui.MaxDistance = 70
-	gui.Adornee = model.PrimaryPart
-	local label = Instance.new("TextLabel")
-	label.Name = "Texto"
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.Font = Enum.Font.FredokaOne
-	label.TextScaled = true
-	label.TextColor3 = WHITE
-	label.TextStrokeTransparency = 0.3
-	label.Text = egg.name
-	label.Parent = gui
-	gui.Parent = model
-	return model, label
+	return model, infoLabel(model, egg.name, 3)
+end
+
+function Visuals.buildLantern(gear): Model
+	local model = fromLibrary("Lanterna", 3.4, true, true)
+	local glass: BasePart
+	if model then
+		-- a luz fica no vidro (no modelo do Blender: Vidro_Lanterna)
+		glass = model.PrimaryPart :: BasePart
+		for _, descendant in model:GetDescendants() do
+			if descendant:IsA("BasePart") and string.find(string.lower(descendant.Name), "vidro", 1, true) then
+				glass = descendant
+				break
+			end
+		end
+	else
+		model = Instance.new("Model")
+		local post = cylinder(model, "Poste", 3, 0.2, CFrame.new(0, 1.5, 0), Color3.fromRGB(60, 60, 70))
+		post.Material = Enum.Material.Metal
+		block(model, "Braco", Vector3.new(0.8, 0.12, 0.12), CFrame.new(0.35, 3, 0), Color3.fromRGB(60, 60, 70))
+		glass = block(model, "Vidro", Vector3.new(0.5, 0.65, 0.5), CFrame.new(0.65, 2.6, 0), gear.color)
+		glass.Material = Enum.Material.Neon
+		block(model, "Tampa", Vector3.new(0.6, 0.12, 0.6), CFrame.new(0.65, 2.98, 0), Color3.fromRGB(60, 60, 70))
+		model.PrimaryPart = glass
+		model.WorldPivot = CFrame.new()
+	end
+	model.Name = gear.name
+	addLight(glass, Color3.fromRGB(255, 210, 140), gear.radius, 2)
+	return model
+end
+
+function Visuals.buildGnome(gear): (Model, TextLabel)
+	local model = fromLibrary("Gnomo", 2.4, true, true)
+	if not model then
+		model = Instance.new("Model")
+		local body = cylinder(model, "Corpo", 0.9, 0.9, CFrame.new(0, 0.45, 0), Color3.fromRGB(60, 100, 200))
+		sphere(model, "Cabeca", Vector3.new(0.6, 0.6, 0.6), CFrame.new(0, 1.15, 0), Color3.fromRGB(255, 205, 170))
+		sphere(model, "Barba", Vector3.new(0.6, 0.55, 0.35), CFrame.new(0, 0.95, -0.15), WHITE)
+		sphere(model, "Nariz", Vector3.new(0.18, 0.18, 0.18), CFrame.new(0, 1.15, -0.3), Color3.fromRGB(255, 160, 140))
+		for i = 1, 4 do
+			local size = 0.75 - i * 0.16
+			cylinder(model, "Chapeu", 0.22, size, CFrame.new(0, 1.35 + i * 0.2, 0), gear.color)
+		end
+		model.PrimaryPart = body
+		model.WorldPivot = CFrame.new()
+	end
+	model.Name = gear.name
+	return model, infoLabel(model, gear.name, 3)
 end
 
 ---------------------------------------------------------------------
@@ -553,6 +980,96 @@ function Visuals.lightning(target: Vector3)
 	flash.Parent = model:FindFirstChildWhichIsA("BasePart")
 	model.Parent = workspace
 	Debris:AddItem(model, 0.4)
+end
+
+-- Algo que cai do ceu ate o alvo (meteoro ou estrela)
+local function fallingObject(target: Vector3, size: number, color: Color3, time: number, withFire: boolean)
+	local start = target + Vector3.new(25, 90, 15)
+	local ball = sphere(workspace, if withFire then "Meteoro" else "Estrela", Vector3.new(size, size, size), CFrame.new(start), color)
+	ball.Material = Enum.Material.Neon
+	ball.CanQuery = false
+	if withFire then
+		local fire = Instance.new("Fire")
+		fire.Size = size * 2
+		fire.Color = Color3.fromRGB(255, 140, 40)
+		fire.SecondaryColor = Color3.fromRGB(255, 60, 20)
+		fire.Parent = ball
+	else
+		local sparkles = Instance.new("Sparkles")
+		sparkles.SparkleColor = color
+		sparkles.Parent = ball
+	end
+	addLight(ball, color, 20, 3)
+	TweenService:Create(ball, TweenInfo.new(time, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { CFrame = CFrame.new(target) }):Play()
+	Debris:AddItem(ball, time + 0.4)
+end
+
+function Visuals.meteor(target: Vector3)
+	fallingObject(target, 2.2, Color3.fromRGB(255, 150, 80), 0.9, true)
+end
+
+function Visuals.star(target: Vector3)
+	fallingObject(target, 0.9, Color3.fromRGB(255, 240, 150), 0.8, false)
+end
+
+function Visuals.tornado(target: Vector3)
+	local model = Instance.new("Model")
+	model.Name = "Tornado"
+	for i = 1, 7 do
+		local ring = cylinder(model, "Funil", 2.2, 1.2 + i * 1.1, CFrame.new(target + Vector3.new(0, i * 2.1, 0)), Color3.fromRGB(170, 170, 165))
+		ring.Transparency = 0.45
+		ring.CanQuery = false
+	end
+	model.Parent = workspace
+	Debris:AddItem(model, 2)
+end
+
+-- Tiro das plantas de defesa (veneno, fogo, morango)
+function Visuals.projectile(from: Vector3, to: Vector3, color: Color3)
+	local ball = sphere(workspace, "Tiro", Vector3.new(0.6, 0.6, 0.6), CFrame.new(from), color)
+	ball.Material = Enum.Material.Neon
+	ball.CanQuery = false
+	TweenService:Create(ball, TweenInfo.new(0.3, Enum.EasingStyle.Linear), { CFrame = CFrame.new(to) }):Play()
+	Debris:AddItem(ball, 0.4)
+end
+
+function Visuals.ring(position: Vector3, color: Color3, radius: number)
+	local ring = cylinder(workspace, "Anel", 0.1, 1, CFrame.new(position), color)
+	ring.Material = Enum.Material.Neon
+	ring.Transparency = 0.3
+	ring.CanQuery = false
+	TweenService:Create(ring, TweenInfo.new(0.5, Enum.EasingStyle.Quad), {
+		Size = Vector3.new(0.1, radius * 2, radius * 2),
+		Transparency = 1,
+	}):Play()
+	Debris:AddItem(ring, 0.6)
+end
+
+-- Fruto roubado flutuando em cima da cabeca do ladrao
+function Visuals.carryVisual(root: BasePart, seed, variantId: string?): BasePart
+	local variant = Formulas.variantInfo(seed, variantId)
+	local color = if variant then variant.color else seed.fruitColor
+	local ball = Instance.new("Part")
+	ball.Name = "FrutoRoubado"
+	ball.Shape = Enum.PartType.Ball
+	ball.Size = Vector3.new(1.3, 1.3, 1.3)
+	ball.Color = color
+	ball.Material = Enum.Material.Neon
+	ball.Anchored = false
+	ball.CanCollide = false
+	ball.CanTouch = false
+	ball.CanQuery = false
+	ball.Massless = true
+	ball.CFrame = root.CFrame * CFrame.new(0, 3.6, 0)
+	local weld = Instance.new("WeldConstraint")
+	weld.Part0 = root
+	weld.Part1 = ball
+	weld.Parent = ball
+	local sparkles = Instance.new("Sparkles")
+	sparkles.SparkleColor = color
+	sparkles.Parent = ball
+	ball.Parent = root.Parent
+	return ball
 end
 
 return Visuals
