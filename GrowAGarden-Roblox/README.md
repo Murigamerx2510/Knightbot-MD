@@ -45,7 +45,10 @@ Os modelos 3D foram feitos no **Blender** (por script) e a lógica do jogo roda 
 | 🛒 **Estoque global** | As lojas reabastecem a cada 5 minutos, com o mesmo estoque em todos os servidores. |
 | ⏱️ **Crescimento offline** | As plantas continuam crescendo com você fora do jogo. |
 | 💾 **Salvamento** | DataStore com novas tentativas, salvamento automático e ao fechar o servidor. Dados da versão anterior são convertidos sozinhos. |
-| 📱 **Interface** | HUD com dia/noite, lojas, inventário, venda, pets, missões, índice, avisos e faixa de clima. Funciona no PC e no celular. |
+| 📱 **Interface caprichada** | Painéis com sombra e gradiente, ícone em cada item, cores por raridade (Super com arco-íris), botões com relevo que crescem ao passar o mouse, dinheiro que sobe animado, barra do dia/noite, missões com barra de progresso e avisos com ícones. Funciona no PC e no celular. |
+| 🏞️ **Mapa bonito** | Praça com chafariz, bancos e canteiros de flores, portal de boas-vindas, arcos de entrada com o nome do dono, canteiros com moldura de madeira, lojas com toldo de babado, prateleiras e caixotes, árvores variadas (pinheiros, cerejeiras, macieiras), flores, arbustos, pedras e morros no horizonte. |
+| 🌤️ **Iluminação** | Cores mais vivas, brilho suave nas luzes, raios de sol, nuvens de verdade no céu e postes que acendem à noite. |
+| 🐶 **Pets com cara própria** | Cada um dos 22 pets tem detalhes próprios: orelhas, focinho ou bico, asas, chifres, casco, rabo (o da Kitsune tem 3 caudas) e patas. |
 
 ### 🏆 O que este jogo faz melhor que o original
 
@@ -59,8 +62,11 @@ Os modelos 3D foram feitos no **Blender** (por script) e a lógica do jogo roda 
   **Fruta Galáctica**.
 - Plantas com poderes: a Cerejeira solta pétalas e poliniza, o Cogumelo Brilhante faz os frutos de perto
   brilharem à noite e a Samambaia de Fogo pode deixar seus frutos Inflamados.
+- Visual mais caprichado: interface com ícones e animações, praça com chafariz, lojas decoradas, iluminação
+  com efeitos e pets cheios de detalhes.
 
 <p>
+<img src="docs/praca.jpg" width="49%"> <img src="docs/pets.jpg" width="49%">
 <img src="docs/tela_noite.jpg" width="49%"> <img src="docs/tela_roubo.jpg" width="49%">
 <img src="docs/tela_loja.jpg" width="49%"> <img src="docs/tela_venda.jpg" width="49%">
 <img src="docs/tela_missoes.jpg" width="49%"> <img src="docs/tela_indice.jpg" width="49%">

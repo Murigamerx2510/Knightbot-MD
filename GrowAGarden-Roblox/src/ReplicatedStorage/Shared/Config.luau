@@ -1058,6 +1058,31 @@ local function index(list)
 	return map
 end
 
+-- Icones da interface (lojas, inventario, pets)
+Config.Icons = {
+	-- sementes
+	Carrot = "🥕", Strawberry = "🍓", Blueberry = "🫐", Tulip = "🌷", Tomato = "🍅", Apple = "🍎",
+	Bamboo = "🎋", Daffodil = "🌼", Corn = "🌽", Cactus = "🌵", Pineapple = "🍍", Banana = "🍌",
+	Grape = "🍇", Watermelon = "🍉", GlowMushroom = "🍄", Pumpkin = "🎃", GreenBean = "🥒",
+	Mushroom = "🍄", Coconut = "🥥", Mango = "🥭", DragonFruit = "🐉", Cherry = "🍒", Acorn = "🌰",
+	PoisonIvy = "☘️", FireFern = "🔥", CherryBlossom = "🌸", Sunflower = "🌻", RocketPop = "🚀",
+	VenusFlyTrap = "🪤", Pepper = "🌶️", Pomegranate = "🍑", PoisonApple = "🍏", VenomSpitter = "🐍",
+	Cacao = "🍫", GhostPepper = "👻", RainbowSeed = "🌈", MoonBloom = "🌙", DragonsBreath = "🐲",
+	SunBloom = "☀️", HypnoBloom = "🌀", Beanstalk = "🌱", StarFruit = "⭐", EclipseBloom = "🌑",
+	InfernoPepper = "🌋", GalaxyFruit = "🌌",
+	-- equipamentos
+	WateringCan = "💧", Trowel = "🥄", Shovel = "⛏️", SpeedMushroom = "⚡", JumpMushroom = "🦘",
+	InvisibilityMushroom = "👻", CommonSprinkler = "💦", UncommonSprinkler = "💦", RareSprinkler = "💦",
+	LegendarySprinkler = "💦", SuperSprinkler = "💦", Lantern = "🏮", Gnome = "🧙", StrawberrySniper = "🎯",
+	-- ovos
+	CommonEgg = "🥚", UncommonEgg = "🥚", RareEgg = "🥚", LegendaryEgg = "🥚", MythicEgg = "🥚", SuperEgg = "🥚",
+	-- pets
+	Frog = "🐸", Bunny = "🐰", Cat = "🐱", Owl = "🦉", Dog = "🐶", Chicken = "🐔", Deer = "🦌", Turtle = "🐢",
+	Pig = "🐷", Robin = "🐦", Bee = "🐝", Butterfly = "🦋", Monkey = "🐵", Bear = "🐻", Unicorn = "🦄",
+	GoldenDragonfly = "✨", Firefly = "💡", BaldEagle = "🦅", Dragon = "🐉", Phoenix = "🔥", Raccoon = "🦝",
+	Kitsune = "🦊",
+}
+
 Config.Seeds = index(Config.SeedList)
 Config.Gear = index(Config.GearList)
 Config.Pets = index(Config.PetList)

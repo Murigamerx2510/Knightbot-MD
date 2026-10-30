@@ -1,5 +1,6 @@
--- MapBuilder: cria o mapa inteiro (chao, rua, 6 jardins, lojas, decoracao).
--- Tudo e gerado por codigo, entao o jogo funciona mesmo em um lugar vazio.
+-- MapBuilder: cria o mapa inteiro (chao, rua, praca com chafariz, 6 jardins, lojas,
+-- decoracao e iluminacao). Tudo e gerado por codigo, entao o jogo funciona mesmo em um
+-- lugar vazio.
 
 local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
@@ -21,8 +22,22 @@ MapBuilder.Layout = {
 
 local SMOOTH = Enum.SurfaceType.Smooth
 local WOOD = Color3.fromRGB(150, 105, 65)
+local WOOD_DARK = Color3.fromRGB(115, 78, 48)
 local WOOD_LIGHT = Color3.fromRGB(205, 160, 105)
+local STONE = Color3.fromRGB(205, 200, 190)
+local STONE_DARK = Color3.fromRGB(150, 145, 140)
 local WHITE = Color3.fromRGB(255, 255, 255)
+local BLACK = Color3.fromRGB(20, 20, 20)
+local WATER = Color3.fromRGB(90, 175, 255)
+local FLOWER_COLORS = {
+	Color3.fromRGB(255, 90, 110),
+	Color3.fromRGB(255, 200, 60),
+	Color3.fromRGB(255, 255, 255),
+	Color3.fromRGB(190, 120, 255),
+	Color3.fromRGB(255, 150, 200),
+	Color3.fromRGB(100, 170, 255),
+	Color3.fromRGB(255, 140, 50),
+}
 
 local function part(parent: Instance, name: string, size: Vector3, cf: CFrame, color: Color3, material: Enum.Material?): Part
 	local p = Instance.new("Part")
@@ -38,18 +53,25 @@ local function part(parent: Instance, name: string, size: Vector3, cf: CFrame, c
 	return p
 end
 
-local BLACK = Color3.fromRGB(20, 20, 20)
+-- Peca so de enfeite: nao bate, nao lanca sombra pequena demais
+local function decor(parent: Instance, name: string, size: Vector3, cf: CFrame, color: Color3, material: Enum.Material?): Part
+	local p = part(parent, name, size, cf, color, material)
+	p.CanCollide = false
+	p.CanTouch = false
+	return p
+end
 
 -- Cilindro em pe
-local function cylinderPart(parent: Instance, name: string, height: number, diameter: number, cf: CFrame, color: Color3): Part
+local function cylinderPart(parent: Instance, name: string, height: number, diameter: number, cf: CFrame, color: Color3, material: Enum.Material?): Part
 	local p = Instance.new("Part")
 	p.Name = name
 	p.Shape = Enum.PartType.Cylinder
 	p.Anchored = true
 	p.CanCollide = false
+	p.CanTouch = false
 	p.TopSurface = SMOOTH
 	p.BottomSurface = SMOOTH
-	p.Material = Enum.Material.SmoothPlastic
+	p.Material = material or Enum.Material.SmoothPlastic
 	p.Color = color
 	p.Size = Vector3.new(height, diameter, diameter)
 	p.CFrame = cf * CFrame.Angles(0, 0, math.pi / 2)
@@ -57,9 +79,8 @@ local function cylinderPart(parent: Instance, name: string, height: number, diam
 	return p
 end
 
-local function ball(parent: Instance, name: string, size: Vector3, cf: CFrame, color: Color3): Part
-	local p = part(parent, name, size, cf, color)
-	p.CanCollide = false
+local function ball(parent: Instance, name: string, size: Vector3, cf: CFrame, color: Color3, material: Enum.Material?): Part
+	local p = decor(parent, name, size, cf, color, material)
 	local mesh = Instance.new("SpecialMesh")
 	mesh.MeshType = Enum.MeshType.Sphere
 	mesh.Parent = p
@@ -79,34 +100,84 @@ local function surfaceText(target: BasePart, text: string, textColor: Color3, fa
 	label.TextColor3 = textColor
 	label.TextStrokeTransparency = 0.6
 	label.Text = text
+	local padding = Instance.new("UIPadding")
+	padding.PaddingLeft = UDim.new(0.04, 0)
+	padding.PaddingRight = UDim.new(0.04, 0)
+	padding.PaddingTop = UDim.new(0.08, 0)
+	padding.PaddingBottom = UDim.new(0.08, 0)
+	padding.Parent = label
 	label.Parent = gui
 	gui.Parent = target
 	return label
 end
 
-local function billboard(adornee: BasePart, text: string, color: Color3, height: number)
+-- plaquinha com nome (e funcao) em cima dos vendedores
+local function billboard(adornee: BasePart, title: string, subtitle: string, color: Color3, height: number)
 	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromOffset(200, 50)
+	gui.Size = UDim2.fromOffset(170, 56)
 	gui.StudsOffset = Vector3.new(0, height, 0)
 	gui.MaxDistance = 120
 	gui.Adornee = adornee
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.Font = Enum.Font.FredokaOne
-	label.TextScaled = true
-	label.TextColor3 = color
-	label.TextStrokeTransparency = 0.2
-	label.Text = text
-	label.Parent = gui
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.fromScale(1, 1)
+	frame.BackgroundColor3 = Color3.fromRGB(28, 32, 44)
+	frame.BackgroundTransparency = 0.2
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 14)
+	corner.Parent = frame
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = color
+	stroke.Thickness = 3
+	stroke.Parent = frame
+	local name = Instance.new("TextLabel")
+	name.Name = "Nome"
+	name.Size = UDim2.new(1, -12, 0.6, 0)
+	name.Position = UDim2.fromOffset(6, 2)
+	name.BackgroundTransparency = 1
+	name.Font = Enum.Font.FredokaOne
+	name.TextScaled = true
+	name.TextColor3 = Color3.fromRGB(255, 255, 255)
+	name.TextStrokeTransparency = 0.4
+	name.Text = title
+	name.Parent = frame
+	local role = Instance.new("TextLabel")
+	role.Name = "Funcao"
+	role.Size = UDim2.new(1, -12, 0.36, 0)
+	role.Position = UDim2.new(0, 6, 0.6, 0)
+	role.BackgroundTransparency = 1
+	role.Font = Enum.Font.FredokaOne
+	role.TextScaled = true
+	role.TextColor3 = color
+	role.Text = subtitle
+	role.Parent = frame
+	frame.Parent = gui
 	gui.Parent = adornee
+end
+
+-- florzinha: cabinho + petalas + miolo (so 3 pecas, porque sao muitas)
+local function flower(parent: Instance, position: Vector3, color: Color3, size: number)
+	local stem = decor(parent, "Cabinho", Vector3.new(0.12, 0.9, 0.12) * size, CFrame.new(position + Vector3.new(0, 0.45 * size, 0)), Color3.fromRGB(70, 150, 55))
+	stem.CastShadow = false
+	local top = position + Vector3.new(0, 0.95 * size, 0)
+	ball(parent, "Petalas", Vector3.new(0.75, 0.22, 0.75) * size, CFrame.new(top), color).CastShadow = false
+	ball(parent, "Miolo", Vector3.new(0.26, 0.2, 0.26) * size, CFrame.new(top + Vector3.new(0, 0.06, 0) * size), Color3.fromRGB(255, 215, 70)).CastShadow = false
+end
+
+local function flowerBox(parent: Instance, cf: CFrame, length: number, rng: Random)
+	decor(parent, "Floreira", Vector3.new(length, 1, 1.4), cf * CFrame.new(0, 0.5, 0), WOOD, Enum.Material.WoodPlanks)
+	decor(parent, "Terra", Vector3.new(length - 0.3, 0.1, 1.1), cf * CFrame.new(0, 1.02, 0), Color3.fromRGB(100, 66, 40), Enum.Material.Ground)
+	local count = math.max(2, math.floor(length / 1.2))
+	for i = 1, count do
+		local x = -length / 2 + (i - 0.5) * length / count
+		flower(parent, (cf * CFrame.new(x, 1, rng:NextNumber(-0.25, 0.25))).Position, FLOWER_COLORS[rng:NextInteger(1, #FLOWER_COLORS)], 1.1)
+	end
 end
 
 ---------------------------------------------------------------------
 -- Jardins
 ---------------------------------------------------------------------
 
-local function buildPlot(index: number, center: Vector3, rotation: number, parent: Instance)
+local function buildPlot(index: number, center: Vector3, rotation: number, parent: Instance, rng: Random)
 	local L = MapBuilder.Layout
 	local cf = CFrame.new(center) * CFrame.Angles(0, rotation, 0)
 	local model = Instance.new("Model")
@@ -123,10 +194,28 @@ local function buildPlot(index: number, center: Vector3, rotation: number, paren
 	local bedLength = L.bedZMax - L.bedZMin
 	local bedCenterZ = (L.bedZMax + L.bedZMin) / 2
 	for _, side in { -1, 1 } do
-		local bed = part(model, "Canteiro", Vector3.new(bedWidth, 0.5, bedLength), at(side * (L.bedInner + bedWidth / 2), 0, bedCenterZ), Color3.fromRGB(125, 82, 50), Enum.Material.Ground)
+		local bedX = side * (L.bedInner + bedWidth / 2)
+		local bed = part(model, "Canteiro", Vector3.new(bedWidth, 0.5, bedLength), at(bedX, 0, bedCenterZ), Color3.fromRGB(125, 82, 50), Enum.Material.Ground)
 		bed:SetAttribute("Canteiro", true)
+		-- moldura de madeira em volta do canteiro
+		for _, dz in { -1, 1 } do
+			decor(model, "Moldura", Vector3.new(bedWidth + 0.9, 0.7, 0.45), at(bedX, 0.25, bedCenterZ + dz * (bedLength / 2 + 0.22)), WOOD_DARK, Enum.Material.Wood)
+		end
+		for _, dx in { -1, 1 } do
+			decor(model, "Moldura", Vector3.new(0.45, 0.7, bedLength), at(bedX + dx * (bedWidth / 2 + 0.22), 0.25, bedCenterZ), WOOD_DARK, Enum.Material.Wood)
+		end
+		-- sulcos na terra
+		for i = 1, 4 do
+			local x = bedX - bedWidth / 2 + i * bedWidth / 5
+			decor(model, "Sulco", Vector3.new(0.35, 0.04, bedLength - 1), at(x, 0.27, bedCenterZ), Color3.fromRGB(105, 68, 40), Enum.Material.Ground)
+		end
 	end
 	part(model, "Caminho", Vector3.new(L.bedInner * 2, 0.3, L.plotHalfZ * 2 - 1), at(0, 0, 0), Color3.fromRGB(215, 190, 140), Enum.Material.Sand)
+	-- pedrinhas no caminho
+	for z = -L.plotHalfZ + 3, L.plotHalfZ - 3, 4 do
+		local stone = cylinderPart(model, "Pedra", 0.12, 2.4 + rng:NextNumber(-0.3, 0.3), at(rng:NextNumber(-0.5, 0.5), 0.2, z), STONE, Enum.Material.Slate)
+		stone.CastShadow = false
+	end
 
 	-- cerca
 	-- skipStart/skipEnd evitam dois postes no mesmo canto
@@ -143,6 +232,7 @@ local function buildPlot(index: number, center: Vector3, rotation: number, paren
 			if not ((i == 0 and skipStart) or (i == posts and skipEnd)) then
 				local p = a:Lerp(b, i / posts)
 				part(model, "Poste", Vector3.new(0.6, 3, 0.6), at(p.X, 1.5, p.Z), WOOD, Enum.Material.Wood)
+				decor(model, "Tampa", Vector3.new(0.8, 0.25, 0.8), at(p.X, 3.1, p.Z), WOOD_LIGHT, Enum.Material.Wood)
 			end
 		end
 	end
@@ -153,11 +243,37 @@ local function buildPlot(index: number, center: Vector3, rotation: number, paren
 	fence(-hx, -hz, -5, -hz, true, false)
 	fence(5, -hz, hx, -hz, false, true)
 
-	-- placa com o nome do dono
-	part(model, "PostePlaca", Vector3.new(0.5, 4, 0.5), at(-14, 2, -hz - 2), WOOD, Enum.Material.Wood)
-	local board = part(model, "Placa", Vector3.new(10, 3, 0.4), at(-14, 4.8, -hz - 2), WOOD_LIGHT, Enum.Material.Wood)
+	-- arco de entrada com a placa do dono
+	for _, x in { -5.4, 5.4 } do
+		part(model, "PosteArco", Vector3.new(0.9, 8, 0.9), at(x, 4, -hz), WOOD_DARK, Enum.Material.Wood)
+		decor(model, "Tampa", Vector3.new(1.2, 0.35, 1.2), at(x, 8.15, -hz), WOOD_LIGHT, Enum.Material.Wood)
+		for i = 1, 5 do -- trepadeira com florzinhas no poste
+			local y = 1.2 + i * 1.25
+			ball(model, "Folha", Vector3.new(0.7, 0.55, 0.45), at(x + (if i % 2 == 0 then 0.42 else -0.42), y, -hz - 0.35), Color3.fromRGB(70, 160, 60))
+			if i % 2 == 1 then
+				ball(model, "Flor", Vector3.new(0.3, 0.3, 0.3), at(x, y + 0.3, -hz - 0.55), FLOWER_COLORS[(index + i) % #FLOWER_COLORS + 1])
+			end
+		end
+	end
+	decor(model, "Viga", Vector3.new(12.4, 0.7, 0.9), at(0, 7.4, -hz), WOOD_DARK, Enum.Material.Wood)
+	local board = part(model, "Placa", Vector3.new(11, 2.8, 0.4), at(0, 9.3, -hz - 0.1), WOOD_LIGHT, Enum.Material.WoodPlanks)
+	board.CanCollide = false
+	for _, x in { -5.6, 5.6 } do
+		decor(model, "Moldura", Vector3.new(0.3, 3.1, 0.55), at(x, 9.3, -hz - 0.1), WOOD_DARK, Enum.Material.Wood)
+	end
+	for _, y in { 7.85, 10.75 } do
+		decor(model, "Moldura", Vector3.new(11.5, 0.3, 0.55), at(0, y, -hz - 0.1), WOOD_DARK, Enum.Material.Wood)
+	end
 	local signLabel = surfaceText(board, "Jardim Livre", Color3.fromRGB(70, 45, 20))
 	signLabel.TextStrokeTransparency = 1
+	-- floreiras dos dois lados da entrada
+	for _, x in { -9, 9 } do
+		flowerBox(model, at(x, 0, -hz - 1.6), 5, rng)
+	end
+	-- carrinho de mao e saco de adubo perto da entrada (dentro do jardim, fora dos canteiros)
+	decor(model, "Carrinho", Vector3.new(1.8, 0.8, 2.6), at(-22, 1, -hz + 3), Color3.fromRGB(70, 120, 200), Enum.Material.Metal)
+	cylinderPart(model, "Roda", 0.3, 1, at(-22, 0.5, -hz + 1.4) * CFrame.Angles(0, 0, math.pi / 2), BLACK)
+	decor(model, "Saco", Vector3.new(1.4, 1.6, 1), at(22, 0.9, -hz + 3) * CFrame.Angles(0, 0.3, 0.1), Color3.fromRGB(190, 160, 110), Enum.Material.Fabric)
 
 	local plantsFolder = Instance.new("Folder")
 	plantsFolder.Name = "Plantas"
@@ -285,17 +401,77 @@ local function buildNpc(parent: Instance, cf: CFrame, look, name: string, role: 
 	npc:SetAttribute("Npc", name)
 	CollectionService:AddTag(npc, "LojaNpc")
 	npc.Parent = parent
-	billboard(head, name .. "\n" .. role, WHITE, 3)
+	billboard(head, name, role, look.tagColor or Color3.fromRGB(255, 220, 90), 3)
 	return npc
 end
 
-local function buildStall(parent: Instance, info)
+-- enfeites tematicos de cada loja (prateleiras no fundo e coisas na frente)
+local function stallGoods(model: Model, cf: CFrame, info, rng: Random)
+	local function at(x: number, y: number, z: number): CFrame
+		return cf * CFrame.new(x, y, z)
+	end
+	-- prateleiras no fundo
+	for _, y in { 4.3, 6.3 } do
+		decor(model, "Prateleira", Vector3.new(12, 0.3, 1.2), at(0, y, 3.9), WOOD_DARK, Enum.Material.Wood)
+		for i = 1, 8 do
+			local x = -5.6 + (i - 1) * 1.6
+			local color = info.goods[(i + math.floor(y)) % #info.goods + 1]
+			if info.id == "Seeds" then -- pacotinhos de semente
+				decor(model, "Pacote", Vector3.new(0.9, 1.2, 0.15), at(x, y + 0.75, 3.75) * CFrame.Angles(math.rad(-8), 0, 0), color)
+				decor(model, "Etiqueta", Vector3.new(0.7, 0.35, 0.05), at(x, y + 0.95, 3.66) * CFrame.Angles(math.rad(-8), 0, 0), WHITE)
+			elseif info.id == "Sell" then -- potes e frutas
+				ball(model, "Fruta", Vector3.new(0.85, 0.85, 0.85), at(x, y + 0.55, 3.8), color)
+			elseif info.id == "Gear" then -- regadores e ferramentas
+				decor(model, "Ferramenta", Vector3.new(0.9, 0.8, 0.6), at(x, y + 0.55, 3.8), color, Enum.Material.Metal)
+				decor(model, "Bico", Vector3.new(0.5, 0.12, 0.12), at(x + 0.55, y + 0.75, 3.8) * CFrame.Angles(0, 0, math.rad(30)), color, Enum.Material.Metal)
+			else -- ovos em ninhos
+				cylinderPart(model, "Ninho", 0.3, 1.1, at(x, y + 0.3, 3.8), Color3.fromRGB(170, 130, 80), Enum.Material.Fabric)
+				ball(model, "Ovo", Vector3.new(0.6, 0.8, 0.6), at(x, y + 0.75, 3.8), color)
+			end
+		end
+	end
+	-- caixotes e barris na frente da loja
+	for index, x in { -9.6, 9.6 } do
+		decor(model, "Caixote", Vector3.new(2.6, 1.8, 2.6), at(x, 0.9, -4) * CFrame.Angles(0, math.rad(index * 7), 0), WOOD, Enum.Material.WoodPlanks)
+		for i = 1, 4 do
+			local color = info.goods[(i + index) % #info.goods + 1]
+			if info.id == "Eggs" then
+				ball(model, "Ovo", Vector3.new(0.8, 1, 0.8), at(x - 0.6 + (i % 2) * 1.2, 2, -4.6 + math.floor((i - 1) / 2) * 1.2), color)
+			elseif info.id == "Gear" then
+				decor(model, "Saco", Vector3.new(1, 1.2, 0.8), at(x - 0.6 + (i % 2) * 1.2, 2.2, -4.6 + math.floor((i - 1) / 2) * 1.2), Color3.fromRGB(190, 160, 110), Enum.Material.Fabric)
+			else
+				ball(model, "Produto", Vector3.new(1, 1, 1), at(x - 0.6 + (i % 2) * 1.2, 2, -4.6 + math.floor((i - 1) / 2) * 1.2), color)
+			end
+		end
+		local barrel = cylinderPart(model, "Barril", 2.2, 1.9, at(x, 1.1, -1.2), WOOD_DARK, Enum.Material.Wood)
+		barrel.CastShadow = true
+		for _, y in { 0.45, 1.75 } do
+			cylinderPart(model, "Aro", 0.18, 1.96, at(x, y, -1.2), Color3.fromRGB(80, 80, 90), Enum.Material.Metal)
+		end
+	end
+	if info.id == "Sell" then -- balanca e moedas no balcao
+		decor(model, "Balanca", Vector3.new(0.3, 1.4, 0.3), at(5, 4.1, -3), Color3.fromRGB(200, 170, 60), Enum.Material.Metal)
+		decor(model, "Braco", Vector3.new(2.4, 0.15, 0.15), at(5, 4.8, -3), Color3.fromRGB(200, 170, 60), Enum.Material.Metal)
+		for _, dx in { -1.1, 1.1 } do
+			cylinderPart(model, "Prato", 0.12, 0.9, at(5 + dx, 4.4, -3), Color3.fromRGB(220, 190, 80), Enum.Material.Metal)
+		end
+		for i = 1, 5 do
+			cylinderPart(model, "Moeda", 0.12, 0.6, at(-5 + rng:NextNumber(-0.3, 0.3), 3.45 + i * 0.13, -3), Color3.fromRGB(255, 205, 50), Enum.Material.Metal)
+		end
+	end
+end
+
+local function buildStall(parent: Instance, info, rng: Random)
 	local cf = CFrame.new(info.position) * CFrame.Angles(0, info.rotation, 0)
 	local model = Instance.new("Model")
 	model.Name = "Loja_" .. info.id
 
+	-- piso de madeira
+	part(model, "Piso", Vector3.new(16, 0.3, 11), cf * CFrame.new(0, 0.15, 0.2), WOOD_LIGHT, Enum.Material.WoodPlanks)
 	local counter = part(model, "Balcao", Vector3.new(14, 3, 3), cf * CFrame.new(0, 1.5, -3), WOOD, Enum.Material.WoodPlanks)
 	part(model, "Tampo", Vector3.new(14.6, 0.4, 3.6), cf * CFrame.new(0, 3.2, -3), WOOD_LIGHT, Enum.Material.Wood)
+	-- faixa colorida na frente do balcao
+	decor(model, "Faixa", Vector3.new(14.1, 0.8, 0.1), cf * CFrame.new(0, 2.2, -4.55), info.roofA)
 	for _, x in { -7, 7 } do
 		for _, z in { -4.5, 4.5 } do
 			part(model, "Pilar", Vector3.new(0.7, 8.5, 0.7), cf * CFrame.new(x, 4.25, z), WOOD, Enum.Material.Wood)
@@ -305,15 +481,33 @@ local function buildStall(parent: Instance, info)
 	for i = 0, 7 do
 		local color = if i % 2 == 0 then info.roofA else info.roofB
 		part(model, "Telhado", Vector3.new(1.9, 0.4, 11), cf * CFrame.new(-6.65 + i * 1.9, 8.8, 0) * CFrame.Angles(math.rad(-8), 0, 0), color)
+		-- babado do toldo
+		ball(model, "Babado", Vector3.new(1.9, 1.1, 0.35), cf * CFrame.new(-6.65 + i * 1.9, 9.25 - 5.45 * math.sin(math.rad(8)) - 0.45, -5.45), color)
 	end
-	local sign = part(model, "Placa", Vector3.new(12, 2.4, 0.4), cf * CFrame.new(0, 10.4, -4.8), WHITE)
-	surfaceText(sign, info.title, info.roofA)
+	-- placa com moldura
+	local sign = part(model, "Placa", Vector3.new(12, 2.4, 0.4), cf * CFrame.new(0, 10.6, -4.8), WHITE)
+	sign.CanCollide = false
+	for _, x in { -6.15, 6.15 } do
+		decor(model, "Moldura", Vector3.new(0.3, 2.7, 0.55), cf * CFrame.new(x, 10.6, -4.8), WOOD_DARK, Enum.Material.Wood)
+	end
+	for _, y in { 9.3, 11.9 } do
+		decor(model, "Moldura", Vector3.new(12.6, 0.3, 0.55), cf * CFrame.new(0, y, -4.8), WOOD_DARK, Enum.Material.Wood)
+	end
+	surfaceText(sign, info.icon .. " " .. info.title, info.roofA)
+	-- lampioes pendurados nos pilares da frente
+	for _, x in { -7, 7 } do
+		decor(model, "Gancho", Vector3.new(0.12, 0.8, 0.12), cf * CFrame.new(x, 7.6, -5.1), Color3.fromRGB(60, 60, 70), Enum.Material.Metal)
+		local lamp = decor(model, "Lampiao", Vector3.new(0.7, 0.9, 0.7), cf * CFrame.new(x, 6.8, -5.1), Color3.fromRGB(255, 220, 140), Enum.Material.Neon)
+		lamp.CastShadow = false
+		decor(model, "TampaLampiao", Vector3.new(0.9, 0.2, 0.9), cf * CFrame.new(x, 7.3, -5.1), Color3.fromRGB(60, 60, 70), Enum.Material.Metal)
+	end
 
 	-- produtos decorativos no balcao
 	for i = 1, 5 do
 		local color = info.goods[(i - 1) % #info.goods + 1]
 		ball(model, "Produto", Vector3.new(1, 1, 1), cf * CFrame.new(-5 + i * 1.7, 3.9, -3), color)
 	end
+	stallGoods(model, cf, info, rng)
 
 	buildNpc(model, cf * CFrame.new(0, 0, 0.8), info.look, info.npc, info.title)
 
@@ -333,41 +527,265 @@ local function buildStall(parent: Instance, info)
 end
 
 ---------------------------------------------------------------------
+-- Praca central com chafariz
+---------------------------------------------------------------------
+
+local function buildPlaza(parent: Instance, rng: Random)
+	local plaza = Instance.new("Model")
+	plaza.Name = "Praca"
+	local floor = cylinderPart(plaza, "Piso", 0.3, 34, CFrame.new(0, 0.12, 0), STONE, Enum.Material.Slate)
+	floor.CanCollide = true
+	cylinderPart(plaza, "Borda", 0.32, 35.4, CFrame.new(0, 0.1, 0), STONE_DARK, Enum.Material.Slate)
+	cylinderPart(plaza, "Anel", 0.34, 22, CFrame.new(0, 0.13, 0), Color3.fromRGB(225, 215, 195), Enum.Material.Slate)
+	cylinderPart(plaza, "Anel", 0.36, 20.6, CFrame.new(0, 0.14, 0), STONE, Enum.Material.Slate)
+
+	-- chafariz
+	local wall = cylinderPart(plaza, "Chafariz", 1.6, 13, CFrame.new(0, 0.9, 0), STONE_DARK, Enum.Material.Slate)
+	wall.CanCollide = true
+	-- borda em anel (feita de pedacos, para a agua aparecer no meio)
+	for i = 0, 15 do
+		local angle = i * math.pi / 8
+		decor(plaza, "BordaChafariz", Vector3.new(0.9, 0.35, 2.75), CFrame.new(math.cos(angle) * 6.55, 1.85, math.sin(angle) * 6.55) * CFrame.Angles(0, -angle, 0), STONE, Enum.Material.Slate)
+	end
+	local water = cylinderPart(plaza, "Agua", 0.12, 11.9, CFrame.new(0, 1.74, 0), WATER, Enum.Material.Glass)
+	water.Transparency = 0.25
+	cylinderPart(plaza, "Coluna", 4.4, 1.6, CFrame.new(0, 3.6, 0), STONE, Enum.Material.Slate)
+	cylinderPart(plaza, "Bacia", 0.7, 5.2, CFrame.new(0, 5.6, 0), STONE_DARK, Enum.Material.Slate)
+	local topWater = cylinderPart(plaza, "AguaTopo", 0.12, 4.6, CFrame.new(0, 5.98, 0), WATER, Enum.Material.Glass)
+	topWater.Transparency = 0.2
+	local spout = ball(plaza, "Bica", Vector3.new(1.1, 1.1, 1.1), CFrame.new(0, 6.5, 0), STONE, Enum.Material.Slate)
+	local jets = Instance.new("ParticleEmitter")
+	jets.Name = "Jatos"
+	jets.Color = ColorSequence.new(Color3.fromRGB(170, 215, 255))
+	jets.LightEmission = 0.3
+	jets.Transparency = NumberSequence.new(0.25, 0.8)
+	jets.Size = NumberSequence.new(0.35, 0.15)
+	jets.Lifetime = NumberRange.new(1.1, 1.5)
+	jets.Speed = NumberRange.new(7, 9)
+	jets.SpreadAngle = Vector2.new(25, 25)
+	jets.Acceleration = Vector3.new(0, -18, 0)
+	jets.Rate = 45
+	jets.Parent = spout
+	-- peixinhos na agua
+	for i = 1, 4 do
+		local angle = i * math.pi / 2 + 0.4
+		ball(plaza, "Peixe", Vector3.new(0.7, 0.25, 0.35), CFrame.new(math.cos(angle) * 4, 1.55, math.sin(angle) * 4) * CFrame.Angles(0, -angle, 0), Color3.fromRGB(255, 140, 40))
+	end
+
+	-- bancos e canteiros de flores em volta
+	for i = 0, 3 do
+		local angle = i * math.pi / 2 + math.pi / 4
+		local benchCF = CFrame.new(math.cos(angle) * 13.5, 0, math.sin(angle) * 13.5) * CFrame.Angles(0, -angle - math.pi / 2, 0)
+		decor(plaza, "Banco", Vector3.new(5, 0.35, 1.6), benchCF * CFrame.new(0, 1.4, 0), WOOD, Enum.Material.WoodPlanks)
+		decor(plaza, "Encosto", Vector3.new(5, 1.2, 0.3), benchCF * CFrame.new(0, 2.2, 0.75), WOOD, Enum.Material.WoodPlanks)
+		for _, x in { -2.1, 2.1 } do
+			decor(plaza, "PeBanco", Vector3.new(0.35, 1.3, 1.4), benchCF * CFrame.new(x, 0.65, 0), Color3.fromRGB(60, 60, 70), Enum.Material.Metal)
+		end
+		local bedAngle = angle + math.pi / 4
+		local bedCF = CFrame.new(math.cos(bedAngle) * 14.5, 0, math.sin(bedAngle) * 14.5)
+		cylinderPart(plaza, "Canteiro", 0.8, 4.6, bedCF * CFrame.new(0, 0.5, 0), STONE_DARK, Enum.Material.Slate)
+		cylinderPart(plaza, "Terra", 0.1, 4, bedCF * CFrame.new(0, 0.92, 0), Color3.fromRGB(100, 66, 40), Enum.Material.Ground)
+		for j = 1, 7 do
+			local a = j * math.pi * 2 / 7
+			flower(plaza, (bedCF * CFrame.new(math.cos(a) * 1.3, 0.92, math.sin(a) * 1.3)).Position, FLOWER_COLORS[rng:NextInteger(1, #FLOWER_COLORS)], 1.2)
+		end
+		ball(plaza, "Arbusto", Vector3.new(1.6, 1.4, 1.6), bedCF * CFrame.new(0, 1.5, 0), Color3.fromRGB(70, 160, 60))
+	end
+
+	-- placa de boas-vindas em um portal de madeira
+	for _, x in { -14, 14 } do
+		local post = part(plaza, "PostePortal", Vector3.new(1.2, 16, 1.2), CFrame.new(x, 8, 0), WOOD_DARK, Enum.Material.Wood)
+		post.CanCollide = true
+		decor(plaza, "Tampa", Vector3.new(1.6, 0.5, 1.6), CFrame.new(x, 16.2, 0), WOOD_LIGHT, Enum.Material.Wood)
+		ball(plaza, "Arbusto", Vector3.new(2.6, 2, 2.6), CFrame.new(x, 1, 0), Color3.fromRGB(70, 160, 60))
+	end
+	local welcome = part(plaza, "Boas-vindas", Vector3.new(26, 5, 0.6), CFrame.new(0, 14, 0), Color3.fromRGB(255, 250, 235))
+	welcome.CanCollide = false
+	for _, y in { 11.35, 16.65 } do
+		decor(plaza, "Moldura", Vector3.new(27, 0.4, 0.9), CFrame.new(0, y, 0), WOOD_DARK, Enum.Material.Wood)
+	end
+	surfaceText(welcome, "🌱 Cultive um Jardim 🌱", Color3.fromRGB(70, 150, 50), Enum.NormalId.Front)
+	surfaceText(welcome, "🌱 Cultive um Jardim 🌱", Color3.fromRGB(70, 150, 50), Enum.NormalId.Back)
+	for i = 1, 9 do -- florzinhas em cima da placa
+		local x = -12 + (i - 1) * 3
+		ball(plaza, "Folha", Vector3.new(1.4, 0.7, 0.9), CFrame.new(x, 17.1, 0), Color3.fromRGB(70, 160, 60))
+		ball(plaza, "Flor", Vector3.new(0.6, 0.6, 0.6), CFrame.new(x + 0.3, 17.5, 0), FLOWER_COLORS[i % #FLOWER_COLORS + 1])
+	end
+	plaza.Parent = parent
+end
+
+---------------------------------------------------------------------
 -- Decoracao
 ---------------------------------------------------------------------
 
-local function buildTree(parent: Instance, position: Vector3, scale: number)
+local function buildTree(parent: Instance, position: Vector3, scale: number, rng: Random)
+	local kind = rng:NextInteger(1, 10)
+	if kind <= 2 then -- pinheiro em camadas
+		local trunk = part(parent, "Tronco", Vector3.new(1.1, 5, 1.1) * scale, CFrame.new(position + Vector3.new(0, 2.5 * scale, 0)), Color3.fromRGB(100, 68, 42), Enum.Material.Wood)
+		trunk.CastShadow = true
+		trunk.CanCollide = false
+		for i = 0, 3 do
+			cylinderPart(parent, "Copa", 1.6 * scale, (7.5 - i * 1.7) * scale, CFrame.new(position + Vector3.new(0, (3.4 + i * 1.9) * scale, 0)), Color3.fromRGB(40, 120 + i * 8, 60))
+		end
+		ball(parent, "Topo", Vector3.new(1.4, 1.6, 1.4) * scale, CFrame.new(position + Vector3.new(0, 10.6 * scale, 0)), Color3.fromRGB(50, 150, 70))
+		return
+	end
 	local trunk = part(parent, "Tronco", Vector3.new(1.2, 6, 1.2) * scale, CFrame.new(position + Vector3.new(0, 3 * scale, 0)), Color3.fromRGB(110, 75, 45), Enum.Material.Wood)
 	trunk.CastShadow = true
-	ball(parent, "Copa", Vector3.new(7, 6, 7) * scale, CFrame.new(position + Vector3.new(0, 7.5 * scale, 0)), Color3.fromRGB(60, 150, 55))
-	ball(parent, "Copa", Vector3.new(4.5, 4, 4.5) * scale, CFrame.new(position + Vector3.new(1.8, 9.5, 0.5) * scale), Color3.fromRGB(75, 165, 60))
+	for i = 1, 3 do -- raizes
+		local angle = i * math.pi * 2 / 3 + rng:NextNumber(0, 1)
+		ball(parent, "Raiz", Vector3.new(1.4, 0.6, 0.7) * scale, CFrame.new(position + Vector3.new(math.cos(angle) * 0.7, 0.2, math.sin(angle) * 0.7) * scale) * CFrame.Angles(0, -angle, 0), Color3.fromRGB(100, 68, 42))
+	end
+	local blossom = kind == 3
+	local base = if blossom then Color3.fromRGB(255, 175, 205) else Color3.fromRGB(60, 150, 55)
+	local shades = { base, base:Lerp(WHITE, 0.12), base:Lerp(BLACK, 0.12) }
+	local blobs = {
+		{ Vector3.new(0, 7.5, 0), Vector3.new(7, 6, 7) },
+		{ Vector3.new(1.9, 9.4, 0.5), Vector3.new(4.6, 4, 4.6) },
+		{ Vector3.new(-1.8, 8.9, -0.9), Vector3.new(4.2, 3.8, 4.2) },
+		{ Vector3.new(0.3, 8.6, 2), Vector3.new(4, 3.6, 4) },
+		{ Vector3.new(-0.4, 10.4, -0.2), Vector3.new(3.6, 3, 3.6) },
+	}
+	for i, blob in blobs do
+		ball(parent, "Copa", blob[2] * scale, CFrame.new(position + blob[1] * scale), shades[(i - 1) % #shades + 1])
+	end
+	if kind == 4 then -- macieira
+		for i = 1, 7 do
+			local angle = i * 0.9
+			ball(parent, "Maca", Vector3.new(0.7, 0.7, 0.7) * scale, CFrame.new(position + Vector3.new(math.cos(angle) * 3.2, 6.6 + (i % 3) * 0.8, math.sin(angle) * 3.2) * scale), Color3.fromRGB(220, 40, 45))
+		end
+	end
+end
+
+local function buildBush(parent: Instance, position: Vector3, rng: Random)
+	local size = rng:NextNumber(1.6, 3)
+	local color = Color3.fromRGB(65, 150 + rng:NextInteger(0, 25), 55)
+	ball(parent, "Arbusto", Vector3.new(size * 1.3, size, size * 1.2), CFrame.new(position + Vector3.new(0, size * 0.4, 0)), color)
+	ball(parent, "Arbusto", Vector3.new(size, size * 0.8, size), CFrame.new(position + Vector3.new(size * 0.55, size * 0.3, size * 0.2)), color:Lerp(WHITE, 0.08))
+	if rng:NextNumber() < 0.5 then -- frutinhas ou flores no arbusto
+		local berry = FLOWER_COLORS[rng:NextInteger(1, #FLOWER_COLORS)]
+		for i = 1, 4 do
+			local angle = i * 1.6
+			ball(parent, "Frutinha", Vector3.new(0.35, 0.35, 0.35), CFrame.new(position + Vector3.new(math.cos(angle) * size * 0.55, size * (0.55 + (i % 2) * 0.2), math.sin(angle) * size * 0.5)), berry)
+		end
+	end
+end
+
+local function buildRock(parent: Instance, position: Vector3, rng: Random)
+	local size = rng:NextNumber(1, 3)
+	local gray = Color3.fromRGB(140, 140, 135):Lerp(Color3.fromRGB(180, 175, 165), rng:NextNumber())
+	ball(parent, "Pedra", Vector3.new(size * 1.4, size * 0.8, size), CFrame.new(position + Vector3.new(0, size * 0.2, 0)) * CFrame.Angles(0, rng:NextNumber(0, math.pi), 0), gray, Enum.Material.Slate)
+	if size > 2 then
+		ball(parent, "Pedra", Vector3.new(size * 0.6, size * 0.45, size * 0.5), CFrame.new(position + Vector3.new(size * 0.7, 0.1, size * 0.3)), gray:Lerp(BLACK, 0.1), Enum.Material.Slate)
+	end
 end
 
 local function buildLamp(parent: Instance, position: Vector3)
-	part(parent, "PosteLuz", Vector3.new(0.5, 9, 0.5), CFrame.new(position + Vector3.new(0, 4.5, 0)), Color3.fromRGB(60, 60, 70), Enum.Material.Metal)
-	local lamp = ball(parent, "Lampada", Vector3.new(1.4, 1.4, 1.4), CFrame.new(position + Vector3.new(0, 9.4, 0)), Color3.fromRGB(255, 235, 170))
-	lamp.Material = Enum.Material.Neon
+	local metal = Color3.fromRGB(55, 58, 68)
+	cylinderPart(parent, "BaseLuz", 0.6, 1.4, CFrame.new(position + Vector3.new(0, 0.3, 0)), metal, Enum.Material.Metal)
+	part(parent, "PosteLuz", Vector3.new(0.45, 8.4, 0.45), CFrame.new(position + Vector3.new(0, 4.6, 0)), metal, Enum.Material.Metal)
+	decor(parent, "TopoLuz", Vector3.new(1.5, 0.25, 1.5), CFrame.new(position + Vector3.new(0, 8.9, 0)), metal, Enum.Material.Metal)
+	local lamp = decor(parent, "Lampada", Vector3.new(1.1, 1.3, 1.1), CFrame.new(position + Vector3.new(0, 9.7, 0)), Color3.fromRGB(255, 235, 170), Enum.Material.Neon)
+	lamp.CastShadow = false
+	for _, offset in { Vector3.new(0.58, 0, 0.58), Vector3.new(-0.58, 0, 0.58), Vector3.new(0.58, 0, -0.58), Vector3.new(-0.58, 0, -0.58) } do
+		decor(parent, "Grade", Vector3.new(0.12, 1.4, 0.12), CFrame.new(position + Vector3.new(0, 9.7, 0) + offset), metal, Enum.Material.Metal)
+	end
+	decor(parent, "Chapeu", Vector3.new(1.6, 0.3, 1.6), CFrame.new(position + Vector3.new(0, 10.5, 0)), metal, Enum.Material.Metal)
+	ball(parent, "Ponta", Vector3.new(0.4, 0.4, 0.4), CFrame.new(position + Vector3.new(0, 10.8, 0)), metal, Enum.Material.Metal)
 	local light = Instance.new("PointLight")
-	light.Range = 18
-	light.Brightness = 1.5
-	light.Color = Color3.fromRGB(255, 220, 160)
+	light.Range = 20
+	light.Brightness = 1.6
+	light.Color = Color3.fromRGB(255, 215, 150)
 	light.Parent = lamp
 	return light
 end
 
 local function setupLighting()
 	Lighting.ClockTime = 14
-	Lighting.Brightness = 2
+	Lighting.Brightness = 2.2
 	Lighting.GlobalShadows = true
-	Lighting.Ambient = Color3.fromRGB(90, 90, 90)
-	Lighting.OutdoorAmbient = Color3.fromRGB(140, 140, 140)
+	Lighting.Ambient = Color3.fromRGB(95, 95, 105)
+	Lighting.OutdoorAmbient = Color3.fromRGB(150, 148, 140)
+	Lighting.EnvironmentDiffuseScale = 0.6
+	Lighting.EnvironmentSpecularScale = 0.35
+	Lighting.ShadowSoftness = 0.25
+	Lighting.ExposureCompensation = 0.1
 	if not Lighting:FindFirstChildOfClass("Atmosphere") then
 		local atmosphere = Instance.new("Atmosphere")
 		atmosphere.Density = 0.3
+		atmosphere.Offset = 0.15
 		atmosphere.Haze = 1
+		atmosphere.Glare = 0.4
 		atmosphere.Color = Color3.fromRGB(200, 220, 255)
+		atmosphere.Decay = Color3.fromRGB(120, 150, 200)
 		atmosphere.Parent = Lighting
 	end
+	-- cores mais vivas, brilho suave nas luzes e raios de sol
+	if not Lighting:FindFirstChild("CoresJardim") then
+		local color = Instance.new("ColorCorrectionEffect")
+		color.Name = "CoresJardim"
+		color.Saturation = 0.15
+		color.Contrast = 0.06
+		color.Brightness = 0.02
+		color.TintColor = Color3.fromRGB(255, 251, 242)
+		color.Parent = Lighting
+		local bloom = Instance.new("BloomEffect")
+		bloom.Name = "BrilhoJardim"
+		bloom.Intensity = 0.5
+		bloom.Size = 26
+		bloom.Threshold = 1.6
+		bloom.Parent = Lighting
+		local sunRays = Instance.new("SunRaysEffect")
+		sunRays.Name = "RaiosJardim"
+		sunRays.Intensity = 0.05
+		sunRays.Spread = 0.6
+		sunRays.Parent = Lighting
+	end
+	-- nuvens de verdade no ceu
+	local terrain = workspace:FindFirstChildOfClass("Terrain")
+	if terrain and not terrain:FindFirstChildOfClass("Clouds") then
+		local clouds = Instance.new("Clouds")
+		clouds.Cover = 0.55
+		clouds.Density = 0.7
+		clouds.Color = Color3.fromRGB(255, 255, 255)
+		clouds.Parent = terrain
+	end
+end
+
+-- area livre para enfeites (fora da rua, dos jardins, das lojas e da praca)
+local function isFree(x: number, z: number, margin: number): boolean
+	local L = MapBuilder.Layout
+	if math.abs(x) > 200 or math.abs(z) > 150 then
+		return false
+	end
+	if math.abs(z) < 23 + margin and math.abs(x) < 190 then
+		return false
+	end
+	for _, cx in L.columns do
+		for _, cz in { L.rowZ, -L.rowZ } do
+			if math.abs(x - cx) < L.plotHalfX + 4 + margin and math.abs(z - cz) < L.plotHalfZ + 5 + margin then
+				return false
+			end
+		end
+	end
+	for _, sx in { -40, 40 } do
+		for _, sz in { -30, 30 } do
+			if math.abs(x - sx) < 12 + margin and math.abs(z - sz) < 10 + margin then
+				return false
+			end
+		end
+	end
+	return true
+end
+
+local function randomFreeSpot(rng: Random, margin: number): Vector3?
+	for _ = 1, 40 do
+		local x, z = rng:NextNumber(-198, 198), rng:NextNumber(-148, 148)
+		if isFree(x, z, margin) then
+			return Vector3.new(x, 0, z)
+		end
+	end
+	return nil
 end
 
 ---------------------------------------------------------------------
@@ -381,28 +799,35 @@ function MapBuilder.build()
 	end
 	local map = Instance.new("Folder")
 	map.Name = "Mapa"
+	local rng = Random.new(2025) -- sempre o mesmo mapa
 
 	setupLighting()
 
-	part(map, "Chao", Vector3.new(420, 2, 320), CFrame.new(0, -1, 0), Color3.fromRGB(95, 170, 70), Enum.Material.Grass)
+	part(map, "Chao", Vector3.new(900, 2, 800), CFrame.new(0, -1, 0), Color3.fromRGB(95, 170, 70), Enum.Material.Grass)
 	part(map, "Rua", Vector3.new(360, 0.2, 40), CFrame.new(0, 0, 0), Color3.fromRGB(220, 200, 150), Enum.Material.Sand)
+	-- meio-fio de pedra (com aberturas nas entradas dos jardins)
+	for _, z in { -20.3, 20.3 } do
+		local edges = { -180, -86, -74, -6, 6, 74, 86, 180 }
+		for i = 1, #edges - 1, 2 do
+			local x1, x2 = edges[i], edges[i + 1]
+			decor(map, "MeioFio", Vector3.new(x2 - x1, 0.4, 0.8), CFrame.new((x1 + x2) / 2, 0.2, z), STONE, Enum.Material.Slate)
+		end
+	end
 
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "Spawn"
 	spawn.Anchored = true
-	spawn.Size = Vector3.new(10, 0.4, 10)
-	spawn.CFrame = CFrame.new(0, 0.2, 0)
+	spawn.Size = Vector3.new(8, 0.4, 6)
+	spawn.CFrame = CFrame.new(0, 0.2, -12)
 	spawn.Duration = 0
 	spawn.Neutral = true
-	spawn.Color = Color3.fromRGB(255, 255, 255)
+	spawn.Transparency = 1
+	spawn.CanCollide = false
 	spawn.Material = Enum.Material.SmoothPlastic
 	spawn.TopSurface = SMOOTH
 	spawn.Parent = map
 
-	local welcome = part(map, "Boas-vindas", Vector3.new(26, 5, 0.6), CFrame.new(0, 14, 0), Color3.fromRGB(255, 250, 235))
-	welcome.CanCollide = false
-	surfaceText(welcome, "🌱 Cultive um Jardim 🌱", Color3.fromRGB(70, 150, 50), Enum.NormalId.Front)
-	surfaceText(welcome, "🌱 Cultive um Jardim 🌱", Color3.fromRGB(70, 150, 50), Enum.NormalId.Back)
+	buildPlaza(map, rng)
 
 	-- jardins: 3 de cada lado da rua
 	local L = MapBuilder.Layout
@@ -411,18 +836,19 @@ function MapBuilder.build()
 		local z = if row == 1 then L.rowZ else -L.rowZ
 		local rotation = if row == 1 then 0 else math.pi
 		for _, x in L.columns do
-			table.insert(plots, buildPlot(#plots + 1, Vector3.new(x, 0, z), rotation, map))
+			table.insert(plots, buildPlot(#plots + 1, Vector3.new(x, 0, z), rotation, map, rng))
 		end
 	end
 
 	-- lojas entre os jardins
 	local stalls = {
 		{
-			id = "Seeds", title = "Sementes", npc = "Sam", action = "Comprar sementes",
+			id = "Seeds", title = "Sementes", icon = "🌱", npc = "Sam", action = "Comprar sementes",
 			position = Vector3.new(-40, 0, 30), rotation = 0,
 			roofA = Color3.fromRGB(70, 160, 60), roofB = Color3.fromRGB(240, 240, 230),
-			goods = { Color3.fromRGB(255, 140, 30), Color3.fromRGB(225, 30, 55), Color3.fromRGB(60, 80, 210) },
+			goods = { Color3.fromRGB(255, 140, 30), Color3.fromRGB(225, 30, 55), Color3.fromRGB(60, 80, 210), Color3.fromRGB(240, 70, 110) },
 			look = {
+				tagColor = Color3.fromRGB(120, 220, 90),
 				skin = Color3.fromRGB(255, 205, 160), hair = Color3.fromRGB(110, 70, 40), hairStyle = "short",
 				hat = "straw", hatColor = Color3.fromRGB(235, 205, 120),
 				shirt = Color3.fromRGB(90, 170, 70), pants = Color3.fromRGB(60, 90, 150), shoes = Color3.fromRGB(90, 60, 40),
@@ -430,11 +856,12 @@ function MapBuilder.build()
 			},
 		},
 		{
-			id = "Sell", title = "Venda", npc = "Steven", action = "Vender frutos",
+			id = "Sell", title = "Venda", icon = "💰", npc = "Steven", action = "Vender frutos",
 			position = Vector3.new(40, 0, 30), rotation = 0,
 			roofA = Color3.fromRGB(230, 170, 30), roofB = Color3.fromRGB(240, 240, 230),
-			goods = { Color3.fromRGB(255, 205, 40), Color3.fromRGB(255, 230, 120) },
+			goods = { Color3.fromRGB(255, 205, 40), Color3.fromRGB(255, 230, 120), Color3.fromRGB(225, 40, 50), Color3.fromRGB(120, 200, 70) },
 			look = {
+				tagColor = Color3.fromRGB(255, 205, 60),
 				skin = Color3.fromRGB(240, 190, 150), hair = Color3.fromRGB(240, 210, 110), hairStyle = "short",
 				hat = "cap", hatColor = Color3.fromRGB(230, 170, 30), glasses = true,
 				shirt = Color3.fromRGB(70, 130, 210), pants = Color3.fromRGB(90, 90, 100), shoes = Color3.fromRGB(40, 40, 45),
@@ -442,11 +869,12 @@ function MapBuilder.build()
 			},
 		},
 		{
-			id = "Gear", title = "Equipamentos", npc = "George", action = "Comprar equipamentos",
+			id = "Gear", title = "Equipamentos", icon = "🔧", npc = "George", action = "Comprar equipamentos",
 			position = Vector3.new(-40, 0, -30), rotation = math.pi,
 			roofA = Color3.fromRGB(60, 120, 210), roofB = Color3.fromRGB(240, 240, 230),
-			goods = { Color3.fromRGB(80, 140, 230), Color3.fromRGB(170, 170, 180) },
+			goods = { Color3.fromRGB(80, 140, 230), Color3.fromRGB(170, 170, 180), Color3.fromRGB(90, 200, 90), Color3.fromRGB(250, 200, 50) },
 			look = {
+				tagColor = Color3.fromRGB(110, 170, 255),
 				skin = Color3.fromRGB(230, 180, 140), hair = Color3.fromRGB(150, 150, 150), hairStyle = "short",
 				hat = "hardhat", hatColor = Color3.fromRGB(250, 200, 40), beard = Color3.fromRGB(170, 170, 170),
 				shirt = Color3.fromRGB(110, 110, 120), pants = Color3.fromRGB(50, 50, 60), shoes = Color3.fromRGB(70, 50, 35),
@@ -454,11 +882,12 @@ function MapBuilder.build()
 			},
 		},
 		{
-			id = "Eggs", title = "Ovos & Pets", npc = "Eloise", action = "Comprar ovos",
+			id = "Eggs", title = "Ovos & Pets", icon = "🥚", npc = "Eloise", action = "Comprar ovos",
 			position = Vector3.new(40, 0, -30), rotation = math.pi,
 			roofA = Color3.fromRGB(200, 90, 200), roofB = Color3.fromRGB(240, 240, 230),
-			goods = { Color3.fromRGB(240, 235, 220), Color3.fromRGB(150, 230, 140), Color3.fromRGB(120, 170, 255) },
+			goods = { Color3.fromRGB(240, 235, 220), Color3.fromRGB(150, 230, 140), Color3.fromRGB(120, 170, 255), Color3.fromRGB(255, 215, 70) },
 			look = {
+				tagColor = Color3.fromRGB(230, 140, 255),
 				skin = Color3.fromRGB(255, 215, 185), hair = Color3.fromRGB(250, 140, 190), hairStyle = "long",
 				hat = "bow", hatColor = Color3.fromRGB(255, 255, 255),
 				shirt = Color3.fromRGB(250, 240, 250), sleeves = Color3.fromRGB(170, 90, 210), pants = Color3.fromRGB(170, 90, 210), shoes = Color3.fromRGB(250, 250, 250),
@@ -469,30 +898,86 @@ function MapBuilder.build()
 	local locations = {}
 	local shopPositions = {}
 	for _, info in stalls do
-		locations[info.id] = buildStall(map, info)
+		locations[info.id] = buildStall(map, info, rng)
 		shopPositions[info.id] = info.position
 	end
-	locations.Spawn = CFrame.new(0, 3, 0)
+	locations.Spawn = CFrame.new(0, 3, -12)
 
 	-- decoracao
-	local decor = Instance.new("Folder")
-	decor.Name = "Decoracao"
-	decor.Parent = map
+	local decorFolder = Instance.new("Folder")
+	decorFolder.Name = "Decoracao"
+	decorFolder.Parent = map
 	-- postes entre as entradas dos jardins (x = -140, -100, ..., 140)
 	local lights = {}
 	for x = -140, 140, 40 do
 		for _, z in { -19, 19 } do
-			table.insert(lights, buildLamp(decor, Vector3.new(x, 0, z)))
+			table.insert(lights, buildLamp(decorFolder, Vector3.new(x, 0, z + (if z > 0 then 2.2 else -2.2))))
 		end
 	end
+	-- floreiras ao longo da rua, entre os postes
+	for x = -160, 160, 40 do
+		if math.abs(x) > 20 then
+			for _, z in { -22, 22 } do
+				if isFree(x, z + (if z > 0 then 3 else -3), -4) then
+					flowerBox(decorFolder, CFrame.new(x, 0, z + (if z > 0 then 1.6 else -1.6)), 6, rng)
+				end
+			end
+		end
+	end
+	-- arvores na borda do mapa e entre os jardins
 	for x = -180, 180, 30 do
-		buildTree(decor, Vector3.new(x + (x % 20), 0, 115 + (x % 3) * 4), 1 + (x % 7) / 10)
-		buildTree(decor, Vector3.new(x - (x % 20), 0, -115 - (x % 3) * 4), 1 + (x % 5) / 10)
+		buildTree(decorFolder, Vector3.new(x + (x % 20), 0, 115 + (x % 3) * 4), 1 + (x % 7) / 10, rng)
+		buildTree(decorFolder, Vector3.new(x - (x % 20), 0, -115 - (x % 3) * 4), 1 + (x % 5) / 10, rng)
 	end
 	for _, x in { -150, -130, 130, 150 } do
 		for _, z in { -60, -30, 30, 60 } do
-			buildTree(decor, Vector3.new(x, 0, z), 1.1)
+			buildTree(decorFolder, Vector3.new(x, 0, z), 1.1, rng)
 		end
+	end
+	for _ = 1, 18 do
+		local spot = randomFreeSpot(rng, 6)
+		if spot then
+			buildTree(decorFolder, spot, rng:NextNumber(0.8, 1.3), rng)
+		end
+	end
+	-- manchas de grama, flores, arbustos e pedras espalhados
+	for _ = 1, 45 do
+		local spot = randomFreeSpot(rng, 0)
+		if spot then
+			local tone = Color3.fromRGB(95, 170, 70):Lerp(if rng:NextNumber() < 0.5 then Color3.fromRGB(70, 140, 55) else Color3.fromRGB(140, 200, 90), rng:NextNumber(0.3, 0.7))
+			local patch = cylinderPart(decorFolder, "Mancha", 0.06, rng:NextNumber(8, 20), CFrame.new(spot + Vector3.new(0, 0.02, 0)), tone, Enum.Material.Grass)
+			patch.CastShadow = false
+		end
+	end
+	for _ = 1, 60 do
+		local spot = randomFreeSpot(rng, 0)
+		if spot then
+			local color = FLOWER_COLORS[rng:NextInteger(1, #FLOWER_COLORS)]
+			for i = 1, rng:NextInteger(3, 6) do
+				flower(decorFolder, spot + Vector3.new(rng:NextNumber(-1.6, 1.6), 0, rng:NextNumber(-1.6, 1.6)), if i % 3 == 0 then FLOWER_COLORS[rng:NextInteger(1, #FLOWER_COLORS)] else color, rng:NextNumber(0.9, 1.4))
+			end
+		end
+	end
+	for _ = 1, 34 do
+		local spot = randomFreeSpot(rng, 2)
+		if spot then
+			buildBush(decorFolder, spot, rng)
+		end
+	end
+	for _ = 1, 24 do
+		local spot = randomFreeSpot(rng, 2)
+		if spot then
+			buildRock(decorFolder, spot, rng)
+		end
+	end
+	-- morros no horizonte (fora da area de jogo)
+	for i = 1, 26 do
+		local angle = i * math.pi * 2 / 26 + rng:NextNumber(-0.08, 0.08)
+		local distance = rng:NextNumber(270, 340)
+		local width = rng:NextNumber(90, 150)
+		local height = rng:NextNumber(35, 70)
+		local tone = Color3.fromRGB(80, 150, 70):Lerp(Color3.fromRGB(60, 120, 80), rng:NextNumber())
+		ball(decorFolder, "Morro", Vector3.new(width, height, width * 0.8), CFrame.new(math.cos(angle) * distance * 1.2, -height * 0.18, math.sin(angle) * distance) * CFrame.Angles(0, -angle, 0), tone, Enum.Material.Grass)
 	end
 
 	-- paredes invisiveis nas bordas

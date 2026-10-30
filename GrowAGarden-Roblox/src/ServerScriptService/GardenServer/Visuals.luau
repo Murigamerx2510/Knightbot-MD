@@ -235,55 +235,141 @@ end
 
 function builders.bush(model: Model, seed)
 	local h = seed.height
+	local leaf = seed.leafColor
 	cylinder(model, "Caule", h * 0.3, 0.25, CFrame.new(0, h * 0.15, 0), STEM_COLOR)
-	sphere(model, "Folhagem", Vector3.new(h * 0.85, h * 0.65, h * 0.85), CFrame.new(0, h * 0.5, 0), seed.leafColor)
-	sphere(model, "Folhagem", Vector3.new(h * 0.5, h * 0.45, h * 0.5), CFrame.new(h * 0.2, h * 0.72, -h * 0.1), seed.leafColor:Lerp(WHITE, 0.08))
-	sphere(model, "Folhagem", Vector3.new(h * 0.45, h * 0.4, h * 0.45), CFrame.new(-h * 0.22, h * 0.62, h * 0.15), seed.leafColor:Lerp(WHITE, 0.04))
+	sphere(model, "Folhagem", Vector3.new(h * 0.85, h * 0.65, h * 0.85), CFrame.new(0, h * 0.5, 0), leaf)
+	local tufts = {
+		{ Vector3.new(0.2, 0.72, -0.1), Vector3.new(0.5, 0.45, 0.5), 0.08 },
+		{ Vector3.new(-0.22, 0.62, 0.15), Vector3.new(0.45, 0.4, 0.45), 0.04 },
+		{ Vector3.new(0.05, 0.55, 0.28), Vector3.new(0.42, 0.36, 0.42), -0.06 },
+		{ Vector3.new(-0.2, 0.5, -0.25), Vector3.new(0.42, 0.36, 0.42), 0.05 },
+		{ Vector3.new(0, 0.84, 0), Vector3.new(0.34, 0.3, 0.34), 0.12 },
+	}
+	for _, tuft in tufts do
+		local color = if tuft[3] >= 0 then leaf:Lerp(WHITE, tuft[3]) else leaf:Lerp(BLACK, -tuft[3])
+		sphere(model, "Folhagem", tuft[2] * h, CFrame.new(tuft[1] * h), color)
+	end
+	local id = seed.id
+	if id == "Strawberry" or id == "Blueberry" then -- florzinhas brancas
+		for i = 1, 3 do
+			local angle = i * 2.1 + 0.6
+			local center = Vector3.new(math.cos(angle) * h * 0.36, h * 0.68, math.sin(angle) * h * 0.36)
+			sphere(model, "Flor", Vector3.new(0.34, 0.1, 0.34), CFrame.new(center), WHITE)
+			sphere(model, "Miolo", Vector3.new(0.12, 0.08, 0.12), CFrame.new(center + Vector3.new(0, 0.05, 0)), Color3.fromRGB(255, 220, 80))
+		end
+	elseif id == "Tomato" or id == "Pepper" or id == "GhostPepper" or id == "InfernoPepper" then -- estaca de madeira
+		local stake = block(model, "Estaca", Vector3.new(0.12, h * 0.95, 0.12), CFrame.new(h * 0.38, h * 0.475, h * 0.12), WOOD_COLOR:Lerp(WHITE, 0.15))
+		stake.Material = Enum.Material.Wood
+		block(model, "Amarra", Vector3.new(0.18, 0.06, 0.18), CFrame.new(h * 0.38, h * 0.6, h * 0.12), Color3.fromRGB(230, 210, 150))
+	end
+	if id == "InfernoPepper" then -- brasas
+		for i = 1, 3 do
+			local ember = sphere(model, "Brasa", Vector3.new(0.14, 0.14, 0.14), CFrame.new(math.cos(i * 2.1) * h * 0.25, h * (0.95 + (i % 2) * 0.05), math.sin(i * 2.1) * h * 0.25), Color3.fromRGB(255, 140, 40))
+			ember.Material = Enum.Material.Neon
+		end
+	end
 end
 
 function builders.flower(model: Model, seed)
 	local h, fs = seed.height, seed.fruitSize
-	cylinder(model, "Caule", h * 0.75, 0.18, CFrame.new(0, h * 0.375, 0), STEM_COLOR)
-	for i = 1, 2 do
-		local cf = CFrame.new(0, h * 0.12, 0) * CFrame.Angles(0, i * math.pi, 0) * CFrame.Angles(math.rad(25), 0, 0) * CFrame.new(0, h * 0.18, 0)
-		block(model, "Folha", Vector3.new(0.12, h * 0.4, 0.5), cf, seed.leafColor)
+	cylinder(model, "Caule", h * 0.75, 0.16, CFrame.new(0, h * 0.375, 0), STEM_COLOR)
+	for i = 1, 3 do
+		local cf = CFrame.new(0, h * 0.1, 0) * CFrame.Angles(0, i * 2.1, 0) * CFrame.Angles(math.rad(22), 0, 0) * CFrame.new(0, h * 0.2, 0)
+		sphere(model, "Folha", Vector3.new(0.4, h * 0.45, 0.1), cf, seed.leafColor:Lerp(WHITE, (i % 2) * 0.06))
 	end
 	local headY = h * 0.75 + fs.Y * 0.4
-	markProduce(sphere(model, "Produto", fs * 0.8, CFrame.new(0, headY, 0), seed.fruitColor))
-	for i = 1, 4 do
-		local cf = CFrame.new(0, headY, 0) * CFrame.Angles(0, i * math.pi / 2, 0) * CFrame.new(0, 0, fs.Z * 0.32) * CFrame.Angles(math.rad(-15), 0, 0)
-		markProduce(sphere(model, "Produto", Vector3.new(fs.X * 0.6, fs.Y, fs.Z * 0.3), cf, seed.fruitColor))
+	if seed.id == "Daffodil" then -- 6 petalas abertas + trombeta
+		local head = CFrame.new(0, headY, 0) * CFrame.Angles(math.rad(-30), 0, 0)
+		for i = 1, 6 do
+			local petal = head * CFrame.Angles(0, 0, i * math.pi / 3) * CFrame.new(0, fs.X * 0.3, 0)
+			markProduce(sphere(model, "Produto", Vector3.new(fs.X * 0.34, fs.X * 0.62, 0.08), petal, seed.fruitColor))
+		end
+		markProduce(cylinder(model, "ProdutoTrombeta", fs.X * 0.35, fs.X * 0.34, head * CFrame.Angles(math.pi / 2, 0, 0) * CFrame.new(0, fs.X * 0.16, 0), seed.fruitColor:Lerp(Color3.fromRGB(255, 150, 30), 0.55)))
+	else -- tulipa: taca de 6 petalas
+		markProduce(sphere(model, "Produto", fs * 0.55, CFrame.new(0, headY - fs.Y * 0.1, 0), seed.fruitColor))
+		for i = 1, 6 do
+			local inner = i % 2 == 0
+			local cf = CFrame.new(0, headY, 0) * CFrame.Angles(0, i * math.pi / 3, 0) * CFrame.new(0, 0, fs.Z * (if inner then 0.16 else 0.22)) * CFrame.Angles(math.rad(if inner then 9 else 17), 0, 0)
+			markProduce(sphere(model, "Produto", Vector3.new(fs.X * 0.56, fs.Y * 0.92, fs.Z * 0.22), cf, if inner then seed.fruitColor else seed.fruitColor:Lerp(BLACK, 0.07)))
+		end
 	end
 end
 
 function builders.tall(model: Model, seed)
 	local h = seed.height
-	cylinder(model, "Caule", h, 0.35, CFrame.new(0, h / 2, 0), seed.leafColor:Lerp(Color3.new(0, 0, 0), 0.15))
-	for i = 1, 4 do
-		local y = h * (0.25 + 0.12 * i)
-		local cf = CFrame.new(0, y, 0) * CFrame.Angles(0, i * 1.7, 0) * CFrame.Angles(math.rad(40), 0, 0) * CFrame.new(0, h * 0.2, 0)
-		block(model, "Folha", Vector3.new(0.1, h * 0.42, 0.45), cf, seed.leafColor)
+	local stalk = seed.leafColor:Lerp(Color3.new(0, 0, 0), 0.15)
+	cylinder(model, "Caule", h, 0.35, CFrame.new(0, h / 2, 0), stalk)
+	for i = 1, 3 do
+		cylinder(model, "No", 0.08, 0.42, CFrame.new(0, h * 0.22 * i, 0), stalk:Lerp(BLACK, 0.12))
 	end
-	block(model, "Pendao", Vector3.new(0.3, 0.6, 0.3), CFrame.new(0, h + 0.3, 0), Color3.fromRGB(230, 200, 120))
+	for i = 1, 6 do
+		local y = h * (0.15 + 0.11 * i)
+		local cf = CFrame.new(0, y, 0) * CFrame.Angles(0, i * 2.4, 0) * CFrame.Angles(math.rad(48), 0, 0) * CFrame.new(0, h * 0.2, 0)
+		block(model, "Folha", Vector3.new(0.1, h * 0.42, 0.45), cf, seed.leafColor:Lerp(WHITE, (i % 3) * 0.04))
+	end
+	for i = 1, 5 do
+		local cf = CFrame.new(0, h, 0) * CFrame.Angles(0, i * 1.26, 0) * CFrame.Angles(math.rad(if i == 1 then 0 else 28), 0, 0) * CFrame.new(0, 0.3, 0)
+		block(model, "Pendao", Vector3.new(0.08, 0.6, 0.08), cf, Color3.fromRGB(230, 200, 120))
+	end
 end
 
 function builders.ground(model: Model, seed)
 	local fs = seed.fruitSize
-	markProduce(sphere(model, "Produto", fs, CFrame.new(0, fs.Y / 2, 0), seed.fruitColor))
+	if seed.id == "Pumpkin" then -- abobora com gomos
+		markProduce(sphere(model, "Produto", fs * 0.9, CFrame.new(0, fs.Y / 2, 0), seed.fruitColor:Lerp(BLACK, 0.06)))
+		for i = 1, 6 do
+			local cf = CFrame.new(0, fs.Y / 2, 0) * CFrame.Angles(0, i * math.pi / 3, 0) * CFrame.new(fs.X * 0.2, 0, 0)
+			markProduce(sphere(model, "Produto", Vector3.new(fs.X * 0.6, fs.Y, fs.Z * 0.36), cf, seed.fruitColor))
+		end
+	else
+		markProduce(sphere(model, "Produto", fs, CFrame.new(0, fs.Y / 2, 0), seed.fruitColor))
+		if seed.id == "Watermelon" then -- listras
+			for i = 1, 4 do
+				local cf = CFrame.new(0, fs.Y / 2, 0) * CFrame.Angles(i * math.pi / 4, 0, 0)
+				markProduce(sphere(model, "ProdutoListra", Vector3.new(fs.X * 1.01, fs.Y * 1.01, fs.Z * 0.12), cf, seed.fruitColor:Lerp(BLACK, 0.4)))
+			end
+		end
+	end
 	cylinder(model, "Cabo", 0.5, 0.22, CFrame.new(0, fs.Y + 0.15, 0), Color3.fromRGB(100, 120, 50))
-	for i = 1, 3 do
-		local cf = CFrame.Angles(0, i * 2.1, 0) * CFrame.new(fs.X * 0.6, 0.1, 0)
-		sphere(model, "Folha", Vector3.new(1.4, 0.15, 1), cf, seed.leafColor)
+	-- folhas grandes e irregulares no chao
+	local leaves = { { 0.3, 1.7 }, { 1.6, 1.35 }, { 2.9, 1.85 }, { 4.1, 1.25 }, { 5.2, 1.55 } }
+	for i, leafInfo in leaves do
+		local angle, length = leafInfo[1], leafInfo[2]
+		local cf = CFrame.Angles(0, angle, 0) * CFrame.new(fs.X * 0.42 + length * 0.35, 0.1, 0) * CFrame.Angles(0, 0, math.rad(4 + (i % 3) * 3))
+		local color = seed.leafColor:Lerp(WHITE, (i % 3) * 0.04)
+		sphere(model, "Folha", Vector3.new(length, 0.12, length * 0.62), cf, color)
+		sphere(model, "Folha", Vector3.new(length * 0.6, 0.11, length * 0.45), cf * CFrame.new(length * 0.08, 0.01, length * 0.2) * CFrame.Angles(0, math.rad(40), 0), color)
 	end
 end
 
 function builders.tree(model: Model, seed)
 	local h = seed.height
-	local trunk = cylinder(model, "Tronco", h * 0.55, h * 0.11, CFrame.new(0, h * 0.275, 0), WOOD_COLOR)
+	local trunk = cylinder(model, "Tronco", h * 0.55, h * 0.12, CFrame.new(0, h * 0.275, 0), WOOD_COLOR)
 	trunk.Material = Enum.Material.Wood
-	sphere(model, "Copa", Vector3.new(h * 0.75, h * 0.55, h * 0.75), CFrame.new(0, h * 0.68, 0), seed.leafColor)
-	sphere(model, "Copa", Vector3.new(h * 0.45, h * 0.4, h * 0.45), CFrame.new(h * 0.22, h * 0.82, 0), seed.leafColor:Lerp(WHITE, 0.07))
-	sphere(model, "Copa", Vector3.new(h * 0.42, h * 0.38, h * 0.42), CFrame.new(-h * 0.2, h * 0.78, h * 0.15), seed.leafColor:Lerp(WHITE, 0.03))
+	for i = 1, 3 do -- raizes
+		local angle = i * math.pi * 2 / 3 + 0.3
+		sphere(model, "Raiz", Vector3.new(h * 0.12, h * 0.06, h * 0.06), CFrame.new(math.cos(angle) * h * 0.06, h * 0.02, math.sin(angle) * h * 0.06) * CFrame.Angles(0, -angle, 0), WOOD_COLOR:Lerp(BLACK, 0.1))
+	end
+	local leaf = seed.leafColor
+	local blobs = {
+		{ Vector3.new(0, 0.68, 0), Vector3.new(0.75, 0.55, 0.75), 0 },
+		{ Vector3.new(0.22, 0.82, 0), Vector3.new(0.45, 0.4, 0.45), 0.07 },
+		{ Vector3.new(-0.2, 0.78, 0.15), Vector3.new(0.42, 0.38, 0.42), 0.03 },
+		{ Vector3.new(0.05, 0.8, -0.22), Vector3.new(0.4, 0.36, 0.4), -0.05 },
+		{ Vector3.new(-0.14, 0.6, -0.16), Vector3.new(0.4, 0.34, 0.4), -0.08 },
+		{ Vector3.new(0, 0.9, 0), Vector3.new(0.36, 0.28, 0.36), 0.1 },
+	}
+	for _, blob in blobs do
+		local color = if blob[3] >= 0 then leaf:Lerp(WHITE, blob[3]) else leaf:Lerp(BLACK, -blob[3])
+		sphere(model, "Copa", blob[2] * h, CFrame.new(blob[1] * h), color)
+	end
+	if seed.id == "GalaxyFruit" then -- estrelinhas brilhando na copa
+		for i = 1, 6 do
+			local angle = i * 1.05
+			local star = sphere(model, "Estrela", Vector3.new(0.22, 0.22, 0.22), CFrame.new(math.cos(angle) * h * 0.38, h * (0.62 + (i % 3) * 0.1), math.sin(angle) * h * 0.38), Color3.fromRGB(255, 250, 200))
+			star.Material = Enum.Material.Neon
+		end
+	end
 end
 
 function builders.stalk(model: Model, seed)
@@ -302,15 +388,26 @@ end
 
 function builders.palm(model: Model, seed)
 	local h = seed.height
-	local segments = 5
+	local segments = 6
 	local topY = h * 0.85
+	local banana = seed.id == "Banana"
+	local trunkColor = if banana then WOOD_COLOR:Lerp(seed.leafColor, 0.45) else WOOD_COLOR
 	for i = 1, segments do
-		local trunk = cylinder(model, "Tronco", topY / segments * 1.02, 0.55 - i * 0.03, CFrame.new(0, topY / segments * (i - 0.5), 0), WOOD_COLOR:Lerp(WHITE, (i % 2) * 0.08))
+		local trunk = cylinder(model, "Tronco", topY / segments * 1.02, 0.6 - i * 0.04, CFrame.new(0, topY / segments * (i - 0.5), 0), trunkColor:Lerp(WHITE, (i % 2) * 0.08))
 		trunk.Material = Enum.Material.Wood
 	end
-	for i = 1, 6 do
-		local cf = CFrame.new(0, topY, 0) * CFrame.Angles(0, i * math.pi / 3, 0) * CFrame.Angles(math.rad(-25), 0, 0) * CFrame.new(0, 0, -h * 0.2)
-		block(model, "Folha", Vector3.new(0.9, 0.12, h * 0.42), cf, seed.leafColor)
+	sphere(model, "Topo", Vector3.new(0.7, 0.45, 0.7), CFrame.new(0, topY, 0), seed.leafColor:Lerp(BLACK, 0.15))
+	local count = if banana then 6 else 7
+	local width = if banana then 1.2 else 0.85
+	for i = 1, count do -- folhas que sobem e depois caem
+		local base = CFrame.new(0, topY, 0) * CFrame.Angles(0, i * math.pi * 2 / count, 0)
+		local color = seed.leafColor:Lerp(WHITE, (i % 3) * 0.05)
+		block(model, "Folha", Vector3.new(width, h * 0.26, 0.12), base * CFrame.Angles(math.rad(-70), 0, 0) * CFrame.new(0, h * 0.13, 0), color)
+		block(model, "Folha", Vector3.new(width * 0.8, h * 0.22, 0.12), base * CFrame.new(0, h * 0.06, -h * 0.24) * CFrame.Angles(math.rad(-120), 0, 0) * CFrame.new(0, h * 0.11, 0), color)
+	end
+	block(model, "FolhaNova", Vector3.new(0.25, h - topY, 0.12), CFrame.new(0, (topY + h) / 2, 0), seed.leafColor:Lerp(WHITE, 0.08))
+	if banana then -- coracao da bananeira
+		sphere(model, "Coracao", Vector3.new(0.38, 0.6, 0.38), CFrame.new(0.38, topY - 0.75, 0), Color3.fromRGB(120, 40, 80))
 	end
 end
 
@@ -330,16 +427,31 @@ function builders.cactus(model: Model, seed)
 		local cf = CFrame.new(0, h * (0.15 + 0.07 * i), 0) * CFrame.Angles(0, i * 2.4, 0) * CFrame.new(h * 0.13, 0, 0)
 		block(model, "Espinho", Vector3.new(0.18, 0.04, 0.04), cf, Color3.fromRGB(245, 240, 200))
 	end
+	-- flor no topo
+	local flowerColor = seed.fruitColor:Lerp(WHITE, 0.3)
+	for i = 1, 5 do
+		local cf = CFrame.new(0, h * 0.86, 0) * CFrame.Angles(0, i * math.pi * 2 / 5, 0) * CFrame.Angles(math.rad(55), 0, 0) * CFrame.new(0, h * 0.04, 0)
+		sphere(model, "Flor", Vector3.new(h * 0.05, h * 0.09, 0.05), cf, flowerColor)
+	end
+	sphere(model, "Miolo", Vector3.new(h * 0.05, h * 0.04, h * 0.05), CFrame.new(0, h * 0.86, 0), Color3.fromRGB(255, 220, 90))
 end
 
 function builders.mushroom(model: Model, seed)
 	local h, fs = seed.height, seed.fruitSize
 	cylinder(model, "Caule", h * 0.5, 0.7, CFrame.new(0, h * 0.25, 0), seed.leafColor)
 	local capY = h * 0.5 + fs.Y * 0.25
+	cylinder(model, "Lamelas", 0.1, fs.X * 0.78, CFrame.new(0, capY - fs.Y * 0.18, 0), seed.leafColor:Lerp(BLACK, 0.12))
 	markProduce(sphere(model, "Produto", fs, CFrame.new(0, capY, 0), seed.fruitColor))
 	for i = 1, 5 do
 		local cf = CFrame.new(0, capY, 0) * CFrame.Angles(0, i * 1.25, 0) * CFrame.Angles(math.rad(35), 0, 0) * CFrame.new(0, fs.Y * 0.46, 0)
 		sphere(model, "Pinta", Vector3.new(0.35, 0.12, 0.35), cf, WHITE)
+	end
+	-- cogumelinhos ao lado
+	for _, info in { { 0.75, -0.35, 0.35 }, { -0.6, 0.55, 0.28 } } do
+		local x, z, scale = info[1], info[2], info[3]
+		local stemHeight = h * 0.32 * scale / 0.35
+		cylinder(model, "Caule", stemHeight, 0.25 * scale / 0.35, CFrame.new(x, stemHeight / 2, z), seed.leafColor)
+		markProduce(sphere(model, "Produto", Vector3.new(fs.X * scale, fs.Y * scale * 0.8, fs.Z * scale), CFrame.new(x, stemHeight, z), seed.fruitColor))
 	end
 end
 
@@ -357,6 +469,13 @@ function builders.beanstalk(model: Model, seed)
 	for i = 1, 4 do
 		local cf = CFrame.new(0, h + 0.4, 0) * CFrame.Angles(0, i * math.pi / 2, 0) * CFrame.new(0.7, 0, 0)
 		sphere(model, "Nuvem", Vector3.new(1.4, 0.9, 1.2), cf, WHITE)
+	end
+	-- castelinho nas nuvens
+	local stone, roof = Color3.fromRGB(200, 200, 210), Color3.fromRGB(90, 110, 200)
+	block(model, "Castelo", Vector3.new(0.8, 0.4, 0.6), CFrame.new(0, h + 0.85, 0), stone)
+	for _, x in { -0.42, 0.42 } do
+		cylinder(model, "Torre", 0.6, 0.3, CFrame.new(x, h + 0.95, 0), stone)
+		block(model, "Telhado", Vector3.new(0.36, 0.3, 0.36), CFrame.new(x, h + 1.4, 0), roof)
 	end
 end
 
@@ -423,21 +542,37 @@ end
 function builders.bloom(model: Model, seed)
 	local h = seed.height
 	cylinder(model, "Caule", h * 0.6, 0.3, CFrame.new(0, h * 0.3, 0), STEM_COLOR)
-	for i = 1, 2 do
-		local cf = CFrame.new(0, h * 0.15, 0) * CFrame.Angles(0, i * math.pi + 0.5, 0) * CFrame.Angles(math.rad(60), 0, 0) * CFrame.new(0, h * 0.18, 0)
-		sphere(model, "Folha", Vector3.new(0.9, h * 0.45, 0.12), cf, seed.leafColor)
+	for i = 1, 3 do
+		local cf = CFrame.new(0, h * 0.12, 0) * CFrame.Angles(0, i * 2.1 + 0.5, 0) * CFrame.Angles(math.rad(60), 0, 0) * CFrame.new(0, h * 0.18, 0)
+		sphere(model, "Folha", Vector3.new(0.9, h * 0.45, 0.12), cf, seed.leafColor:Lerp(WHITE, (i % 2) * 0.06))
 	end
 	local headY = h * 0.66
 	local special = seed.special or {}
-	for i = 1, 8 do
-		local petalColor = if special.rainbowPetals then RAINBOW[(i - 1) % #RAINBOW + 1] else seed.fruitColor:Lerp(WHITE, 0.25)
-		local cf = CFrame.new(0, headY, 0) * CFrame.Angles(0, i * math.pi / 4, 0) * CFrame.Angles(math.rad(60), 0, 0) * CFrame.new(0, h * 0.16, 0)
-		sphere(model, "Petala", Vector3.new(h * 0.16, h * 0.32, 0.1), cf, petalColor)
+	for layer = 1, 2 do -- duas camadas de petalas
+		local tilt = if layer == 1 then 62 else 38
+		local length = h * (if layer == 1 then 0.32 else 0.22)
+		local width = h * (if layer == 1 then 0.16 else 0.11)
+		for i = 1, 8 do
+			local petalColor
+			if special.rainbowPetals then
+				petalColor = RAINBOW[(i - 1) % #RAINBOW + 1]
+				if layer == 2 then
+					petalColor = petalColor:Lerp(WHITE, 0.3)
+				end
+			else
+				petalColor = if layer == 1 then seed.fruitColor:Lerp(WHITE, 0.25) else seed.fruitColor
+			end
+			local cf = CFrame.new(0, headY, 0) * CFrame.Angles(0, i * math.pi / 4 + (layer - 1) * math.pi / 8, 0) * CFrame.Angles(math.rad(tilt), 0, 0) * CFrame.new(0, length * 0.5, 0)
+			sphere(model, "Petala", Vector3.new(width, length, 0.1), cf, petalColor)
+		end
 	end
 	local center = sphere(model, "Centro", Vector3.new(h * 0.18, h * 0.12, h * 0.18), CFrame.new(0, headY + 0.05, 0), seed.fruitColor)
 	center.Material = Enum.Material.Neon
+	-- orbe magico flutuando sobre a flor
+	local orb = sphere(model, "Orbe", Vector3.new(h * 0.14, h * 0.14, h * 0.14), CFrame.new(0, h * 0.93, 0), if special.rainbowPetals then WHITE else seed.fruitColor:Lerp(WHITE, 0.35))
+	orb.Material = Enum.Material.Neon
 	if special.glow then
-		addLight(center, seed.fruitColor, 12, 1.5)
+		addLight(orb, seed.fruitColor, 12, 1.5)
 	end
 end
 
@@ -534,6 +669,21 @@ function builders.blossom(model: Model, seed)
 	local canopy = sphere(model, "Copa", Vector3.new(h * 0.8, h * 0.5, h * 0.8), CFrame.new(0, h * 0.7, 0), seed.leafColor)
 	sphere(model, "Copa", Vector3.new(h * 0.5, h * 0.38, h * 0.5), CFrame.new(h * 0.25, h * 0.8, h * 0.05), seed.leafColor:Lerp(WHITE, 0.15))
 	sphere(model, "Copa", Vector3.new(h * 0.45, h * 0.35, h * 0.45), CFrame.new(-h * 0.24, h * 0.76, -h * 0.12), seed.leafColor:Lerp(Color3.fromRGB(255, 120, 170), 0.2))
+	local extra = {
+		{ Vector3.new(0.05, 0.74, 0.26), Vector3.new(0.45, 0.34, 0.45), 0.1 },
+		{ Vector3.new(-0.1, 0.86, 0.2), Vector3.new(0.4, 0.3, 0.4), 0.18 },
+		{ Vector3.new(0.18, 0.66, -0.22), Vector3.new(0.42, 0.32, 0.42), -0.06 },
+		{ Vector3.new(0, 0.9, 0), Vector3.new(0.4, 0.22, 0.4), 0.22 },
+	}
+	for _, blob in extra do
+		local color = if blob[3] >= 0 then seed.leafColor:Lerp(WHITE, blob[3]) else seed.leafColor:Lerp(Color3.fromRGB(255, 120, 170), -blob[3] * 3)
+		sphere(model, "Copa", blob[2] * h, CFrame.new(blob[1] * h), color)
+	end
+	for i = 1, 6 do -- petalas caidas no chao
+		local angle = i * 2.4
+		local radius = h * (0.14 + (i % 3) * 0.05)
+		sphere(model, "PetalaChao", Vector3.new(0.18, 0.03, 0.12), CFrame.new(math.cos(angle) * radius, 0.03, math.sin(angle) * radius) * CFrame.Angles(0, i, 0), seed.leafColor:Lerp(WHITE, (i % 2) * 0.2))
+	end
 	addPetals(canopy)
 end
 

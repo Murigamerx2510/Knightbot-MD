@@ -1073,6 +1073,31 @@ local function index(list)
 	return map
 end
 
+-- Icones da interface (lojas, inventario, pets)
+Config.Icons = {
+	-- sementes
+	Carrot = "🥕", Strawberry = "🍓", Blueberry = "🫐", Tulip = "🌷", Tomato = "🍅", Apple = "🍎",
+	Bamboo = "🎋", Daffodil = "🌼", Corn = "🌽", Cactus = "🌵", Pineapple = "🍍", Banana = "🍌",
+	Grape = "🍇", Watermelon = "🍉", GlowMushroom = "🍄", Pumpkin = "🎃", GreenBean = "🥒",
+	Mushroom = "🍄", Coconut = "🥥", Mango = "🥭", DragonFruit = "🐉", Cherry = "🍒", Acorn = "🌰",
+	PoisonIvy = "☘️", FireFern = "🔥", CherryBlossom = "🌸", Sunflower = "🌻", RocketPop = "🚀",
+	VenusFlyTrap = "🪤", Pepper = "🌶️", Pomegranate = "🍑", PoisonApple = "🍏", VenomSpitter = "🐍",
+	Cacao = "🍫", GhostPepper = "👻", RainbowSeed = "🌈", MoonBloom = "🌙", DragonsBreath = "🐲",
+	SunBloom = "☀️", HypnoBloom = "🌀", Beanstalk = "🌱", StarFruit = "⭐", EclipseBloom = "🌑",
+	InfernoPepper = "🌋", GalaxyFruit = "🌌",
+	-- equipamentos
+	WateringCan = "💧", Trowel = "🥄", Shovel = "⛏️", SpeedMushroom = "⚡", JumpMushroom = "🦘",
+	InvisibilityMushroom = "👻", CommonSprinkler = "💦", UncommonSprinkler = "💦", RareSprinkler = "💦",
+	LegendarySprinkler = "💦", SuperSprinkler = "💦", Lantern = "🏮", Gnome = "🧙", StrawberrySniper = "🎯",
+	-- ovos
+	CommonEgg = "🥚", UncommonEgg = "🥚", RareEgg = "🥚", LegendaryEgg = "🥚", MythicEgg = "🥚", SuperEgg = "🥚",
+	-- pets
+	Frog = "🐸", Bunny = "🐰", Cat = "🐱", Owl = "🦉", Dog = "🐶", Chicken = "🐔", Deer = "🦌", Turtle = "🐢",
+	Pig = "🐷", Robin = "🐦", Bee = "🐝", Butterfly = "🦋", Monkey = "🐵", Bear = "🐻", Unicorn = "🦄",
+	GoldenDragonfly = "✨", Firefly = "💡", BaldEagle = "🦅", Dragon = "🐉", Phoenix = "🔥", Raccoon = "🦝",
+	Kitsune = "🦊",
+}
+
 Config.Seeds = index(Config.SeedList)
 Config.Gear = index(Config.GearList)
 Config.Pets = index(Config.PetList)
@@ -3912,8 +3937,9 @@ return Inventory
 			<Item class="ModuleScript" referent="RBX0000000C">
 				<Properties>
 					<string name="Name">MapBuilder</string>
-					<ProtectedString name="Source"><![CDATA[-- MapBuilder: cria o mapa inteiro (chao, rua, 6 jardins, lojas, decoracao).
--- Tudo e gerado por codigo, entao o jogo funciona mesmo em um lugar vazio.
+					<ProtectedString name="Source"><![CDATA[-- MapBuilder: cria o mapa inteiro (chao, rua, praca com chafariz, 6 jardins, lojas,
+-- decoracao e iluminacao). Tudo e gerado por codigo, entao o jogo funciona mesmo em um
+-- lugar vazio.
 
 local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
@@ -3935,8 +3961,22 @@ MapBuilder.Layout = {
 
 local SMOOTH = Enum.SurfaceType.Smooth
 local WOOD = Color3.fromRGB(150, 105, 65)
+local WOOD_DARK = Color3.fromRGB(115, 78, 48)
 local WOOD_LIGHT = Color3.fromRGB(205, 160, 105)
+local STONE = Color3.fromRGB(205, 200, 190)
+local STONE_DARK = Color3.fromRGB(150, 145, 140)
 local WHITE = Color3.fromRGB(255, 255, 255)
+local BLACK = Color3.fromRGB(20, 20, 20)
+local WATER = Color3.fromRGB(90, 175, 255)
+local FLOWER_COLORS = {
+	Color3.fromRGB(255, 90, 110),
+	Color3.fromRGB(255, 200, 60),
+	Color3.fromRGB(255, 255, 255),
+	Color3.fromRGB(190, 120, 255),
+	Color3.fromRGB(255, 150, 200),
+	Color3.fromRGB(100, 170, 255),
+	Color3.fromRGB(255, 140, 50),
+}
 
 local function part(parent: Instance, name: string, size: Vector3, cf: CFrame, color: Color3, material: Enum.Material?): Part
 	local p = Instance.new("Part")
@@ -3952,18 +3992,25 @@ local function part(parent: Instance, name: string, size: Vector3, cf: CFrame, c
 	return p
 end
 
-local BLACK = Color3.fromRGB(20, 20, 20)
+-- Peca so de enfeite: nao bate, nao lanca sombra pequena demais
+local function decor(parent: Instance, name: string, size: Vector3, cf: CFrame, color: Color3, material: Enum.Material?): Part
+	local p = part(parent, name, size, cf, color, material)
+	p.CanCollide = false
+	p.CanTouch = false
+	return p
+end
 
 -- Cilindro em pe
-local function cylinderPart(parent: Instance, name: string, height: number, diameter: number, cf: CFrame, color: Color3): Part
+local function cylinderPart(parent: Instance, name: string, height: number, diameter: number, cf: CFrame, color: Color3, material: Enum.Material?): Part
 	local p = Instance.new("Part")
 	p.Name = name
 	p.Shape = Enum.PartType.Cylinder
 	p.Anchored = true
 	p.CanCollide = false
+	p.CanTouch = false
 	p.TopSurface = SMOOTH
 	p.BottomSurface = SMOOTH
-	p.Material = Enum.Material.SmoothPlastic
+	p.Material = material or Enum.Material.SmoothPlastic
 	p.Color = color
 	p.Size = Vector3.new(height, diameter, diameter)
 	p.CFrame = cf * CFrame.Angles(0, 0, math.pi / 2)
@@ -3971,9 +4018,8 @@ local function cylinderPart(parent: Instance, name: string, height: number, diam
 	return p
 end
 
-local function ball(parent: Instance, name: string, size: Vector3, cf: CFrame, color: Color3): Part
-	local p = part(parent, name, size, cf, color)
-	p.CanCollide = false
+local function ball(parent: Instance, name: string, size: Vector3, cf: CFrame, color: Color3, material: Enum.Material?): Part
+	local p = decor(parent, name, size, cf, color, material)
 	local mesh = Instance.new("SpecialMesh")
 	mesh.MeshType = Enum.MeshType.Sphere
 	mesh.Parent = p
@@ -3993,34 +4039,84 @@ local function surfaceText(target: BasePart, text: string, textColor: Color3, fa
 	label.TextColor3 = textColor
 	label.TextStrokeTransparency = 0.6
 	label.Text = text
+	local padding = Instance.new("UIPadding")
+	padding.PaddingLeft = UDim.new(0.04, 0)
+	padding.PaddingRight = UDim.new(0.04, 0)
+	padding.PaddingTop = UDim.new(0.08, 0)
+	padding.PaddingBottom = UDim.new(0.08, 0)
+	padding.Parent = label
 	label.Parent = gui
 	gui.Parent = target
 	return label
 end
 
-local function billboard(adornee: BasePart, text: string, color: Color3, height: number)
+-- plaquinha com nome (e funcao) em cima dos vendedores
+local function billboard(adornee: BasePart, title: string, subtitle: string, color: Color3, height: number)
 	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromOffset(200, 50)
+	gui.Size = UDim2.fromOffset(170, 56)
 	gui.StudsOffset = Vector3.new(0, height, 0)
 	gui.MaxDistance = 120
 	gui.Adornee = adornee
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.Font = Enum.Font.FredokaOne
-	label.TextScaled = true
-	label.TextColor3 = color
-	label.TextStrokeTransparency = 0.2
-	label.Text = text
-	label.Parent = gui
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.fromScale(1, 1)
+	frame.BackgroundColor3 = Color3.fromRGB(28, 32, 44)
+	frame.BackgroundTransparency = 0.2
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 14)
+	corner.Parent = frame
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = color
+	stroke.Thickness = 3
+	stroke.Parent = frame
+	local name = Instance.new("TextLabel")
+	name.Name = "Nome"
+	name.Size = UDim2.new(1, -12, 0.6, 0)
+	name.Position = UDim2.fromOffset(6, 2)
+	name.BackgroundTransparency = 1
+	name.Font = Enum.Font.FredokaOne
+	name.TextScaled = true
+	name.TextColor3 = Color3.fromRGB(255, 255, 255)
+	name.TextStrokeTransparency = 0.4
+	name.Text = title
+	name.Parent = frame
+	local role = Instance.new("TextLabel")
+	role.Name = "Funcao"
+	role.Size = UDim2.new(1, -12, 0.36, 0)
+	role.Position = UDim2.new(0, 6, 0.6, 0)
+	role.BackgroundTransparency = 1
+	role.Font = Enum.Font.FredokaOne
+	role.TextScaled = true
+	role.TextColor3 = color
+	role.Text = subtitle
+	role.Parent = frame
+	frame.Parent = gui
 	gui.Parent = adornee
+end
+
+-- florzinha: cabinho + petalas + miolo (so 3 pecas, porque sao muitas)
+local function flower(parent: Instance, position: Vector3, color: Color3, size: number)
+	local stem = decor(parent, "Cabinho", Vector3.new(0.12, 0.9, 0.12) * size, CFrame.new(position + Vector3.new(0, 0.45 * size, 0)), Color3.fromRGB(70, 150, 55))
+	stem.CastShadow = false
+	local top = position + Vector3.new(0, 0.95 * size, 0)
+	ball(parent, "Petalas", Vector3.new(0.75, 0.22, 0.75) * size, CFrame.new(top), color).CastShadow = false
+	ball(parent, "Miolo", Vector3.new(0.26, 0.2, 0.26) * size, CFrame.new(top + Vector3.new(0, 0.06, 0) * size), Color3.fromRGB(255, 215, 70)).CastShadow = false
+end
+
+local function flowerBox(parent: Instance, cf: CFrame, length: number, rng: Random)
+	decor(parent, "Floreira", Vector3.new(length, 1, 1.4), cf * CFrame.new(0, 0.5, 0), WOOD, Enum.Material.WoodPlanks)
+	decor(parent, "Terra", Vector3.new(length - 0.3, 0.1, 1.1), cf * CFrame.new(0, 1.02, 0), Color3.fromRGB(100, 66, 40), Enum.Material.Ground)
+	local count = math.max(2, math.floor(length / 1.2))
+	for i = 1, count do
+		local x = -length / 2 + (i - 0.5) * length / count
+		flower(parent, (cf * CFrame.new(x, 1, rng:NextNumber(-0.25, 0.25))).Position, FLOWER_COLORS[rng:NextInteger(1, #FLOWER_COLORS)], 1.1)
+	end
 end
 
 ---------------------------------------------------------------------
 -- Jardins
 ---------------------------------------------------------------------
 
-local function buildPlot(index: number, center: Vector3, rotation: number, parent: Instance)
+local function buildPlot(index: number, center: Vector3, rotation: number, parent: Instance, rng: Random)
 	local L = MapBuilder.Layout
 	local cf = CFrame.new(center) * CFrame.Angles(0, rotation, 0)
 	local model = Instance.new("Model")
@@ -4037,10 +4133,28 @@ local function buildPlot(index: number, center: Vector3, rotation: number, paren
 	local bedLength = L.bedZMax - L.bedZMin
 	local bedCenterZ = (L.bedZMax + L.bedZMin) / 2
 	for _, side in { -1, 1 } do
-		local bed = part(model, "Canteiro", Vector3.new(bedWidth, 0.5, bedLength), at(side * (L.bedInner + bedWidth / 2), 0, bedCenterZ), Color3.fromRGB(125, 82, 50), Enum.Material.Ground)
+		local bedX = side * (L.bedInner + bedWidth / 2)
+		local bed = part(model, "Canteiro", Vector3.new(bedWidth, 0.5, bedLength), at(bedX, 0, bedCenterZ), Color3.fromRGB(125, 82, 50), Enum.Material.Ground)
 		bed:SetAttribute("Canteiro", true)
+		-- moldura de madeira em volta do canteiro
+		for _, dz in { -1, 1 } do
+			decor(model, "Moldura", Vector3.new(bedWidth + 0.9, 0.7, 0.45), at(bedX, 0.25, bedCenterZ + dz * (bedLength / 2 + 0.22)), WOOD_DARK, Enum.Material.Wood)
+		end
+		for _, dx in { -1, 1 } do
+			decor(model, "Moldura", Vector3.new(0.45, 0.7, bedLength), at(bedX + dx * (bedWidth / 2 + 0.22), 0.25, bedCenterZ), WOOD_DARK, Enum.Material.Wood)
+		end
+		-- sulcos na terra
+		for i = 1, 4 do
+			local x = bedX - bedWidth / 2 + i * bedWidth / 5
+			decor(model, "Sulco", Vector3.new(0.35, 0.04, bedLength - 1), at(x, 0.27, bedCenterZ), Color3.fromRGB(105, 68, 40), Enum.Material.Ground)
+		end
 	end
 	part(model, "Caminho", Vector3.new(L.bedInner * 2, 0.3, L.plotHalfZ * 2 - 1), at(0, 0, 0), Color3.fromRGB(215, 190, 140), Enum.Material.Sand)
+	-- pedrinhas no caminho
+	for z = -L.plotHalfZ + 3, L.plotHalfZ - 3, 4 do
+		local stone = cylinderPart(model, "Pedra", 0.12, 2.4 + rng:NextNumber(-0.3, 0.3), at(rng:NextNumber(-0.5, 0.5), 0.2, z), STONE, Enum.Material.Slate)
+		stone.CastShadow = false
+	end
 
 	-- cerca
 	-- skipStart/skipEnd evitam dois postes no mesmo canto
@@ -4057,6 +4171,7 @@ local function buildPlot(index: number, center: Vector3, rotation: number, paren
 			if not ((i == 0 and skipStart) or (i == posts and skipEnd)) then
 				local p = a:Lerp(b, i / posts)
 				part(model, "Poste", Vector3.new(0.6, 3, 0.6), at(p.X, 1.5, p.Z), WOOD, Enum.Material.Wood)
+				decor(model, "Tampa", Vector3.new(0.8, 0.25, 0.8), at(p.X, 3.1, p.Z), WOOD_LIGHT, Enum.Material.Wood)
 			end
 		end
 	end
@@ -4067,11 +4182,37 @@ local function buildPlot(index: number, center: Vector3, rotation: number, paren
 	fence(-hx, -hz, -5, -hz, true, false)
 	fence(5, -hz, hx, -hz, false, true)
 
-	-- placa com o nome do dono
-	part(model, "PostePlaca", Vector3.new(0.5, 4, 0.5), at(-14, 2, -hz - 2), WOOD, Enum.Material.Wood)
-	local board = part(model, "Placa", Vector3.new(10, 3, 0.4), at(-14, 4.8, -hz - 2), WOOD_LIGHT, Enum.Material.Wood)
+	-- arco de entrada com a placa do dono
+	for _, x in { -5.4, 5.4 } do
+		part(model, "PosteArco", Vector3.new(0.9, 8, 0.9), at(x, 4, -hz), WOOD_DARK, Enum.Material.Wood)
+		decor(model, "Tampa", Vector3.new(1.2, 0.35, 1.2), at(x, 8.15, -hz), WOOD_LIGHT, Enum.Material.Wood)
+		for i = 1, 5 do -- trepadeira com florzinhas no poste
+			local y = 1.2 + i * 1.25
+			ball(model, "Folha", Vector3.new(0.7, 0.55, 0.45), at(x + (if i % 2 == 0 then 0.42 else -0.42), y, -hz - 0.35), Color3.fromRGB(70, 160, 60))
+			if i % 2 == 1 then
+				ball(model, "Flor", Vector3.new(0.3, 0.3, 0.3), at(x, y + 0.3, -hz - 0.55), FLOWER_COLORS[(index + i) % #FLOWER_COLORS + 1])
+			end
+		end
+	end
+	decor(model, "Viga", Vector3.new(12.4, 0.7, 0.9), at(0, 7.4, -hz), WOOD_DARK, Enum.Material.Wood)
+	local board = part(model, "Placa", Vector3.new(11, 2.8, 0.4), at(0, 9.3, -hz - 0.1), WOOD_LIGHT, Enum.Material.WoodPlanks)
+	board.CanCollide = false
+	for _, x in { -5.6, 5.6 } do
+		decor(model, "Moldura", Vector3.new(0.3, 3.1, 0.55), at(x, 9.3, -hz - 0.1), WOOD_DARK, Enum.Material.Wood)
+	end
+	for _, y in { 7.85, 10.75 } do
+		decor(model, "Moldura", Vector3.new(11.5, 0.3, 0.55), at(0, y, -hz - 0.1), WOOD_DARK, Enum.Material.Wood)
+	end
 	local signLabel = surfaceText(board, "Jardim Livre", Color3.fromRGB(70, 45, 20))
 	signLabel.TextStrokeTransparency = 1
+	-- floreiras dos dois lados da entrada
+	for _, x in { -9, 9 } do
+		flowerBox(model, at(x, 0, -hz - 1.6), 5, rng)
+	end
+	-- carrinho de mao e saco de adubo perto da entrada (dentro do jardim, fora dos canteiros)
+	decor(model, "Carrinho", Vector3.new(1.8, 0.8, 2.6), at(-22, 1, -hz + 3), Color3.fromRGB(70, 120, 200), Enum.Material.Metal)
+	cylinderPart(model, "Roda", 0.3, 1, at(-22, 0.5, -hz + 1.4) * CFrame.Angles(0, 0, math.pi / 2), BLACK)
+	decor(model, "Saco", Vector3.new(1.4, 1.6, 1), at(22, 0.9, -hz + 3) * CFrame.Angles(0, 0.3, 0.1), Color3.fromRGB(190, 160, 110), Enum.Material.Fabric)
 
 	local plantsFolder = Instance.new("Folder")
 	plantsFolder.Name = "Plantas"
@@ -4199,17 +4340,77 @@ local function buildNpc(parent: Instance, cf: CFrame, look, name: string, role: 
 	npc:SetAttribute("Npc", name)
 	CollectionService:AddTag(npc, "LojaNpc")
 	npc.Parent = parent
-	billboard(head, name .. "\n" .. role, WHITE, 3)
+	billboard(head, name, role, look.tagColor or Color3.fromRGB(255, 220, 90), 3)
 	return npc
 end
 
-local function buildStall(parent: Instance, info)
+-- enfeites tematicos de cada loja (prateleiras no fundo e coisas na frente)
+local function stallGoods(model: Model, cf: CFrame, info, rng: Random)
+	local function at(x: number, y: number, z: number): CFrame
+		return cf * CFrame.new(x, y, z)
+	end
+	-- prateleiras no fundo
+	for _, y in { 4.3, 6.3 } do
+		decor(model, "Prateleira", Vector3.new(12, 0.3, 1.2), at(0, y, 3.9), WOOD_DARK, Enum.Material.Wood)
+		for i = 1, 8 do
+			local x = -5.6 + (i - 1) * 1.6
+			local color = info.goods[(i + math.floor(y)) % #info.goods + 1]
+			if info.id == "Seeds" then -- pacotinhos de semente
+				decor(model, "Pacote", Vector3.new(0.9, 1.2, 0.15), at(x, y + 0.75, 3.75) * CFrame.Angles(math.rad(-8), 0, 0), color)
+				decor(model, "Etiqueta", Vector3.new(0.7, 0.35, 0.05), at(x, y + 0.95, 3.66) * CFrame.Angles(math.rad(-8), 0, 0), WHITE)
+			elseif info.id == "Sell" then -- potes e frutas
+				ball(model, "Fruta", Vector3.new(0.85, 0.85, 0.85), at(x, y + 0.55, 3.8), color)
+			elseif info.id == "Gear" then -- regadores e ferramentas
+				decor(model, "Ferramenta", Vector3.new(0.9, 0.8, 0.6), at(x, y + 0.55, 3.8), color, Enum.Material.Metal)
+				decor(model, "Bico", Vector3.new(0.5, 0.12, 0.12), at(x + 0.55, y + 0.75, 3.8) * CFrame.Angles(0, 0, math.rad(30)), color, Enum.Material.Metal)
+			else -- ovos em ninhos
+				cylinderPart(model, "Ninho", 0.3, 1.1, at(x, y + 0.3, 3.8), Color3.fromRGB(170, 130, 80), Enum.Material.Fabric)
+				ball(model, "Ovo", Vector3.new(0.6, 0.8, 0.6), at(x, y + 0.75, 3.8), color)
+			end
+		end
+	end
+	-- caixotes e barris na frente da loja
+	for index, x in { -9.6, 9.6 } do
+		decor(model, "Caixote", Vector3.new(2.6, 1.8, 2.6), at(x, 0.9, -4) * CFrame.Angles(0, math.rad(index * 7), 0), WOOD, Enum.Material.WoodPlanks)
+		for i = 1, 4 do
+			local color = info.goods[(i + index) % #info.goods + 1]
+			if info.id == "Eggs" then
+				ball(model, "Ovo", Vector3.new(0.8, 1, 0.8), at(x - 0.6 + (i % 2) * 1.2, 2, -4.6 + math.floor((i - 1) / 2) * 1.2), color)
+			elseif info.id == "Gear" then
+				decor(model, "Saco", Vector3.new(1, 1.2, 0.8), at(x - 0.6 + (i % 2) * 1.2, 2.2, -4.6 + math.floor((i - 1) / 2) * 1.2), Color3.fromRGB(190, 160, 110), Enum.Material.Fabric)
+			else
+				ball(model, "Produto", Vector3.new(1, 1, 1), at(x - 0.6 + (i % 2) * 1.2, 2, -4.6 + math.floor((i - 1) / 2) * 1.2), color)
+			end
+		end
+		local barrel = cylinderPart(model, "Barril", 2.2, 1.9, at(x, 1.1, -1.2), WOOD_DARK, Enum.Material.Wood)
+		barrel.CastShadow = true
+		for _, y in { 0.45, 1.75 } do
+			cylinderPart(model, "Aro", 0.18, 1.96, at(x, y, -1.2), Color3.fromRGB(80, 80, 90), Enum.Material.Metal)
+		end
+	end
+	if info.id == "Sell" then -- balanca e moedas no balcao
+		decor(model, "Balanca", Vector3.new(0.3, 1.4, 0.3), at(5, 4.1, -3), Color3.fromRGB(200, 170, 60), Enum.Material.Metal)
+		decor(model, "Braco", Vector3.new(2.4, 0.15, 0.15), at(5, 4.8, -3), Color3.fromRGB(200, 170, 60), Enum.Material.Metal)
+		for _, dx in { -1.1, 1.1 } do
+			cylinderPart(model, "Prato", 0.12, 0.9, at(5 + dx, 4.4, -3), Color3.fromRGB(220, 190, 80), Enum.Material.Metal)
+		end
+		for i = 1, 5 do
+			cylinderPart(model, "Moeda", 0.12, 0.6, at(-5 + rng:NextNumber(-0.3, 0.3), 3.45 + i * 0.13, -3), Color3.fromRGB(255, 205, 50), Enum.Material.Metal)
+		end
+	end
+end
+
+local function buildStall(parent: Instance, info, rng: Random)
 	local cf = CFrame.new(info.position) * CFrame.Angles(0, info.rotation, 0)
 	local model = Instance.new("Model")
 	model.Name = "Loja_" .. info.id
 
+	-- piso de madeira
+	part(model, "Piso", Vector3.new(16, 0.3, 11), cf * CFrame.new(0, 0.15, 0.2), WOOD_LIGHT, Enum.Material.WoodPlanks)
 	local counter = part(model, "Balcao", Vector3.new(14, 3, 3), cf * CFrame.new(0, 1.5, -3), WOOD, Enum.Material.WoodPlanks)
 	part(model, "Tampo", Vector3.new(14.6, 0.4, 3.6), cf * CFrame.new(0, 3.2, -3), WOOD_LIGHT, Enum.Material.Wood)
+	-- faixa colorida na frente do balcao
+	decor(model, "Faixa", Vector3.new(14.1, 0.8, 0.1), cf * CFrame.new(0, 2.2, -4.55), info.roofA)
 	for _, x in { -7, 7 } do
 		for _, z in { -4.5, 4.5 } do
 			part(model, "Pilar", Vector3.new(0.7, 8.5, 0.7), cf * CFrame.new(x, 4.25, z), WOOD, Enum.Material.Wood)
@@ -4219,15 +4420,33 @@ local function buildStall(parent: Instance, info)
 	for i = 0, 7 do
 		local color = if i % 2 == 0 then info.roofA else info.roofB
 		part(model, "Telhado", Vector3.new(1.9, 0.4, 11), cf * CFrame.new(-6.65 + i * 1.9, 8.8, 0) * CFrame.Angles(math.rad(-8), 0, 0), color)
+		-- babado do toldo
+		ball(model, "Babado", Vector3.new(1.9, 1.1, 0.35), cf * CFrame.new(-6.65 + i * 1.9, 9.25 - 5.45 * math.sin(math.rad(8)) - 0.45, -5.45), color)
 	end
-	local sign = part(model, "Placa", Vector3.new(12, 2.4, 0.4), cf * CFrame.new(0, 10.4, -4.8), WHITE)
-	surfaceText(sign, info.title, info.roofA)
+	-- placa com moldura
+	local sign = part(model, "Placa", Vector3.new(12, 2.4, 0.4), cf * CFrame.new(0, 10.6, -4.8), WHITE)
+	sign.CanCollide = false
+	for _, x in { -6.15, 6.15 } do
+		decor(model, "Moldura", Vector3.new(0.3, 2.7, 0.55), cf * CFrame.new(x, 10.6, -4.8), WOOD_DARK, Enum.Material.Wood)
+	end
+	for _, y in { 9.3, 11.9 } do
+		decor(model, "Moldura", Vector3.new(12.6, 0.3, 0.55), cf * CFrame.new(0, y, -4.8), WOOD_DARK, Enum.Material.Wood)
+	end
+	surfaceText(sign, info.icon .. " " .. info.title, info.roofA)
+	-- lampioes pendurados nos pilares da frente
+	for _, x in { -7, 7 } do
+		decor(model, "Gancho", Vector3.new(0.12, 0.8, 0.12), cf * CFrame.new(x, 7.6, -5.1), Color3.fromRGB(60, 60, 70), Enum.Material.Metal)
+		local lamp = decor(model, "Lampiao", Vector3.new(0.7, 0.9, 0.7), cf * CFrame.new(x, 6.8, -5.1), Color3.fromRGB(255, 220, 140), Enum.Material.Neon)
+		lamp.CastShadow = false
+		decor(model, "TampaLampiao", Vector3.new(0.9, 0.2, 0.9), cf * CFrame.new(x, 7.3, -5.1), Color3.fromRGB(60, 60, 70), Enum.Material.Metal)
+	end
 
 	-- produtos decorativos no balcao
 	for i = 1, 5 do
 		local color = info.goods[(i - 1) % #info.goods + 1]
 		ball(model, "Produto", Vector3.new(1, 1, 1), cf * CFrame.new(-5 + i * 1.7, 3.9, -3), color)
 	end
+	stallGoods(model, cf, info, rng)
 
 	buildNpc(model, cf * CFrame.new(0, 0, 0.8), info.look, info.npc, info.title)
 
@@ -4247,41 +4466,265 @@ local function buildStall(parent: Instance, info)
 end
 
 ---------------------------------------------------------------------
+-- Praca central com chafariz
+---------------------------------------------------------------------
+
+local function buildPlaza(parent: Instance, rng: Random)
+	local plaza = Instance.new("Model")
+	plaza.Name = "Praca"
+	local floor = cylinderPart(plaza, "Piso", 0.3, 34, CFrame.new(0, 0.12, 0), STONE, Enum.Material.Slate)
+	floor.CanCollide = true
+	cylinderPart(plaza, "Borda", 0.32, 35.4, CFrame.new(0, 0.1, 0), STONE_DARK, Enum.Material.Slate)
+	cylinderPart(plaza, "Anel", 0.34, 22, CFrame.new(0, 0.13, 0), Color3.fromRGB(225, 215, 195), Enum.Material.Slate)
+	cylinderPart(plaza, "Anel", 0.36, 20.6, CFrame.new(0, 0.14, 0), STONE, Enum.Material.Slate)
+
+	-- chafariz
+	local wall = cylinderPart(plaza, "Chafariz", 1.6, 13, CFrame.new(0, 0.9, 0), STONE_DARK, Enum.Material.Slate)
+	wall.CanCollide = true
+	-- borda em anel (feita de pedacos, para a agua aparecer no meio)
+	for i = 0, 15 do
+		local angle = i * math.pi / 8
+		decor(plaza, "BordaChafariz", Vector3.new(0.9, 0.35, 2.75), CFrame.new(math.cos(angle) * 6.55, 1.85, math.sin(angle) * 6.55) * CFrame.Angles(0, -angle, 0), STONE, Enum.Material.Slate)
+	end
+	local water = cylinderPart(plaza, "Agua", 0.12, 11.9, CFrame.new(0, 1.74, 0), WATER, Enum.Material.Glass)
+	water.Transparency = 0.25
+	cylinderPart(plaza, "Coluna", 4.4, 1.6, CFrame.new(0, 3.6, 0), STONE, Enum.Material.Slate)
+	cylinderPart(plaza, "Bacia", 0.7, 5.2, CFrame.new(0, 5.6, 0), STONE_DARK, Enum.Material.Slate)
+	local topWater = cylinderPart(plaza, "AguaTopo", 0.12, 4.6, CFrame.new(0, 5.98, 0), WATER, Enum.Material.Glass)
+	topWater.Transparency = 0.2
+	local spout = ball(plaza, "Bica", Vector3.new(1.1, 1.1, 1.1), CFrame.new(0, 6.5, 0), STONE, Enum.Material.Slate)
+	local jets = Instance.new("ParticleEmitter")
+	jets.Name = "Jatos"
+	jets.Color = ColorSequence.new(Color3.fromRGB(170, 215, 255))
+	jets.LightEmission = 0.3
+	jets.Transparency = NumberSequence.new(0.25, 0.8)
+	jets.Size = NumberSequence.new(0.35, 0.15)
+	jets.Lifetime = NumberRange.new(1.1, 1.5)
+	jets.Speed = NumberRange.new(7, 9)
+	jets.SpreadAngle = Vector2.new(25, 25)
+	jets.Acceleration = Vector3.new(0, -18, 0)
+	jets.Rate = 45
+	jets.Parent = spout
+	-- peixinhos na agua
+	for i = 1, 4 do
+		local angle = i * math.pi / 2 + 0.4
+		ball(plaza, "Peixe", Vector3.new(0.7, 0.25, 0.35), CFrame.new(math.cos(angle) * 4, 1.55, math.sin(angle) * 4) * CFrame.Angles(0, -angle, 0), Color3.fromRGB(255, 140, 40))
+	end
+
+	-- bancos e canteiros de flores em volta
+	for i = 0, 3 do
+		local angle = i * math.pi / 2 + math.pi / 4
+		local benchCF = CFrame.new(math.cos(angle) * 13.5, 0, math.sin(angle) * 13.5) * CFrame.Angles(0, -angle - math.pi / 2, 0)
+		decor(plaza, "Banco", Vector3.new(5, 0.35, 1.6), benchCF * CFrame.new(0, 1.4, 0), WOOD, Enum.Material.WoodPlanks)
+		decor(plaza, "Encosto", Vector3.new(5, 1.2, 0.3), benchCF * CFrame.new(0, 2.2, 0.75), WOOD, Enum.Material.WoodPlanks)
+		for _, x in { -2.1, 2.1 } do
+			decor(plaza, "PeBanco", Vector3.new(0.35, 1.3, 1.4), benchCF * CFrame.new(x, 0.65, 0), Color3.fromRGB(60, 60, 70), Enum.Material.Metal)
+		end
+		local bedAngle = angle + math.pi / 4
+		local bedCF = CFrame.new(math.cos(bedAngle) * 14.5, 0, math.sin(bedAngle) * 14.5)
+		cylinderPart(plaza, "Canteiro", 0.8, 4.6, bedCF * CFrame.new(0, 0.5, 0), STONE_DARK, Enum.Material.Slate)
+		cylinderPart(plaza, "Terra", 0.1, 4, bedCF * CFrame.new(0, 0.92, 0), Color3.fromRGB(100, 66, 40), Enum.Material.Ground)
+		for j = 1, 7 do
+			local a = j * math.pi * 2 / 7
+			flower(plaza, (bedCF * CFrame.new(math.cos(a) * 1.3, 0.92, math.sin(a) * 1.3)).Position, FLOWER_COLORS[rng:NextInteger(1, #FLOWER_COLORS)], 1.2)
+		end
+		ball(plaza, "Arbusto", Vector3.new(1.6, 1.4, 1.6), bedCF * CFrame.new(0, 1.5, 0), Color3.fromRGB(70, 160, 60))
+	end
+
+	-- placa de boas-vindas em um portal de madeira
+	for _, x in { -14, 14 } do
+		local post = part(plaza, "PostePortal", Vector3.new(1.2, 16, 1.2), CFrame.new(x, 8, 0), WOOD_DARK, Enum.Material.Wood)
+		post.CanCollide = true
+		decor(plaza, "Tampa", Vector3.new(1.6, 0.5, 1.6), CFrame.new(x, 16.2, 0), WOOD_LIGHT, Enum.Material.Wood)
+		ball(plaza, "Arbusto", Vector3.new(2.6, 2, 2.6), CFrame.new(x, 1, 0), Color3.fromRGB(70, 160, 60))
+	end
+	local welcome = part(plaza, "Boas-vindas", Vector3.new(26, 5, 0.6), CFrame.new(0, 14, 0), Color3.fromRGB(255, 250, 235))
+	welcome.CanCollide = false
+	for _, y in { 11.35, 16.65 } do
+		decor(plaza, "Moldura", Vector3.new(27, 0.4, 0.9), CFrame.new(0, y, 0), WOOD_DARK, Enum.Material.Wood)
+	end
+	surfaceText(welcome, "🌱 Cultive um Jardim 🌱", Color3.fromRGB(70, 150, 50), Enum.NormalId.Front)
+	surfaceText(welcome, "🌱 Cultive um Jardim 🌱", Color3.fromRGB(70, 150, 50), Enum.NormalId.Back)
+	for i = 1, 9 do -- florzinhas em cima da placa
+		local x = -12 + (i - 1) * 3
+		ball(plaza, "Folha", Vector3.new(1.4, 0.7, 0.9), CFrame.new(x, 17.1, 0), Color3.fromRGB(70, 160, 60))
+		ball(plaza, "Flor", Vector3.new(0.6, 0.6, 0.6), CFrame.new(x + 0.3, 17.5, 0), FLOWER_COLORS[i % #FLOWER_COLORS + 1])
+	end
+	plaza.Parent = parent
+end
+
+---------------------------------------------------------------------
 -- Decoracao
 ---------------------------------------------------------------------
 
-local function buildTree(parent: Instance, position: Vector3, scale: number)
+local function buildTree(parent: Instance, position: Vector3, scale: number, rng: Random)
+	local kind = rng:NextInteger(1, 10)
+	if kind <= 2 then -- pinheiro em camadas
+		local trunk = part(parent, "Tronco", Vector3.new(1.1, 5, 1.1) * scale, CFrame.new(position + Vector3.new(0, 2.5 * scale, 0)), Color3.fromRGB(100, 68, 42), Enum.Material.Wood)
+		trunk.CastShadow = true
+		trunk.CanCollide = false
+		for i = 0, 3 do
+			cylinderPart(parent, "Copa", 1.6 * scale, (7.5 - i * 1.7) * scale, CFrame.new(position + Vector3.new(0, (3.4 + i * 1.9) * scale, 0)), Color3.fromRGB(40, 120 + i * 8, 60))
+		end
+		ball(parent, "Topo", Vector3.new(1.4, 1.6, 1.4) * scale, CFrame.new(position + Vector3.new(0, 10.6 * scale, 0)), Color3.fromRGB(50, 150, 70))
+		return
+	end
 	local trunk = part(parent, "Tronco", Vector3.new(1.2, 6, 1.2) * scale, CFrame.new(position + Vector3.new(0, 3 * scale, 0)), Color3.fromRGB(110, 75, 45), Enum.Material.Wood)
 	trunk.CastShadow = true
-	ball(parent, "Copa", Vector3.new(7, 6, 7) * scale, CFrame.new(position + Vector3.new(0, 7.5 * scale, 0)), Color3.fromRGB(60, 150, 55))
-	ball(parent, "Copa", Vector3.new(4.5, 4, 4.5) * scale, CFrame.new(position + Vector3.new(1.8, 9.5, 0.5) * scale), Color3.fromRGB(75, 165, 60))
+	for i = 1, 3 do -- raizes
+		local angle = i * math.pi * 2 / 3 + rng:NextNumber(0, 1)
+		ball(parent, "Raiz", Vector3.new(1.4, 0.6, 0.7) * scale, CFrame.new(position + Vector3.new(math.cos(angle) * 0.7, 0.2, math.sin(angle) * 0.7) * scale) * CFrame.Angles(0, -angle, 0), Color3.fromRGB(100, 68, 42))
+	end
+	local blossom = kind == 3
+	local base = if blossom then Color3.fromRGB(255, 175, 205) else Color3.fromRGB(60, 150, 55)
+	local shades = { base, base:Lerp(WHITE, 0.12), base:Lerp(BLACK, 0.12) }
+	local blobs = {
+		{ Vector3.new(0, 7.5, 0), Vector3.new(7, 6, 7) },
+		{ Vector3.new(1.9, 9.4, 0.5), Vector3.new(4.6, 4, 4.6) },
+		{ Vector3.new(-1.8, 8.9, -0.9), Vector3.new(4.2, 3.8, 4.2) },
+		{ Vector3.new(0.3, 8.6, 2), Vector3.new(4, 3.6, 4) },
+		{ Vector3.new(-0.4, 10.4, -0.2), Vector3.new(3.6, 3, 3.6) },
+	}
+	for i, blob in blobs do
+		ball(parent, "Copa", blob[2] * scale, CFrame.new(position + blob[1] * scale), shades[(i - 1) % #shades + 1])
+	end
+	if kind == 4 then -- macieira
+		for i = 1, 7 do
+			local angle = i * 0.9
+			ball(parent, "Maca", Vector3.new(0.7, 0.7, 0.7) * scale, CFrame.new(position + Vector3.new(math.cos(angle) * 3.2, 6.6 + (i % 3) * 0.8, math.sin(angle) * 3.2) * scale), Color3.fromRGB(220, 40, 45))
+		end
+	end
+end
+
+local function buildBush(parent: Instance, position: Vector3, rng: Random)
+	local size = rng:NextNumber(1.6, 3)
+	local color = Color3.fromRGB(65, 150 + rng:NextInteger(0, 25), 55)
+	ball(parent, "Arbusto", Vector3.new(size * 1.3, size, size * 1.2), CFrame.new(position + Vector3.new(0, size * 0.4, 0)), color)
+	ball(parent, "Arbusto", Vector3.new(size, size * 0.8, size), CFrame.new(position + Vector3.new(size * 0.55, size * 0.3, size * 0.2)), color:Lerp(WHITE, 0.08))
+	if rng:NextNumber() < 0.5 then -- frutinhas ou flores no arbusto
+		local berry = FLOWER_COLORS[rng:NextInteger(1, #FLOWER_COLORS)]
+		for i = 1, 4 do
+			local angle = i * 1.6
+			ball(parent, "Frutinha", Vector3.new(0.35, 0.35, 0.35), CFrame.new(position + Vector3.new(math.cos(angle) * size * 0.55, size * (0.55 + (i % 2) * 0.2), math.sin(angle) * size * 0.5)), berry)
+		end
+	end
+end
+
+local function buildRock(parent: Instance, position: Vector3, rng: Random)
+	local size = rng:NextNumber(1, 3)
+	local gray = Color3.fromRGB(140, 140, 135):Lerp(Color3.fromRGB(180, 175, 165), rng:NextNumber())
+	ball(parent, "Pedra", Vector3.new(size * 1.4, size * 0.8, size), CFrame.new(position + Vector3.new(0, size * 0.2, 0)) * CFrame.Angles(0, rng:NextNumber(0, math.pi), 0), gray, Enum.Material.Slate)
+	if size > 2 then
+		ball(parent, "Pedra", Vector3.new(size * 0.6, size * 0.45, size * 0.5), CFrame.new(position + Vector3.new(size * 0.7, 0.1, size * 0.3)), gray:Lerp(BLACK, 0.1), Enum.Material.Slate)
+	end
 end
 
 local function buildLamp(parent: Instance, position: Vector3)
-	part(parent, "PosteLuz", Vector3.new(0.5, 9, 0.5), CFrame.new(position + Vector3.new(0, 4.5, 0)), Color3.fromRGB(60, 60, 70), Enum.Material.Metal)
-	local lamp = ball(parent, "Lampada", Vector3.new(1.4, 1.4, 1.4), CFrame.new(position + Vector3.new(0, 9.4, 0)), Color3.fromRGB(255, 235, 170))
-	lamp.Material = Enum.Material.Neon
+	local metal = Color3.fromRGB(55, 58, 68)
+	cylinderPart(parent, "BaseLuz", 0.6, 1.4, CFrame.new(position + Vector3.new(0, 0.3, 0)), metal, Enum.Material.Metal)
+	part(parent, "PosteLuz", Vector3.new(0.45, 8.4, 0.45), CFrame.new(position + Vector3.new(0, 4.6, 0)), metal, Enum.Material.Metal)
+	decor(parent, "TopoLuz", Vector3.new(1.5, 0.25, 1.5), CFrame.new(position + Vector3.new(0, 8.9, 0)), metal, Enum.Material.Metal)
+	local lamp = decor(parent, "Lampada", Vector3.new(1.1, 1.3, 1.1), CFrame.new(position + Vector3.new(0, 9.7, 0)), Color3.fromRGB(255, 235, 170), Enum.Material.Neon)
+	lamp.CastShadow = false
+	for _, offset in { Vector3.new(0.58, 0, 0.58), Vector3.new(-0.58, 0, 0.58), Vector3.new(0.58, 0, -0.58), Vector3.new(-0.58, 0, -0.58) } do
+		decor(parent, "Grade", Vector3.new(0.12, 1.4, 0.12), CFrame.new(position + Vector3.new(0, 9.7, 0) + offset), metal, Enum.Material.Metal)
+	end
+	decor(parent, "Chapeu", Vector3.new(1.6, 0.3, 1.6), CFrame.new(position + Vector3.new(0, 10.5, 0)), metal, Enum.Material.Metal)
+	ball(parent, "Ponta", Vector3.new(0.4, 0.4, 0.4), CFrame.new(position + Vector3.new(0, 10.8, 0)), metal, Enum.Material.Metal)
 	local light = Instance.new("PointLight")
-	light.Range = 18
-	light.Brightness = 1.5
-	light.Color = Color3.fromRGB(255, 220, 160)
+	light.Range = 20
+	light.Brightness = 1.6
+	light.Color = Color3.fromRGB(255, 215, 150)
 	light.Parent = lamp
 	return light
 end
 
 local function setupLighting()
 	Lighting.ClockTime = 14
-	Lighting.Brightness = 2
+	Lighting.Brightness = 2.2
 	Lighting.GlobalShadows = true
-	Lighting.Ambient = Color3.fromRGB(90, 90, 90)
-	Lighting.OutdoorAmbient = Color3.fromRGB(140, 140, 140)
+	Lighting.Ambient = Color3.fromRGB(95, 95, 105)
+	Lighting.OutdoorAmbient = Color3.fromRGB(150, 148, 140)
+	Lighting.EnvironmentDiffuseScale = 0.6
+	Lighting.EnvironmentSpecularScale = 0.35
+	Lighting.ShadowSoftness = 0.25
+	Lighting.ExposureCompensation = 0.1
 	if not Lighting:FindFirstChildOfClass("Atmosphere") then
 		local atmosphere = Instance.new("Atmosphere")
 		atmosphere.Density = 0.3
+		atmosphere.Offset = 0.15
 		atmosphere.Haze = 1
+		atmosphere.Glare = 0.4
 		atmosphere.Color = Color3.fromRGB(200, 220, 255)
+		atmosphere.Decay = Color3.fromRGB(120, 150, 200)
 		atmosphere.Parent = Lighting
 	end
+	-- cores mais vivas, brilho suave nas luzes e raios de sol
+	if not Lighting:FindFirstChild("CoresJardim") then
+		local color = Instance.new("ColorCorrectionEffect")
+		color.Name = "CoresJardim"
+		color.Saturation = 0.15
+		color.Contrast = 0.06
+		color.Brightness = 0.02
+		color.TintColor = Color3.fromRGB(255, 251, 242)
+		color.Parent = Lighting
+		local bloom = Instance.new("BloomEffect")
+		bloom.Name = "BrilhoJardim"
+		bloom.Intensity = 0.5
+		bloom.Size = 26
+		bloom.Threshold = 1.6
+		bloom.Parent = Lighting
+		local sunRays = Instance.new("SunRaysEffect")
+		sunRays.Name = "RaiosJardim"
+		sunRays.Intensity = 0.05
+		sunRays.Spread = 0.6
+		sunRays.Parent = Lighting
+	end
+	-- nuvens de verdade no ceu
+	local terrain = workspace:FindFirstChildOfClass("Terrain")
+	if terrain and not terrain:FindFirstChildOfClass("Clouds") then
+		local clouds = Instance.new("Clouds")
+		clouds.Cover = 0.55
+		clouds.Density = 0.7
+		clouds.Color = Color3.fromRGB(255, 255, 255)
+		clouds.Parent = terrain
+	end
+end
+
+-- area livre para enfeites (fora da rua, dos jardins, das lojas e da praca)
+local function isFree(x: number, z: number, margin: number): boolean
+	local L = MapBuilder.Layout
+	if math.abs(x) > 200 or math.abs(z) > 150 then
+		return false
+	end
+	if math.abs(z) < 23 + margin and math.abs(x) < 190 then
+		return false
+	end
+	for _, cx in L.columns do
+		for _, cz in { L.rowZ, -L.rowZ } do
+			if math.abs(x - cx) < L.plotHalfX + 4 + margin and math.abs(z - cz) < L.plotHalfZ + 5 + margin then
+				return false
+			end
+		end
+	end
+	for _, sx in { -40, 40 } do
+		for _, sz in { -30, 30 } do
+			if math.abs(x - sx) < 12 + margin and math.abs(z - sz) < 10 + margin then
+				return false
+			end
+		end
+	end
+	return true
+end
+
+local function randomFreeSpot(rng: Random, margin: number): Vector3?
+	for _ = 1, 40 do
+		local x, z = rng:NextNumber(-198, 198), rng:NextNumber(-148, 148)
+		if isFree(x, z, margin) then
+			return Vector3.new(x, 0, z)
+		end
+	end
+	return nil
 end
 
 ---------------------------------------------------------------------
@@ -4295,28 +4738,35 @@ function MapBuilder.build()
 	end
 	local map = Instance.new("Folder")
 	map.Name = "Mapa"
+	local rng = Random.new(2025) -- sempre o mesmo mapa
 
 	setupLighting()
 
-	part(map, "Chao", Vector3.new(420, 2, 320), CFrame.new(0, -1, 0), Color3.fromRGB(95, 170, 70), Enum.Material.Grass)
+	part(map, "Chao", Vector3.new(900, 2, 800), CFrame.new(0, -1, 0), Color3.fromRGB(95, 170, 70), Enum.Material.Grass)
 	part(map, "Rua", Vector3.new(360, 0.2, 40), CFrame.new(0, 0, 0), Color3.fromRGB(220, 200, 150), Enum.Material.Sand)
+	-- meio-fio de pedra (com aberturas nas entradas dos jardins)
+	for _, z in { -20.3, 20.3 } do
+		local edges = { -180, -86, -74, -6, 6, 74, 86, 180 }
+		for i = 1, #edges - 1, 2 do
+			local x1, x2 = edges[i], edges[i + 1]
+			decor(map, "MeioFio", Vector3.new(x2 - x1, 0.4, 0.8), CFrame.new((x1 + x2) / 2, 0.2, z), STONE, Enum.Material.Slate)
+		end
+	end
 
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "Spawn"
 	spawn.Anchored = true
-	spawn.Size = Vector3.new(10, 0.4, 10)
-	spawn.CFrame = CFrame.new(0, 0.2, 0)
+	spawn.Size = Vector3.new(8, 0.4, 6)
+	spawn.CFrame = CFrame.new(0, 0.2, -12)
 	spawn.Duration = 0
 	spawn.Neutral = true
-	spawn.Color = Color3.fromRGB(255, 255, 255)
+	spawn.Transparency = 1
+	spawn.CanCollide = false
 	spawn.Material = Enum.Material.SmoothPlastic
 	spawn.TopSurface = SMOOTH
 	spawn.Parent = map
 
-	local welcome = part(map, "Boas-vindas", Vector3.new(26, 5, 0.6), CFrame.new(0, 14, 0), Color3.fromRGB(255, 250, 235))
-	welcome.CanCollide = false
-	surfaceText(welcome, "🌱 Cultive um Jardim 🌱", Color3.fromRGB(70, 150, 50), Enum.NormalId.Front)
-	surfaceText(welcome, "🌱 Cultive um Jardim 🌱", Color3.fromRGB(70, 150, 50), Enum.NormalId.Back)
+	buildPlaza(map, rng)
 
 	-- jardins: 3 de cada lado da rua
 	local L = MapBuilder.Layout
@@ -4325,18 +4775,19 @@ function MapBuilder.build()
 		local z = if row == 1 then L.rowZ else -L.rowZ
 		local rotation = if row == 1 then 0 else math.pi
 		for _, x in L.columns do
-			table.insert(plots, buildPlot(#plots + 1, Vector3.new(x, 0, z), rotation, map))
+			table.insert(plots, buildPlot(#plots + 1, Vector3.new(x, 0, z), rotation, map, rng))
 		end
 	end
 
 	-- lojas entre os jardins
 	local stalls = {
 		{
-			id = "Seeds", title = "Sementes", npc = "Sam", action = "Comprar sementes",
+			id = "Seeds", title = "Sementes", icon = "🌱", npc = "Sam", action = "Comprar sementes",
 			position = Vector3.new(-40, 0, 30), rotation = 0,
 			roofA = Color3.fromRGB(70, 160, 60), roofB = Color3.fromRGB(240, 240, 230),
-			goods = { Color3.fromRGB(255, 140, 30), Color3.fromRGB(225, 30, 55), Color3.fromRGB(60, 80, 210) },
+			goods = { Color3.fromRGB(255, 140, 30), Color3.fromRGB(225, 30, 55), Color3.fromRGB(60, 80, 210), Color3.fromRGB(240, 70, 110) },
 			look = {
+				tagColor = Color3.fromRGB(120, 220, 90),
 				skin = Color3.fromRGB(255, 205, 160), hair = Color3.fromRGB(110, 70, 40), hairStyle = "short",
 				hat = "straw", hatColor = Color3.fromRGB(235, 205, 120),
 				shirt = Color3.fromRGB(90, 170, 70), pants = Color3.fromRGB(60, 90, 150), shoes = Color3.fromRGB(90, 60, 40),
@@ -4344,11 +4795,12 @@ function MapBuilder.build()
 			},
 		},
 		{
-			id = "Sell", title = "Venda", npc = "Steven", action = "Vender frutos",
+			id = "Sell", title = "Venda", icon = "💰", npc = "Steven", action = "Vender frutos",
 			position = Vector3.new(40, 0, 30), rotation = 0,
 			roofA = Color3.fromRGB(230, 170, 30), roofB = Color3.fromRGB(240, 240, 230),
-			goods = { Color3.fromRGB(255, 205, 40), Color3.fromRGB(255, 230, 120) },
+			goods = { Color3.fromRGB(255, 205, 40), Color3.fromRGB(255, 230, 120), Color3.fromRGB(225, 40, 50), Color3.fromRGB(120, 200, 70) },
 			look = {
+				tagColor = Color3.fromRGB(255, 205, 60),
 				skin = Color3.fromRGB(240, 190, 150), hair = Color3.fromRGB(240, 210, 110), hairStyle = "short",
 				hat = "cap", hatColor = Color3.fromRGB(230, 170, 30), glasses = true,
 				shirt = Color3.fromRGB(70, 130, 210), pants = Color3.fromRGB(90, 90, 100), shoes = Color3.fromRGB(40, 40, 45),
@@ -4356,11 +4808,12 @@ function MapBuilder.build()
 			},
 		},
 		{
-			id = "Gear", title = "Equipamentos", npc = "George", action = "Comprar equipamentos",
+			id = "Gear", title = "Equipamentos", icon = "🔧", npc = "George", action = "Comprar equipamentos",
 			position = Vector3.new(-40, 0, -30), rotation = math.pi,
 			roofA = Color3.fromRGB(60, 120, 210), roofB = Color3.fromRGB(240, 240, 230),
-			goods = { Color3.fromRGB(80, 140, 230), Color3.fromRGB(170, 170, 180) },
+			goods = { Color3.fromRGB(80, 140, 230), Color3.fromRGB(170, 170, 180), Color3.fromRGB(90, 200, 90), Color3.fromRGB(250, 200, 50) },
 			look = {
+				tagColor = Color3.fromRGB(110, 170, 255),
 				skin = Color3.fromRGB(230, 180, 140), hair = Color3.fromRGB(150, 150, 150), hairStyle = "short",
 				hat = "hardhat", hatColor = Color3.fromRGB(250, 200, 40), beard = Color3.fromRGB(170, 170, 170),
 				shirt = Color3.fromRGB(110, 110, 120), pants = Color3.fromRGB(50, 50, 60), shoes = Color3.fromRGB(70, 50, 35),
@@ -4368,11 +4821,12 @@ function MapBuilder.build()
 			},
 		},
 		{
-			id = "Eggs", title = "Ovos & Pets", npc = "Eloise", action = "Comprar ovos",
+			id = "Eggs", title = "Ovos & Pets", icon = "🥚", npc = "Eloise", action = "Comprar ovos",
 			position = Vector3.new(40, 0, -30), rotation = math.pi,
 			roofA = Color3.fromRGB(200, 90, 200), roofB = Color3.fromRGB(240, 240, 230),
-			goods = { Color3.fromRGB(240, 235, 220), Color3.fromRGB(150, 230, 140), Color3.fromRGB(120, 170, 255) },
+			goods = { Color3.fromRGB(240, 235, 220), Color3.fromRGB(150, 230, 140), Color3.fromRGB(120, 170, 255), Color3.fromRGB(255, 215, 70) },
 			look = {
+				tagColor = Color3.fromRGB(230, 140, 255),
 				skin = Color3.fromRGB(255, 215, 185), hair = Color3.fromRGB(250, 140, 190), hairStyle = "long",
 				hat = "bow", hatColor = Color3.fromRGB(255, 255, 255),
 				shirt = Color3.fromRGB(250, 240, 250), sleeves = Color3.fromRGB(170, 90, 210), pants = Color3.fromRGB(170, 90, 210), shoes = Color3.fromRGB(250, 250, 250),
@@ -4383,30 +4837,86 @@ function MapBuilder.build()
 	local locations = {}
 	local shopPositions = {}
 	for _, info in stalls do
-		locations[info.id] = buildStall(map, info)
+		locations[info.id] = buildStall(map, info, rng)
 		shopPositions[info.id] = info.position
 	end
-	locations.Spawn = CFrame.new(0, 3, 0)
+	locations.Spawn = CFrame.new(0, 3, -12)
 
 	-- decoracao
-	local decor = Instance.new("Folder")
-	decor.Name = "Decoracao"
-	decor.Parent = map
+	local decorFolder = Instance.new("Folder")
+	decorFolder.Name = "Decoracao"
+	decorFolder.Parent = map
 	-- postes entre as entradas dos jardins (x = -140, -100, ..., 140)
 	local lights = {}
 	for x = -140, 140, 40 do
 		for _, z in { -19, 19 } do
-			table.insert(lights, buildLamp(decor, Vector3.new(x, 0, z)))
+			table.insert(lights, buildLamp(decorFolder, Vector3.new(x, 0, z + (if z > 0 then 2.2 else -2.2))))
 		end
 	end
+	-- floreiras ao longo da rua, entre os postes
+	for x = -160, 160, 40 do
+		if math.abs(x) > 20 then
+			for _, z in { -22, 22 } do
+				if isFree(x, z + (if z > 0 then 3 else -3), -4) then
+					flowerBox(decorFolder, CFrame.new(x, 0, z + (if z > 0 then 1.6 else -1.6)), 6, rng)
+				end
+			end
+		end
+	end
+	-- arvores na borda do mapa e entre os jardins
 	for x = -180, 180, 30 do
-		buildTree(decor, Vector3.new(x + (x % 20), 0, 115 + (x % 3) * 4), 1 + (x % 7) / 10)
-		buildTree(decor, Vector3.new(x - (x % 20), 0, -115 - (x % 3) * 4), 1 + (x % 5) / 10)
+		buildTree(decorFolder, Vector3.new(x + (x % 20), 0, 115 + (x % 3) * 4), 1 + (x % 7) / 10, rng)
+		buildTree(decorFolder, Vector3.new(x - (x % 20), 0, -115 - (x % 3) * 4), 1 + (x % 5) / 10, rng)
 	end
 	for _, x in { -150, -130, 130, 150 } do
 		for _, z in { -60, -30, 30, 60 } do
-			buildTree(decor, Vector3.new(x, 0, z), 1.1)
+			buildTree(decorFolder, Vector3.new(x, 0, z), 1.1, rng)
 		end
+	end
+	for _ = 1, 18 do
+		local spot = randomFreeSpot(rng, 6)
+		if spot then
+			buildTree(decorFolder, spot, rng:NextNumber(0.8, 1.3), rng)
+		end
+	end
+	-- manchas de grama, flores, arbustos e pedras espalhados
+	for _ = 1, 45 do
+		local spot = randomFreeSpot(rng, 0)
+		if spot then
+			local tone = Color3.fromRGB(95, 170, 70):Lerp(if rng:NextNumber() < 0.5 then Color3.fromRGB(70, 140, 55) else Color3.fromRGB(140, 200, 90), rng:NextNumber(0.3, 0.7))
+			local patch = cylinderPart(decorFolder, "Mancha", 0.06, rng:NextNumber(8, 20), CFrame.new(spot + Vector3.new(0, 0.02, 0)), tone, Enum.Material.Grass)
+			patch.CastShadow = false
+		end
+	end
+	for _ = 1, 60 do
+		local spot = randomFreeSpot(rng, 0)
+		if spot then
+			local color = FLOWER_COLORS[rng:NextInteger(1, #FLOWER_COLORS)]
+			for i = 1, rng:NextInteger(3, 6) do
+				flower(decorFolder, spot + Vector3.new(rng:NextNumber(-1.6, 1.6), 0, rng:NextNumber(-1.6, 1.6)), if i % 3 == 0 then FLOWER_COLORS[rng:NextInteger(1, #FLOWER_COLORS)] else color, rng:NextNumber(0.9, 1.4))
+			end
+		end
+	end
+	for _ = 1, 34 do
+		local spot = randomFreeSpot(rng, 2)
+		if spot then
+			buildBush(decorFolder, spot, rng)
+		end
+	end
+	for _ = 1, 24 do
+		local spot = randomFreeSpot(rng, 2)
+		if spot then
+			buildRock(decorFolder, spot, rng)
+		end
+	end
+	-- morros no horizonte (fora da area de jogo)
+	for i = 1, 26 do
+		local angle = i * math.pi * 2 / 26 + rng:NextNumber(-0.08, 0.08)
+		local distance = rng:NextNumber(270, 340)
+		local width = rng:NextNumber(90, 150)
+		local height = rng:NextNumber(35, 70)
+		local tone = Color3.fromRGB(80, 150, 70):Lerp(Color3.fromRGB(60, 120, 80), rng:NextNumber())
+		ball(decorFolder, "Morro", Vector3.new(width, height, width * 0.8), CFrame.new(math.cos(angle) * distance * 1.2, -height * 0.18, math.sin(angle) * distance) * CFrame.Angles(0, -angle, 0), tone, Enum.Material.Grass)
 	end
 
 	-- paredes invisiveis nas bordas
@@ -5847,55 +6357,141 @@ end
 
 function builders.bush(model: Model, seed)
 	local h = seed.height
+	local leaf = seed.leafColor
 	cylinder(model, "Caule", h * 0.3, 0.25, CFrame.new(0, h * 0.15, 0), STEM_COLOR)
-	sphere(model, "Folhagem", Vector3.new(h * 0.85, h * 0.65, h * 0.85), CFrame.new(0, h * 0.5, 0), seed.leafColor)
-	sphere(model, "Folhagem", Vector3.new(h * 0.5, h * 0.45, h * 0.5), CFrame.new(h * 0.2, h * 0.72, -h * 0.1), seed.leafColor:Lerp(WHITE, 0.08))
-	sphere(model, "Folhagem", Vector3.new(h * 0.45, h * 0.4, h * 0.45), CFrame.new(-h * 0.22, h * 0.62, h * 0.15), seed.leafColor:Lerp(WHITE, 0.04))
+	sphere(model, "Folhagem", Vector3.new(h * 0.85, h * 0.65, h * 0.85), CFrame.new(0, h * 0.5, 0), leaf)
+	local tufts = {
+		{ Vector3.new(0.2, 0.72, -0.1), Vector3.new(0.5, 0.45, 0.5), 0.08 },
+		{ Vector3.new(-0.22, 0.62, 0.15), Vector3.new(0.45, 0.4, 0.45), 0.04 },
+		{ Vector3.new(0.05, 0.55, 0.28), Vector3.new(0.42, 0.36, 0.42), -0.06 },
+		{ Vector3.new(-0.2, 0.5, -0.25), Vector3.new(0.42, 0.36, 0.42), 0.05 },
+		{ Vector3.new(0, 0.84, 0), Vector3.new(0.34, 0.3, 0.34), 0.12 },
+	}
+	for _, tuft in tufts do
+		local color = if tuft[3] >= 0 then leaf:Lerp(WHITE, tuft[3]) else leaf:Lerp(BLACK, -tuft[3])
+		sphere(model, "Folhagem", tuft[2] * h, CFrame.new(tuft[1] * h), color)
+	end
+	local id = seed.id
+	if id == "Strawberry" or id == "Blueberry" then -- florzinhas brancas
+		for i = 1, 3 do
+			local angle = i * 2.1 + 0.6
+			local center = Vector3.new(math.cos(angle) * h * 0.36, h * 0.68, math.sin(angle) * h * 0.36)
+			sphere(model, "Flor", Vector3.new(0.34, 0.1, 0.34), CFrame.new(center), WHITE)
+			sphere(model, "Miolo", Vector3.new(0.12, 0.08, 0.12), CFrame.new(center + Vector3.new(0, 0.05, 0)), Color3.fromRGB(255, 220, 80))
+		end
+	elseif id == "Tomato" or id == "Pepper" or id == "GhostPepper" or id == "InfernoPepper" then -- estaca de madeira
+		local stake = block(model, "Estaca", Vector3.new(0.12, h * 0.95, 0.12), CFrame.new(h * 0.38, h * 0.475, h * 0.12), WOOD_COLOR:Lerp(WHITE, 0.15))
+		stake.Material = Enum.Material.Wood
+		block(model, "Amarra", Vector3.new(0.18, 0.06, 0.18), CFrame.new(h * 0.38, h * 0.6, h * 0.12), Color3.fromRGB(230, 210, 150))
+	end
+	if id == "InfernoPepper" then -- brasas
+		for i = 1, 3 do
+			local ember = sphere(model, "Brasa", Vector3.new(0.14, 0.14, 0.14), CFrame.new(math.cos(i * 2.1) * h * 0.25, h * (0.95 + (i % 2) * 0.05), math.sin(i * 2.1) * h * 0.25), Color3.fromRGB(255, 140, 40))
+			ember.Material = Enum.Material.Neon
+		end
+	end
 end
 
 function builders.flower(model: Model, seed)
 	local h, fs = seed.height, seed.fruitSize
-	cylinder(model, "Caule", h * 0.75, 0.18, CFrame.new(0, h * 0.375, 0), STEM_COLOR)
-	for i = 1, 2 do
-		local cf = CFrame.new(0, h * 0.12, 0) * CFrame.Angles(0, i * math.pi, 0) * CFrame.Angles(math.rad(25), 0, 0) * CFrame.new(0, h * 0.18, 0)
-		block(model, "Folha", Vector3.new(0.12, h * 0.4, 0.5), cf, seed.leafColor)
+	cylinder(model, "Caule", h * 0.75, 0.16, CFrame.new(0, h * 0.375, 0), STEM_COLOR)
+	for i = 1, 3 do
+		local cf = CFrame.new(0, h * 0.1, 0) * CFrame.Angles(0, i * 2.1, 0) * CFrame.Angles(math.rad(22), 0, 0) * CFrame.new(0, h * 0.2, 0)
+		sphere(model, "Folha", Vector3.new(0.4, h * 0.45, 0.1), cf, seed.leafColor:Lerp(WHITE, (i % 2) * 0.06))
 	end
 	local headY = h * 0.75 + fs.Y * 0.4
-	markProduce(sphere(model, "Produto", fs * 0.8, CFrame.new(0, headY, 0), seed.fruitColor))
-	for i = 1, 4 do
-		local cf = CFrame.new(0, headY, 0) * CFrame.Angles(0, i * math.pi / 2, 0) * CFrame.new(0, 0, fs.Z * 0.32) * CFrame.Angles(math.rad(-15), 0, 0)
-		markProduce(sphere(model, "Produto", Vector3.new(fs.X * 0.6, fs.Y, fs.Z * 0.3), cf, seed.fruitColor))
+	if seed.id == "Daffodil" then -- 6 petalas abertas + trombeta
+		local head = CFrame.new(0, headY, 0) * CFrame.Angles(math.rad(-30), 0, 0)
+		for i = 1, 6 do
+			local petal = head * CFrame.Angles(0, 0, i * math.pi / 3) * CFrame.new(0, fs.X * 0.3, 0)
+			markProduce(sphere(model, "Produto", Vector3.new(fs.X * 0.34, fs.X * 0.62, 0.08), petal, seed.fruitColor))
+		end
+		markProduce(cylinder(model, "ProdutoTrombeta", fs.X * 0.35, fs.X * 0.34, head * CFrame.Angles(math.pi / 2, 0, 0) * CFrame.new(0, fs.X * 0.16, 0), seed.fruitColor:Lerp(Color3.fromRGB(255, 150, 30), 0.55)))
+	else -- tulipa: taca de 6 petalas
+		markProduce(sphere(model, "Produto", fs * 0.55, CFrame.new(0, headY - fs.Y * 0.1, 0), seed.fruitColor))
+		for i = 1, 6 do
+			local inner = i % 2 == 0
+			local cf = CFrame.new(0, headY, 0) * CFrame.Angles(0, i * math.pi / 3, 0) * CFrame.new(0, 0, fs.Z * (if inner then 0.16 else 0.22)) * CFrame.Angles(math.rad(if inner then 9 else 17), 0, 0)
+			markProduce(sphere(model, "Produto", Vector3.new(fs.X * 0.56, fs.Y * 0.92, fs.Z * 0.22), cf, if inner then seed.fruitColor else seed.fruitColor:Lerp(BLACK, 0.07)))
+		end
 	end
 end
 
 function builders.tall(model: Model, seed)
 	local h = seed.height
-	cylinder(model, "Caule", h, 0.35, CFrame.new(0, h / 2, 0), seed.leafColor:Lerp(Color3.new(0, 0, 0), 0.15))
-	for i = 1, 4 do
-		local y = h * (0.25 + 0.12 * i)
-		local cf = CFrame.new(0, y, 0) * CFrame.Angles(0, i * 1.7, 0) * CFrame.Angles(math.rad(40), 0, 0) * CFrame.new(0, h * 0.2, 0)
-		block(model, "Folha", Vector3.new(0.1, h * 0.42, 0.45), cf, seed.leafColor)
+	local stalk = seed.leafColor:Lerp(Color3.new(0, 0, 0), 0.15)
+	cylinder(model, "Caule", h, 0.35, CFrame.new(0, h / 2, 0), stalk)
+	for i = 1, 3 do
+		cylinder(model, "No", 0.08, 0.42, CFrame.new(0, h * 0.22 * i, 0), stalk:Lerp(BLACK, 0.12))
 	end
-	block(model, "Pendao", Vector3.new(0.3, 0.6, 0.3), CFrame.new(0, h + 0.3, 0), Color3.fromRGB(230, 200, 120))
+	for i = 1, 6 do
+		local y = h * (0.15 + 0.11 * i)
+		local cf = CFrame.new(0, y, 0) * CFrame.Angles(0, i * 2.4, 0) * CFrame.Angles(math.rad(48), 0, 0) * CFrame.new(0, h * 0.2, 0)
+		block(model, "Folha", Vector3.new(0.1, h * 0.42, 0.45), cf, seed.leafColor:Lerp(WHITE, (i % 3) * 0.04))
+	end
+	for i = 1, 5 do
+		local cf = CFrame.new(0, h, 0) * CFrame.Angles(0, i * 1.26, 0) * CFrame.Angles(math.rad(if i == 1 then 0 else 28), 0, 0) * CFrame.new(0, 0.3, 0)
+		block(model, "Pendao", Vector3.new(0.08, 0.6, 0.08), cf, Color3.fromRGB(230, 200, 120))
+	end
 end
 
 function builders.ground(model: Model, seed)
 	local fs = seed.fruitSize
-	markProduce(sphere(model, "Produto", fs, CFrame.new(0, fs.Y / 2, 0), seed.fruitColor))
+	if seed.id == "Pumpkin" then -- abobora com gomos
+		markProduce(sphere(model, "Produto", fs * 0.9, CFrame.new(0, fs.Y / 2, 0), seed.fruitColor:Lerp(BLACK, 0.06)))
+		for i = 1, 6 do
+			local cf = CFrame.new(0, fs.Y / 2, 0) * CFrame.Angles(0, i * math.pi / 3, 0) * CFrame.new(fs.X * 0.2, 0, 0)
+			markProduce(sphere(model, "Produto", Vector3.new(fs.X * 0.6, fs.Y, fs.Z * 0.36), cf, seed.fruitColor))
+		end
+	else
+		markProduce(sphere(model, "Produto", fs, CFrame.new(0, fs.Y / 2, 0), seed.fruitColor))
+		if seed.id == "Watermelon" then -- listras
+			for i = 1, 4 do
+				local cf = CFrame.new(0, fs.Y / 2, 0) * CFrame.Angles(i * math.pi / 4, 0, 0)
+				markProduce(sphere(model, "ProdutoListra", Vector3.new(fs.X * 1.01, fs.Y * 1.01, fs.Z * 0.12), cf, seed.fruitColor:Lerp(BLACK, 0.4)))
+			end
+		end
+	end
 	cylinder(model, "Cabo", 0.5, 0.22, CFrame.new(0, fs.Y + 0.15, 0), Color3.fromRGB(100, 120, 50))
-	for i = 1, 3 do
-		local cf = CFrame.Angles(0, i * 2.1, 0) * CFrame.new(fs.X * 0.6, 0.1, 0)
-		sphere(model, "Folha", Vector3.new(1.4, 0.15, 1), cf, seed.leafColor)
+	-- folhas grandes e irregulares no chao
+	local leaves = { { 0.3, 1.7 }, { 1.6, 1.35 }, { 2.9, 1.85 }, { 4.1, 1.25 }, { 5.2, 1.55 } }
+	for i, leafInfo in leaves do
+		local angle, length = leafInfo[1], leafInfo[2]
+		local cf = CFrame.Angles(0, angle, 0) * CFrame.new(fs.X * 0.42 + length * 0.35, 0.1, 0) * CFrame.Angles(0, 0, math.rad(4 + (i % 3) * 3))
+		local color = seed.leafColor:Lerp(WHITE, (i % 3) * 0.04)
+		sphere(model, "Folha", Vector3.new(length, 0.12, length * 0.62), cf, color)
+		sphere(model, "Folha", Vector3.new(length * 0.6, 0.11, length * 0.45), cf * CFrame.new(length * 0.08, 0.01, length * 0.2) * CFrame.Angles(0, math.rad(40), 0), color)
 	end
 end
 
 function builders.tree(model: Model, seed)
 	local h = seed.height
-	local trunk = cylinder(model, "Tronco", h * 0.55, h * 0.11, CFrame.new(0, h * 0.275, 0), WOOD_COLOR)
+	local trunk = cylinder(model, "Tronco", h * 0.55, h * 0.12, CFrame.new(0, h * 0.275, 0), WOOD_COLOR)
 	trunk.Material = Enum.Material.Wood
-	sphere(model, "Copa", Vector3.new(h * 0.75, h * 0.55, h * 0.75), CFrame.new(0, h * 0.68, 0), seed.leafColor)
-	sphere(model, "Copa", Vector3.new(h * 0.45, h * 0.4, h * 0.45), CFrame.new(h * 0.22, h * 0.82, 0), seed.leafColor:Lerp(WHITE, 0.07))
-	sphere(model, "Copa", Vector3.new(h * 0.42, h * 0.38, h * 0.42), CFrame.new(-h * 0.2, h * 0.78, h * 0.15), seed.leafColor:Lerp(WHITE, 0.03))
+	for i = 1, 3 do -- raizes
+		local angle = i * math.pi * 2 / 3 + 0.3
+		sphere(model, "Raiz", Vector3.new(h * 0.12, h * 0.06, h * 0.06), CFrame.new(math.cos(angle) * h * 0.06, h * 0.02, math.sin(angle) * h * 0.06) * CFrame.Angles(0, -angle, 0), WOOD_COLOR:Lerp(BLACK, 0.1))
+	end
+	local leaf = seed.leafColor
+	local blobs = {
+		{ Vector3.new(0, 0.68, 0), Vector3.new(0.75, 0.55, 0.75), 0 },
+		{ Vector3.new(0.22, 0.82, 0), Vector3.new(0.45, 0.4, 0.45), 0.07 },
+		{ Vector3.new(-0.2, 0.78, 0.15), Vector3.new(0.42, 0.38, 0.42), 0.03 },
+		{ Vector3.new(0.05, 0.8, -0.22), Vector3.new(0.4, 0.36, 0.4), -0.05 },
+		{ Vector3.new(-0.14, 0.6, -0.16), Vector3.new(0.4, 0.34, 0.4), -0.08 },
+		{ Vector3.new(0, 0.9, 0), Vector3.new(0.36, 0.28, 0.36), 0.1 },
+	}
+	for _, blob in blobs do
+		local color = if blob[3] >= 0 then leaf:Lerp(WHITE, blob[3]) else leaf:Lerp(BLACK, -blob[3])
+		sphere(model, "Copa", blob[2] * h, CFrame.new(blob[1] * h), color)
+	end
+	if seed.id == "GalaxyFruit" then -- estrelinhas brilhando na copa
+		for i = 1, 6 do
+			local angle = i * 1.05
+			local star = sphere(model, "Estrela", Vector3.new(0.22, 0.22, 0.22), CFrame.new(math.cos(angle) * h * 0.38, h * (0.62 + (i % 3) * 0.1), math.sin(angle) * h * 0.38), Color3.fromRGB(255, 250, 200))
+			star.Material = Enum.Material.Neon
+		end
+	end
 end
 
 function builders.stalk(model: Model, seed)
@@ -5914,15 +6510,26 @@ end
 
 function builders.palm(model: Model, seed)
 	local h = seed.height
-	local segments = 5
+	local segments = 6
 	local topY = h * 0.85
+	local banana = seed.id == "Banana"
+	local trunkColor = if banana then WOOD_COLOR:Lerp(seed.leafColor, 0.45) else WOOD_COLOR
 	for i = 1, segments do
-		local trunk = cylinder(model, "Tronco", topY / segments * 1.02, 0.55 - i * 0.03, CFrame.new(0, topY / segments * (i - 0.5), 0), WOOD_COLOR:Lerp(WHITE, (i % 2) * 0.08))
+		local trunk = cylinder(model, "Tronco", topY / segments * 1.02, 0.6 - i * 0.04, CFrame.new(0, topY / segments * (i - 0.5), 0), trunkColor:Lerp(WHITE, (i % 2) * 0.08))
 		trunk.Material = Enum.Material.Wood
 	end
-	for i = 1, 6 do
-		local cf = CFrame.new(0, topY, 0) * CFrame.Angles(0, i * math.pi / 3, 0) * CFrame.Angles(math.rad(-25), 0, 0) * CFrame.new(0, 0, -h * 0.2)
-		block(model, "Folha", Vector3.new(0.9, 0.12, h * 0.42), cf, seed.leafColor)
+	sphere(model, "Topo", Vector3.new(0.7, 0.45, 0.7), CFrame.new(0, topY, 0), seed.leafColor:Lerp(BLACK, 0.15))
+	local count = if banana then 6 else 7
+	local width = if banana then 1.2 else 0.85
+	for i = 1, count do -- folhas que sobem e depois caem
+		local base = CFrame.new(0, topY, 0) * CFrame.Angles(0, i * math.pi * 2 / count, 0)
+		local color = seed.leafColor:Lerp(WHITE, (i % 3) * 0.05)
+		block(model, "Folha", Vector3.new(width, h * 0.26, 0.12), base * CFrame.Angles(math.rad(-70), 0, 0) * CFrame.new(0, h * 0.13, 0), color)
+		block(model, "Folha", Vector3.new(width * 0.8, h * 0.22, 0.12), base * CFrame.new(0, h * 0.06, -h * 0.24) * CFrame.Angles(math.rad(-120), 0, 0) * CFrame.new(0, h * 0.11, 0), color)
+	end
+	block(model, "FolhaNova", Vector3.new(0.25, h - topY, 0.12), CFrame.new(0, (topY + h) / 2, 0), seed.leafColor:Lerp(WHITE, 0.08))
+	if banana then -- coracao da bananeira
+		sphere(model, "Coracao", Vector3.new(0.38, 0.6, 0.38), CFrame.new(0.38, topY - 0.75, 0), Color3.fromRGB(120, 40, 80))
 	end
 end
 
@@ -5942,16 +6549,31 @@ function builders.cactus(model: Model, seed)
 		local cf = CFrame.new(0, h * (0.15 + 0.07 * i), 0) * CFrame.Angles(0, i * 2.4, 0) * CFrame.new(h * 0.13, 0, 0)
 		block(model, "Espinho", Vector3.new(0.18, 0.04, 0.04), cf, Color3.fromRGB(245, 240, 200))
 	end
+	-- flor no topo
+	local flowerColor = seed.fruitColor:Lerp(WHITE, 0.3)
+	for i = 1, 5 do
+		local cf = CFrame.new(0, h * 0.86, 0) * CFrame.Angles(0, i * math.pi * 2 / 5, 0) * CFrame.Angles(math.rad(55), 0, 0) * CFrame.new(0, h * 0.04, 0)
+		sphere(model, "Flor", Vector3.new(h * 0.05, h * 0.09, 0.05), cf, flowerColor)
+	end
+	sphere(model, "Miolo", Vector3.new(h * 0.05, h * 0.04, h * 0.05), CFrame.new(0, h * 0.86, 0), Color3.fromRGB(255, 220, 90))
 end
 
 function builders.mushroom(model: Model, seed)
 	local h, fs = seed.height, seed.fruitSize
 	cylinder(model, "Caule", h * 0.5, 0.7, CFrame.new(0, h * 0.25, 0), seed.leafColor)
 	local capY = h * 0.5 + fs.Y * 0.25
+	cylinder(model, "Lamelas", 0.1, fs.X * 0.78, CFrame.new(0, capY - fs.Y * 0.18, 0), seed.leafColor:Lerp(BLACK, 0.12))
 	markProduce(sphere(model, "Produto", fs, CFrame.new(0, capY, 0), seed.fruitColor))
 	for i = 1, 5 do
 		local cf = CFrame.new(0, capY, 0) * CFrame.Angles(0, i * 1.25, 0) * CFrame.Angles(math.rad(35), 0, 0) * CFrame.new(0, fs.Y * 0.46, 0)
 		sphere(model, "Pinta", Vector3.new(0.35, 0.12, 0.35), cf, WHITE)
+	end
+	-- cogumelinhos ao lado
+	for _, info in { { 0.75, -0.35, 0.35 }, { -0.6, 0.55, 0.28 } } do
+		local x, z, scale = info[1], info[2], info[3]
+		local stemHeight = h * 0.32 * scale / 0.35
+		cylinder(model, "Caule", stemHeight, 0.25 * scale / 0.35, CFrame.new(x, stemHeight / 2, z), seed.leafColor)
+		markProduce(sphere(model, "Produto", Vector3.new(fs.X * scale, fs.Y * scale * 0.8, fs.Z * scale), CFrame.new(x, stemHeight, z), seed.fruitColor))
 	end
 end
 
@@ -5969,6 +6591,13 @@ function builders.beanstalk(model: Model, seed)
 	for i = 1, 4 do
 		local cf = CFrame.new(0, h + 0.4, 0) * CFrame.Angles(0, i * math.pi / 2, 0) * CFrame.new(0.7, 0, 0)
 		sphere(model, "Nuvem", Vector3.new(1.4, 0.9, 1.2), cf, WHITE)
+	end
+	-- castelinho nas nuvens
+	local stone, roof = Color3.fromRGB(200, 200, 210), Color3.fromRGB(90, 110, 200)
+	block(model, "Castelo", Vector3.new(0.8, 0.4, 0.6), CFrame.new(0, h + 0.85, 0), stone)
+	for _, x in { -0.42, 0.42 } do
+		cylinder(model, "Torre", 0.6, 0.3, CFrame.new(x, h + 0.95, 0), stone)
+		block(model, "Telhado", Vector3.new(0.36, 0.3, 0.36), CFrame.new(x, h + 1.4, 0), roof)
 	end
 end
 
@@ -6035,21 +6664,37 @@ end
 function builders.bloom(model: Model, seed)
 	local h = seed.height
 	cylinder(model, "Caule", h * 0.6, 0.3, CFrame.new(0, h * 0.3, 0), STEM_COLOR)
-	for i = 1, 2 do
-		local cf = CFrame.new(0, h * 0.15, 0) * CFrame.Angles(0, i * math.pi + 0.5, 0) * CFrame.Angles(math.rad(60), 0, 0) * CFrame.new(0, h * 0.18, 0)
-		sphere(model, "Folha", Vector3.new(0.9, h * 0.45, 0.12), cf, seed.leafColor)
+	for i = 1, 3 do
+		local cf = CFrame.new(0, h * 0.12, 0) * CFrame.Angles(0, i * 2.1 + 0.5, 0) * CFrame.Angles(math.rad(60), 0, 0) * CFrame.new(0, h * 0.18, 0)
+		sphere(model, "Folha", Vector3.new(0.9, h * 0.45, 0.12), cf, seed.leafColor:Lerp(WHITE, (i % 2) * 0.06))
 	end
 	local headY = h * 0.66
 	local special = seed.special or {}
-	for i = 1, 8 do
-		local petalColor = if special.rainbowPetals then RAINBOW[(i - 1) % #RAINBOW + 1] else seed.fruitColor:Lerp(WHITE, 0.25)
-		local cf = CFrame.new(0, headY, 0) * CFrame.Angles(0, i * math.pi / 4, 0) * CFrame.Angles(math.rad(60), 0, 0) * CFrame.new(0, h * 0.16, 0)
-		sphere(model, "Petala", Vector3.new(h * 0.16, h * 0.32, 0.1), cf, petalColor)
+	for layer = 1, 2 do -- duas camadas de petalas
+		local tilt = if layer == 1 then 62 else 38
+		local length = h * (if layer == 1 then 0.32 else 0.22)
+		local width = h * (if layer == 1 then 0.16 else 0.11)
+		for i = 1, 8 do
+			local petalColor
+			if special.rainbowPetals then
+				petalColor = RAINBOW[(i - 1) % #RAINBOW + 1]
+				if layer == 2 then
+					petalColor = petalColor:Lerp(WHITE, 0.3)
+				end
+			else
+				petalColor = if layer == 1 then seed.fruitColor:Lerp(WHITE, 0.25) else seed.fruitColor
+			end
+			local cf = CFrame.new(0, headY, 0) * CFrame.Angles(0, i * math.pi / 4 + (layer - 1) * math.pi / 8, 0) * CFrame.Angles(math.rad(tilt), 0, 0) * CFrame.new(0, length * 0.5, 0)
+			sphere(model, "Petala", Vector3.new(width, length, 0.1), cf, petalColor)
+		end
 	end
 	local center = sphere(model, "Centro", Vector3.new(h * 0.18, h * 0.12, h * 0.18), CFrame.new(0, headY + 0.05, 0), seed.fruitColor)
 	center.Material = Enum.Material.Neon
+	-- orbe magico flutuando sobre a flor
+	local orb = sphere(model, "Orbe", Vector3.new(h * 0.14, h * 0.14, h * 0.14), CFrame.new(0, h * 0.93, 0), if special.rainbowPetals then WHITE else seed.fruitColor:Lerp(WHITE, 0.35))
+	orb.Material = Enum.Material.Neon
 	if special.glow then
-		addLight(center, seed.fruitColor, 12, 1.5)
+		addLight(orb, seed.fruitColor, 12, 1.5)
 	end
 end
 
@@ -6146,6 +6791,21 @@ function builders.blossom(model: Model, seed)
 	local canopy = sphere(model, "Copa", Vector3.new(h * 0.8, h * 0.5, h * 0.8), CFrame.new(0, h * 0.7, 0), seed.leafColor)
 	sphere(model, "Copa", Vector3.new(h * 0.5, h * 0.38, h * 0.5), CFrame.new(h * 0.25, h * 0.8, h * 0.05), seed.leafColor:Lerp(WHITE, 0.15))
 	sphere(model, "Copa", Vector3.new(h * 0.45, h * 0.35, h * 0.45), CFrame.new(-h * 0.24, h * 0.76, -h * 0.12), seed.leafColor:Lerp(Color3.fromRGB(255, 120, 170), 0.2))
+	local extra = {
+		{ Vector3.new(0.05, 0.74, 0.26), Vector3.new(0.45, 0.34, 0.45), 0.1 },
+		{ Vector3.new(-0.1, 0.86, 0.2), Vector3.new(0.4, 0.3, 0.4), 0.18 },
+		{ Vector3.new(0.18, 0.66, -0.22), Vector3.new(0.42, 0.32, 0.42), -0.06 },
+		{ Vector3.new(0, 0.9, 0), Vector3.new(0.4, 0.22, 0.4), 0.22 },
+	}
+	for _, blob in extra do
+		local color = if blob[3] >= 0 then seed.leafColor:Lerp(WHITE, blob[3]) else seed.leafColor:Lerp(Color3.fromRGB(255, 120, 170), -blob[3] * 3)
+		sphere(model, "Copa", blob[2] * h, CFrame.new(blob[1] * h), color)
+	end
+	for i = 1, 6 do -- petalas caidas no chao
+		local angle = i * 2.4
+		local radius = h * (0.14 + (i % 3) * 0.05)
+		sphere(model, "PetalaChao", Vector3.new(0.18, 0.03, 0.12), CFrame.new(math.cos(angle) * radius, 0.03, math.sin(angle) * radius) * CFrame.Angles(0, i, 0), seed.leafColor:Lerp(WHITE, (i % 2) * 0.2))
+	end
 	addPetals(canopy)
 end
 
@@ -7211,38 +7871,293 @@ local PET_OFFSETS = {
 	Vector3.new(0, 0, 5),
 }
 
+-- Detalhes de cada bicho (orelhas, focinho, asas, rabo...)
+local PET_LOOKS = {
+	Frog = { eyes = "top", ears = "none", nose = "none", mouth = true, tail = "none" },
+	Bunny = { ears = "long", tail = "puff", cheeks = true },
+	Cat = { ears = "pointy", tail = "thin", cheeks = true, whiskers = true },
+	Owl = { eyes = "big", ears = "tufts", nose = "beak", tail = "feather", wings = "folded", feet = "bird" },
+	Dog = { ears = "floppy", nose = "muzzle", tail = "wag", cheeks = true },
+	Chicken = { ears = "none", nose = "beak", comb = true, tail = "feather", wings = "folded", feet = "bird" },
+	Deer = { ears = "small", antlers = true, tail = "puff", spots = true },
+	Turtle = { ears = "none", shell = true, tail = "small" },
+	Pig = { ears = "small", nose = "snout", tail = "curly", cheeks = true },
+	Robin = { ears = "none", nose = "beak", tail = "feather", wings = "folded", chest = true, feet = "bird" },
+	Bee = { ears = "none", nose = "none", stripes = true, antennae = true, wings = "insect", tail = "stinger", feet = "none" },
+	Butterfly = { ears = "none", nose = "none", antennae = true, wings = "butterfly", tail = "none", slim = true, feet = "none" },
+	Monkey = { ears = "side", face = true, tail = "curly", cheeks = true },
+	Bear = { ears = "round", nose = "muzzle", tail = "puff" },
+	Unicorn = { ears = "pointy", horn = true, mane = true, tail = "mane" },
+	GoldenDragonfly = { ears = "none", nose = "none", eyes = "big", wings = "dragonfly", tail = "long", slim = true, feet = "none" },
+	Firefly = { ears = "none", nose = "none", antennae = true, wings = "insect", glow = true, tail = "none", feet = "none" },
+	BaldEagle = { ears = "none", nose = "beak", wings = "folded", tail = "feather", whiteHead = true, feet = "bird" },
+	Dragon = { ears = "none", horns = true, spikes = true, wings = "bat", tail = "dragon" },
+	Phoenix = { ears = "none", nose = "beak", crest = true, wings = "flame", tail = "flame", feet = "bird" },
+	Raccoon = { ears = "pointy", mask = true, tail = "striped", cheeks = true },
+	Kitsune = { ears = "pointy", tail = "kitsune", cheeks = true },
+}
+
 local function buildPet(info, variant, level: number): Model
 	local model = Instance.new("Model")
 	model.Name = info.name
 	local s = info.size * variant.scale
-	local body = localPart(model, "Corpo", Vector3.new(1.4, 1.1, 1.6) * s, CFrame.new(), info.color, true)
-	local head = localPart(model, "Cabeca", Vector3.new(1.1, 1.1, 1.1) * s, CFrame.new(0, 0.55 * s, -0.85 * s), info.color, true)
-	for _, x in { -0.22, 0.22 } do
-		localPart(model, "Olho", Vector3.new(0.18, 0.22, 0.12) * s, CFrame.new(x * s, 0.68 * s, -1.38 * s), Color3.fromRGB(20, 20, 20), true)
+	local look = PET_LOOKS[info.id] or {}
+	local color, accent = info.color, info.accent
+	local light = color:Lerp(Color3.new(1, 1, 1), 0.45)
+	local dark = Color3.fromRGB(25, 25, 30)
+	local white = Color3.new(1, 1, 1)
+	local orange = Color3.fromRGB(255, 175, 40)
+	local function add(name: string, size: Vector3, x: number, y: number, z: number, partColor: Color3, sphere: boolean, rotation: CFrame?): Part
+		local cf = CFrame.new(x * s, y * s, z * s)
+		if rotation then
+			cf *= rotation
+		end
+		return localPart(model, name, size * s, cf, partColor, sphere)
 	end
-	localPart(model, "Nariz", Vector3.new(0.22, 0.18, 0.12) * s, CFrame.new(0, 0.45 * s, -1.4 * s), info.accent, true)
-	local earSize = if info.id == "Bunny" then Vector3.new(0.22, 0.9, 0.14) else Vector3.new(0.28, 0.45, 0.16)
-	for _, x in { -0.3, 0.3 } do
-		localPart(model, "Orelha", earSize * s, CFrame.new(x * s, (1.05 + earSize.Y * 0.3) * s, -0.8 * s), info.accent, false)
+	local function neon(piece: Part): Part
+		piece.Material = Enum.Material.Neon
+		return piece
 	end
-	localPart(model, "Rabo", Vector3.new(0.4, 0.4, 0.4) * s, CFrame.new(0, 0.2 * s, 0.85 * s), info.accent, true)
-	if info.id == "Unicorn" or info.id == "Kitsune" then
-		local horn = localPart(model, "Chifre", Vector3.new(0.15, 0.7, 0.15) * s, CFrame.new(0, 1.3 * s, -1.05 * s) * CFrame.Angles(math.rad(-25), 0, 0), Color3.fromRGB(255, 220, 90), false)
-		horn.Material = Enum.Material.Neon
+
+	-- corpo e cabeca
+	local body = add("Corpo", if look.slim then Vector3.new(0.7, 0.7, 1.5) else Vector3.new(1.4, 1.1, 1.6), 0, 0, 0, color, true)
+	if not look.slim then
+		add("Barriga", Vector3.new(1, 0.75, 1.1), 0, -0.2, -0.15, if look.chest then accent else light, true)
 	end
-	local winged = { Dragon = true, Phoenix = true, Owl = true, Chicken = true, Bee = true, Butterfly = true, Robin = true, GoldenDragonfly = true, Firefly = true, BaldEagle = true }
-	if winged[info.id] then
+	local head = add("Cabeca", Vector3.new(1.15, 1.1, 1.1), 0, 0.6, -0.85, if look.whiteHead then white else color, true)
+
+	-- olhos (branco + pupila + brilho)
+	local eyeScale = if look.eyes == "big" then 1.45 else 1
+	local eyeY, eyeZ, eyeX = 0.72, -1.33, 0.24
+	if look.eyes == "top" then
+		eyeY, eyeZ, eyeX = 1.12, -1.0, 0.3
+	end
+	for _, side in { -1, 1 } do
+		local x = side * eyeX
+		if look.eyes == "big" and look.nose == "beak" then
+			add("Aro", Vector3.new(0.5, 0.52, 0.08), x, eyeY, eyeZ + 0.04, accent, true)
+		end
+		add("Olho", Vector3.new(0.3, 0.34, 0.14) * eyeScale, x, eyeY, eyeZ, white, true)
+		add("Pupila", Vector3.new(0.17, 0.22, 0.08) * eyeScale, x, eyeY - 0.02, eyeZ - 0.06 * eyeScale, dark, true)
+		add("BrilhoOlho", Vector3.new(0.06, 0.07, 0.04) * eyeScale, x + 0.04, eyeY + 0.05, eyeZ - 0.1 * eyeScale, white, true)
+		if look.cheeks then
+			add("Bochecha", Vector3.new(0.2, 0.11, 0.06), side * 0.38, 0.5, -1.28, Color3.fromRGB(255, 150, 160), true)
+		end
+	end
+
+	-- nariz, bico ou focinho
+	if look.nose == "beak" then
+		add("Bico", Vector3.new(0.26, 0.2, 0.44), 0, 0.52, -1.48, orange, true)
+	elseif look.nose == "snout" then
+		add("Focinho", Vector3.new(0.5, 0.38, 0.3), 0, 0.5, -1.42, light, true)
 		for _, side in { -1, 1 } do
-			local wing = localPart(model, "Asa", Vector3.new(1.2, 0.12, 0.8) * s, CFrame.new(side * 0.95 * s, 0.35 * s, 0) * CFrame.Angles(0, 0, side * math.rad(25)), info.accent, false)
-			if info.id == "Butterfly" or info.id == "Bee" or info.id == "GoldenDragonfly" then
-				wing.Transparency = 0.3
+			add("Narina", Vector3.new(0.08, 0.12, 0.05), side * 0.1, 0.5, -1.57, dark, true)
+		end
+	elseif look.nose == "muzzle" then
+		add("Focinho", Vector3.new(0.55, 0.4, 0.4), 0, 0.46, -1.36, light, true)
+		add("Nariz", Vector3.new(0.22, 0.16, 0.12), 0, 0.55, -1.55, dark, true)
+	elseif look.nose ~= "none" then
+		add("Nariz", Vector3.new(0.2, 0.15, 0.1), 0, 0.53, -1.42, accent, true)
+	end
+	if look.mouth then
+		add("Boca", Vector3.new(0.6, 0.05, 0.05), 0, 0.42, -1.38, dark, false)
+	end
+	if look.whiskers then
+		for _, side in { -1, 1 } do
+			for i = 0, 1 do
+				add("Bigode", Vector3.new(0.4, 0.03, 0.03), side * 0.42, 0.5 - i * 0.08, -1.3, white, false, CFrame.Angles(0, 0, math.rad(side * (8 - i * 16))))
 			end
 		end
 	end
-	if info.id == "Firefly" then
-		local glow = localPart(model, "Luz", Vector3.new(0.6, 0.6, 0.6) * s, CFrame.new(0, 0, 0.9 * s), info.accent, true)
-		glow.Material = Enum.Material.Neon
+
+	-- orelhas
+	local ears = look.ears or "pointy"
+	for _, side in { -1, 1 } do
+		local tilt = CFrame.Angles(0, 0, math.rad(-side * 18))
+		if ears == "long" then
+			local lean = CFrame.Angles(0, 0, math.rad(-side * 8))
+			add("Orelha", Vector3.new(0.24, 0.95, 0.16), side * 0.24, 1.45, -0.78, color, false, lean)
+			add("OrelhaDentro", Vector3.new(0.12, 0.7, 0.04), side * 0.24, 1.45, -0.87, Color3.fromRGB(255, 170, 190), false, lean)
+		elseif ears == "pointy" then
+			add("Orelha", Vector3.new(0.34, 0.42, 0.14), side * 0.33, 1.15, -0.8, color, false, tilt)
+			add("OrelhaDentro", Vector3.new(0.18, 0.26, 0.04), side * 0.33, 1.13, -0.88, accent, false, tilt)
+		elseif ears == "round" then
+			add("Orelha", Vector3.new(0.4, 0.4, 0.16), side * 0.44, 1.08, -0.82, color, true)
+			add("OrelhaDentro", Vector3.new(0.22, 0.22, 0.06), side * 0.44, 1.08, -0.9, light, true)
+		elseif ears == "side" then
+			add("Orelha", Vector3.new(0.16, 0.42, 0.42), side * 0.6, 0.66, -0.85, light, true)
+		elseif ears == "floppy" then
+			add("Orelha", Vector3.new(0.3, 0.62, 0.18), side * 0.58, 0.62, -0.82, accent, true, CFrame.Angles(0, 0, math.rad(side * 18)))
+		elseif ears == "small" then
+			add("Orelha", Vector3.new(0.24, 0.3, 0.12), side * 0.36, 1.1, -0.78, color, false, CFrame.Angles(0, 0, math.rad(-side * 25)))
+		elseif ears == "tufts" then
+			add("Tufo", Vector3.new(0.18, 0.4, 0.12), side * 0.36, 1.2, -0.8, accent, false, CFrame.Angles(0, 0, math.rad(-side * 20)))
+		end
 	end
+
+	-- enfeites de cada bicho
+	if look.antlers then
+		local antler = Color3.fromRGB(205, 165, 110)
+		for _, side in { -1, 1 } do
+			add("Galhada", Vector3.new(0.09, 0.62, 0.09), side * 0.3, 1.45, -0.8, antler, false, CFrame.Angles(0, 0, math.rad(-side * 22)))
+			add("Galho", Vector3.new(0.07, 0.32, 0.07), side * 0.5, 1.55, -0.8, antler, false, CFrame.Angles(0, 0, math.rad(-side * 60)))
+		end
+	end
+	if look.horn then
+		neon(add("Chifre", Vector3.new(0.15, 0.7, 0.15), 0, 1.3, -1.05, Color3.fromRGB(255, 220, 90), false, CFrame.Angles(math.rad(-25), 0, 0)))
+	end
+	if look.horns then
+		for _, side in { -1, 1 } do
+			add("Chifre", Vector3.new(0.12, 0.42, 0.12), side * 0.25, 1.2, -0.66, Color3.fromRGB(245, 235, 210), false, CFrame.Angles(math.rad(30), 0, math.rad(-side * 12)))
+		end
+	end
+	if look.mane then
+		local rainbow = { Color3.fromRGB(255, 120, 180), Color3.fromRGB(170, 120, 255), Color3.fromRGB(110, 190, 255), Color3.fromRGB(255, 210, 90) }
+		for i = 0, 3 do
+			add("Crina", Vector3.new(0.3, 0.32, 0.36), 0, 1.08 - i * 0.22, -0.55 + i * 0.25, rainbow[i + 1], true)
+		end
+	end
+	if look.comb then
+		for i = -1, 1 do
+			add("Crista", Vector3.new(0.16, 0.22, 0.16), 0, 1.2 + (if i == 0 then 0.06 else 0), -0.85 + i * 0.16, Color3.fromRGB(230, 40, 40), true)
+		end
+		add("Barbela", Vector3.new(0.14, 0.22, 0.12), 0, 0.36, -1.44, Color3.fromRGB(230, 40, 40), true)
+	end
+	if look.crest then
+		for i = -1, 1 do
+			neon(add("Pena", Vector3.new(0.1, 0.5, 0.14), i * 0.12, 1.3, -0.75, Color3.fromRGB(255, 200, 60), false, CFrame.Angles(math.rad(-20), 0, math.rad(i * 18))))
+		end
+	end
+	if look.mask then
+		add("Mascara", Vector3.new(1.02, 0.26, 0.12), 0, 0.72, -1.25, Color3.fromRGB(45, 45, 50), false)
+	end
+	if look.face then
+		add("Rosto", Vector3.new(0.8, 0.7, 0.2), 0, 0.56, -1.28, light, true)
+	end
+	if look.shell then
+		local shellColor = accent
+		add("Casco", Vector3.new(1.6, 0.95, 1.8), 0, 0.28, 0.05, shellColor, true)
+		add("BordaCasco", Vector3.new(1.72, 0.22, 1.92), 0, -0.02, 0.05, shellColor:Lerp(white, 0.25), true)
+		for i = 0, 3 do
+			local angle = i * math.pi / 2 + math.pi / 4
+			add("Placa", Vector3.new(0.45, 0.2, 0.45), math.cos(angle) * 0.4, 0.68, 0.05 + math.sin(angle) * 0.42, shellColor:Lerp(dark, 0.25), true)
+		end
+	end
+	if look.stripes then
+		for _, z in { -0.15, 0.32 } do
+			add("Listra", Vector3.new(1.44, 1.14, 0.24), 0, 0, z, dark, true)
+		end
+	end
+	if look.spots then
+		for i = 1, 4 do
+			add("Pinta", Vector3.new(0.18, 0.08, 0.18), (i % 2 == 0 and 0.3 or -0.3), 0.5, -0.3 + i * 0.18, white, true)
+		end
+	end
+	if look.spikes then
+		for i = 0, 3 do
+			add("Espinho", Vector3.new(0.26, 0.26, 0.26), 0, 0.62 - i * 0.04, -0.35 + i * 0.32, accent, false, CFrame.Angles(math.rad(45), 0, 0))
+		end
+	end
+	if look.antennae then
+		for _, side in { -1, 1 } do
+			add("Antena", Vector3.new(0.05, 0.55, 0.05), side * 0.2, 1.3, -0.92, dark, false, CFrame.Angles(math.rad(-20), 0, math.rad(-side * 20)))
+			add("PontaAntena", Vector3.new(0.13, 0.13, 0.13), side * 0.31, 1.55, -1.02, if look.glow then accent else dark, true)
+		end
+	end
+	if look.glow then
+		neon(add("Luz", Vector3.new(0.6, 0.6, 0.6), 0, 0, 0.9, accent, true))
+	end
+
+	-- asas
+	local wings = look.wings
+	for _, side in { -1, 1 } do
+		if wings == "folded" then
+			add("Asa", Vector3.new(0.25, 0.75, 1.15), side * 0.72, 0.1, 0.05, color:Lerp(dark, 0.18), true, CFrame.Angles(math.rad(10), 0, math.rad(side * 8)))
+		elseif wings == "insect" then
+			local wing = add("Asa", Vector3.new(0.9, 0.08, 0.55), side * 0.75, 0.62, 0, white, true, CFrame.Angles(0, 0, math.rad(side * 25)))
+			wing.Transparency = 0.35
+		elseif wings == "butterfly" then
+			add("Asa", Vector3.new(1.3, 0.06, 1.0), side * 0.95, 0.35, -0.2, accent, true, CFrame.Angles(0, 0, math.rad(side * 30)))
+			add("Asa", Vector3.new(0.9, 0.06, 0.8), side * 0.75, 0.12, 0.45, color, true, CFrame.Angles(0, 0, math.rad(side * 20)))
+			add("Pinta", Vector3.new(0.3, 0.08, 0.3), side * 1.05, 0.44, -0.25, white, true, CFrame.Angles(0, 0, math.rad(side * 30)))
+		elseif wings == "dragonfly" then
+			for k = 0, 1 do
+				local wing = add("Asa", Vector3.new(1.4, 0.04, 0.32), side * 0.85, 0.42, -0.25 + k * 0.4, Color3.fromRGB(230, 245, 255), true, CFrame.Angles(0, math.rad(side * (k == 0 and -8 or 8)), 0))
+				wing.Transparency = 0.3
+			end
+		elseif wings == "bat" then
+			add("Asa", Vector3.new(1.3, 0.08, 1.0), side * 1.0, 0.55, 0.1, accent, true, CFrame.Angles(0, 0, math.rad(side * 30)))
+			add("Osso", Vector3.new(1.2, 0.1, 0.1), side * 1.0, 0.85, -0.25, color, false, CFrame.Angles(0, 0, math.rad(side * 30)))
+		elseif wings == "flame" then
+			neon(add("Asa", Vector3.new(1.2, 0.1, 0.8), side * 0.95, 0.4, 0.05, accent, true, CFrame.Angles(0, 0, math.rad(side * 25))))
+			neon(add("PontaAsa", Vector3.new(0.6, 0.08, 0.45), side * 1.45, 0.62, 0.1, Color3.fromRGB(255, 230, 120), true, CFrame.Angles(0, 0, math.rad(side * 25))))
+		end
+	end
+
+	-- rabo
+	local tail = look.tail or "puff"
+	if tail == "puff" then
+		add("Rabo", Vector3.new(0.42, 0.42, 0.42), 0, 0.15, 0.85, light, true)
+	elseif tail == "thin" then
+		add("Rabo", Vector3.new(0.14, 0.75, 0.14), 0, 0.5, 0.95, color, false, CFrame.Angles(math.rad(-30), 0, 0))
+		add("PontaRabo", Vector3.new(0.2, 0.2, 0.2), 0, 0.85, 1.12, accent, true)
+	elseif tail == "wag" then
+		add("Rabo", Vector3.new(0.22, 0.6, 0.22), 0, 0.42, 0.92, accent, true, CFrame.Angles(math.rad(-35), 0, 0))
+	elseif tail == "curly" then
+		for i = 0, 2 do
+			local angle = i * 2
+			add("Rabo", Vector3.new(0.16, 0.16, 0.16), math.cos(angle) * 0.12, 0.25 + math.sin(angle) * 0.12, 0.85 + i * 0.06, color:Lerp(dark, 0.1), true)
+		end
+	elseif tail == "feather" then
+		add("Rabo", Vector3.new(0.6, 0.12, 0.65), 0, 0.22, 0.95, color:Lerp(dark, 0.2), true, CFrame.Angles(math.rad(20), 0, 0))
+	elseif tail == "striped" then
+		for i = 0, 3 do
+			add("Rabo", Vector3.new(0.34, 0.34, 0.34), 0, 0.15 + i * 0.18, 0.85 + i * 0.12, if i % 2 == 0 then color else Color3.fromRGB(45, 45, 50), true)
+		end
+	elseif tail == "kitsune" then
+		for i = -1, 1 do
+			local turn = CFrame.Angles(math.rad(-40), math.rad(i * 30), 0)
+			add("Rabo", Vector3.new(0.38, 0.38, 0.9), i * 0.32, 0.45, 1.05, color, true, turn)
+			neon(add("PontaRabo", Vector3.new(0.3, 0.3, 0.3), i * 0.5, 0.82, 1.4, white, true))
+		end
+	elseif tail == "dragon" then
+		for i = 0, 2 do
+			local size = 0.42 - i * 0.1
+			add("Rabo", Vector3.new(size, size, 0.6), 0, 0.05 - i * 0.05, 0.9 + i * 0.45, color, true)
+		end
+		add("PontaRabo", Vector3.new(0.4, 0.08, 0.34), 0, -0.08, 2.0, accent, false, CFrame.Angles(0, math.rad(45), 0))
+	elseif tail == "flame" then
+		local flames = { accent, Color3.fromRGB(255, 140, 40), Color3.fromRGB(255, 220, 90) }
+		for i = 1, 3 do
+			neon(add("Chama", Vector3.new(0.3, 0.2, 0.9), (i - 2) * 0.28, 0.2, 1.1, flames[i], true, CFrame.Angles(math.rad(-15), math.rad((i - 2) * 22), 0)))
+		end
+	elseif tail == "stinger" then
+		add("Ferrao", Vector3.new(0.12, 0.12, 0.32), 0, 0, 0.9, dark, true)
+	elseif tail == "long" then
+		for i = 0, 2 do
+			add("Rabo", Vector3.new(0.22, 0.22, 0.5), 0, 0, 0.9 + i * 0.42, color, true)
+		end
+	elseif tail == "mane" then
+		add("Rabo", Vector3.new(0.34, 0.6, 0.34), 0, 0.2, 0.9, Color3.fromRGB(255, 120, 180), true, CFrame.Angles(math.rad(25), 0, 0))
+		add("Rabo", Vector3.new(0.28, 0.5, 0.28), 0, -0.05, 1.05, Color3.fromRGB(110, 190, 255), true, CFrame.Angles(math.rad(35), 0, 0))
+	elseif tail == "small" then
+		add("Rabo", Vector3.new(0.2, 0.2, 0.25), 0, -0.1, 0.92, color, true)
+	end
+
+	-- patas
+	local feet = look.feet or "paws"
+	if feet == "paws" then
+		for _, x in { -0.42, 0.42 } do
+			for _, z in { -0.45, 0.45 } do
+				add("Pata", Vector3.new(0.34, 0.34, 0.36), x, -0.5, z, color:Lerp(dark, 0.08), true)
+			end
+		end
+	elseif feet == "bird" then
+		for _, x in { -0.25, 0.25 } do
+			add("Pe", Vector3.new(0.22, 0.12, 0.3), x, -0.55, -0.1, orange, true)
+		end
+	end
+
 	if variant.id == "Rainbow" then
 		CollectionService:AddTag(body, "RainbowFruit")
 		CollectionService:AddTag(head, "RainbowFruit")
@@ -7590,6 +8505,9 @@ local function startTooltip(interface)
 	end)
 end
 
+-- usado tambem para gerar as previas dos pets
+Effects.buildPet = buildPet
+
 function Effects.start(interface)
 	startRainbow()
 	startWeather()
@@ -7608,6 +8526,8 @@ return Effects
 						<string name="Name">Interface</string>
 						<ProtectedString name="Source"><![CDATA[-- Interface: toda a interface do jogador (HUD, lojas, venda, inventario, pets,
 -- missoes, indice de mutacoes, avisos, dia/noite e roubo).
+-- Visual: paineis com sombra e gradiente, cartoes com icone, cores de raridade,
+-- botoes com relevo e pequenas animacoes.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -7623,37 +8543,62 @@ local player = Players.LocalPlayer
 local FONT = Enum.Font.FredokaOne
 
 local COLORS = {
-	panel = Color3.fromRGB(255, 246, 226),
-	row = Color3.fromRGB(242, 226, 194),
-	header = Color3.fromRGB(228, 206, 165),
-	border = Color3.fromRGB(110, 72, 38),
-	text = Color3.fromRGB(70, 45, 20),
-	soft = Color3.fromRGB(120, 85, 45),
-	green = Color3.fromRGB(85, 190, 70),
-	darkGreen = Color3.fromRGB(50, 140, 40),
-	yellow = Color3.fromRGB(245, 185, 40),
-	red = Color3.fromRGB(225, 75, 60),
-	blue = Color3.fromRGB(70, 150, 230),
-	purple = Color3.fromRGB(170, 90, 220),
-	pink = Color3.fromRGB(230, 120, 160),
-	brown = Color3.fromRGB(160, 110, 60),
-	gray = Color3.fromRGB(150, 150, 150),
+	panel = Color3.fromRGB(255, 248, 232),
+	card = Color3.fromRGB(255, 252, 244),
+	cardStroke = Color3.fromRGB(226, 204, 166),
+	header = Color3.fromRGB(236, 216, 178),
+	border = Color3.fromRGB(92, 58, 30),
+	text = Color3.fromRGB(74, 46, 22),
+	soft = Color3.fromRGB(128, 92, 52),
+	green = Color3.fromRGB(88, 200, 72),
+	darkGreen = Color3.fromRGB(46, 140, 40),
+	yellow = Color3.fromRGB(250, 190, 40),
+	orange = Color3.fromRGB(245, 140, 40),
+	red = Color3.fromRGB(232, 72, 60),
+	blue = Color3.fromRGB(70, 150, 235),
+	purple = Color3.fromRGB(160, 90, 225),
+	pink = Color3.fromRGB(236, 110, 160),
+	teal = Color3.fromRGB(60, 170, 140),
+	brown = Color3.fromRGB(176, 118, 62),
+	gray = Color3.fromRGB(160, 160, 165),
 	white = Color3.fromRGB(255, 255, 255),
-	money = Color3.fromRGB(130, 235, 95),
-	night = Color3.fromRGB(40, 50, 110),
+	black = Color3.fromRGB(0, 0, 0),
+	money = Color3.fromRGB(140, 240, 100),
+	hud = Color3.fromRGB(28, 32, 44),
+	gold = Color3.fromRGB(255, 200, 50),
 }
 
-local NOTIFY_COLORS = {
-	success = COLORS.green,
-	error = COLORS.red,
-	rare = COLORS.purple,
-	info = COLORS.blue,
+-- duas cores (claro em cima, escuro embaixo) para cada raridade
+local RARITY_COLORS = {
+	Common = { Color3.fromRGB(205, 205, 210), Color3.fromRGB(150, 150, 158) },
+	Uncommon = { Color3.fromRGB(125, 232, 105), Color3.fromRGB(56, 168, 56) },
+	Rare = { Color3.fromRGB(105, 185, 255), Color3.fromRGB(48, 108, 228) },
+	Epic = { Color3.fromRGB(195, 125, 255), Color3.fromRGB(118, 58, 208) },
+	Legendary = { Color3.fromRGB(255, 222, 85), Color3.fromRGB(238, 148, 28) },
+	Mythic = { Color3.fromRGB(255, 125, 195), Color3.fromRGB(198, 48, 138) },
+	Super = { Color3.fromRGB(255, 150, 60), Color3.fromRGB(220, 60, 60) },
+	Secret = { Color3.fromRGB(80, 80, 92), Color3.fromRGB(22, 22, 28) },
+}
+local RAINBOW = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 80, 80)),
+	ColorSequenceKeypoint.new(0.2, Color3.fromRGB(255, 170, 50)),
+	ColorSequenceKeypoint.new(0.4, Color3.fromRGB(250, 230, 60)),
+	ColorSequenceKeypoint.new(0.6, Color3.fromRGB(90, 220, 110)),
+	ColorSequenceKeypoint.new(0.8, Color3.fromRGB(80, 160, 255)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(190, 100, 255)),
+})
+
+local NOTIFY_STYLE = {
+	success = { COLORS.green, "✅" },
+	error = { COLORS.red, "⛔" },
+	rare = { COLORS.purple, "✨" },
+	info = { COLORS.blue, "💬" },
 }
 
 local PHASE_TEXT = {
-	Day = { "☀️ Dia", Color3.fromRGB(255, 220, 90) },
-	Sunset = { "🌅 Pôr do sol", Color3.fromRGB(255, 160, 80) },
-	Night = { "🌙 Noite", Color3.fromRGB(170, 180, 255) },
+	Day = { "☀️", "Dia", Color3.fromRGB(255, 220, 90) },
+	Sunset = { "🌅", "Pôr do sol", Color3.fromRGB(255, 160, 80) },
+	Night = { "🌙", "Noite", Color3.fromRGB(175, 185, 255) },
 }
 
 ---------------------------------------------------------------------
@@ -7683,21 +8628,72 @@ local function new(className: string, props: { [string]: any }?, children: { Ins
 	return instance
 end
 
+local function lighter(color: Color3, amount: number?): Color3
+	return color:Lerp(Color3.new(1, 1, 1), amount or 0.25)
+end
+
+local function darker(color: Color3, amount: number?): Color3
+	return color:Lerp(Color3.new(0, 0, 0), amount or 0.3)
+end
+
 local function corner(parent: Instance, radius: number?)
 	return new("UICorner", { CornerRadius = UDim.new(0, radius or 10), Parent = parent })
 end
 
-local function stroke(parent: Instance, color: Color3, thickness: number?)
+local function stroke(parent: Instance, color: Color3, thickness: number?, transparency: number?)
 	return new("UIStroke", {
 		Color = color,
 		Thickness = thickness or 2,
+		Transparency = transparency or 0,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		Parent = parent,
 	})
 end
 
-local function darker(color: Color3, amount: number?): Color3
-	return color:Lerp(Color3.new(0, 0, 0), amount or 0.3)
+-- contorno grosso nas letras (estilo desenho)
+local function outline(label: TextLabel, color: Color3, thickness: number?)
+	return new("UIStroke", {
+		Color = color,
+		Thickness = thickness or 2,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
+		Parent = label,
+	})
+end
+
+local function gradient(parent: Instance, top: Color3, bottom: Color3, rotation: number?)
+	return new("UIGradient", { Color = ColorSequence.new(top, bottom), Rotation = rotation or 90, Parent = parent })
+end
+
+-- brilho de "botao de desenho": parte de cima clara, faixa de baixo mais escura
+local function shade(parent: Instance)
+	return new("UIGradient", {
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(242, 242, 242)),
+			ColorSequenceKeypoint.new(0.54, Color3.fromRGB(218, 218, 218)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 200, 200)),
+		}),
+		Rotation = 90,
+		Parent = parent,
+	})
+end
+
+local function rarityGradient(parent: Instance, rarityId: string?)
+	if rarityId == "Super" then
+		return new("UIGradient", { Color = RAINBOW, Rotation = 0, Parent = parent })
+	end
+	local colors = RARITY_COLORS[rarityId or "Common"] or RARITY_COLORS.Common
+	return gradient(parent, colors[1], colors[2])
+end
+
+local function rarityEdge(rarityId: string?): Color3
+	if rarityId == "Super" then
+		return Color3.fromRGB(200, 60, 160)
+	elseif rarityId == "Secret" then
+		return COLORS.gold
+	end
+	local colors = RARITY_COLORS[rarityId or "Common"] or RARITY_COLORS.Common
+	return darker(colors[2], 0.15)
 end
 
 local function text(parent: Instance, value: string, position: UDim2, size: UDim2, textSize: number, color: Color3, align: Enum.TextXAlignment?): TextLabel
@@ -7716,34 +8712,59 @@ local function text(parent: Instance, value: string, position: UDim2, size: UDim
 	})
 end
 
+local function animateButton(b: GuiButton)
+	local scale = new("UIScale", { Name = "Animacao", Parent = b })
+	local info = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	local function to(value: number)
+		TweenService:Create(scale, info, { Scale = value }):Play()
+	end
+	b.MouseEnter:Connect(function()
+		to(1.05)
+	end)
+	b.MouseLeave:Connect(function()
+		to(1)
+	end)
+	b.MouseButton1Down:Connect(function()
+		to(0.93)
+	end)
+	b.MouseButton1Up:Connect(function()
+		to(1.05)
+	end)
+end
+
 local function button(parent: Instance, value: string, color: Color3, position: UDim2, size: UDim2, onClick: () -> ()): TextButton
 	local b = new("TextButton", {
-		BackgroundColor3 = color,
+		BackgroundColor3 = lighter(color, 0.12),
 		Position = position,
 		Size = size,
 		Font = FONT,
 		Text = value,
 		TextSize = 18,
 		TextColor3 = COLORS.white,
-		TextStrokeTransparency = 0.5,
+		TextStrokeColor3 = darker(color, 0.6),
+		TextStrokeTransparency = 0,
 		TextWrapped = true,
-		AutoButtonColor = true,
+		AutoButtonColor = false,
 		Parent = parent,
 	})
-	corner(b, 8)
-	stroke(b, darker(color), 2)
+	corner(b, 12)
+	stroke(b, darker(color, 0.45), 3)
+	shade(b)
+	animateButton(b)
 	b.Activated:Connect(onClick)
 	return b
 end
 
 local function pill(parent: Instance, value: string, color: Color3, position: UDim2, width: number): Frame
 	local frame = new("Frame", {
-		BackgroundColor3 = color,
+		BackgroundColor3 = lighter(color, 0.08),
 		Position = position,
-		Size = UDim2.fromOffset(width, 20),
+		Size = UDim2.fromOffset(width, 22),
 		Parent = parent,
 	})
-	corner(frame, 10)
+	corner(frame, 11)
+	stroke(frame, darker(color, 0.35), 2)
+	shade(frame)
 	new("TextLabel", {
 		BackgroundTransparency = 1,
 		Size = UDim2.fromScale(1, 1),
@@ -7751,38 +8772,94 @@ local function pill(parent: Instance, value: string, color: Color3, position: UD
 		Text = value,
 		TextSize = 13,
 		TextColor3 = COLORS.white,
-		TextStrokeTransparency = 0.4,
+		TextStrokeColor3 = darker(color, 0.6),
+		TextStrokeTransparency = 0.1,
 		Parent = frame,
 	})
 	return frame
 end
 
-local function swatch(parent: Instance, color: Color3)
+local function rarityPill(parent: Instance, rarityId: string, position: UDim2, width: number): Frame
+	local rarity = Config.Rarities[rarityId]
 	local frame = new("Frame", {
-		BackgroundColor3 = color,
-		Position = UDim2.new(0, 10, 0.5, -23),
-		Size = UDim2.fromOffset(46, 46),
+		BackgroundColor3 = COLORS.white,
+		Position = position,
+		Size = UDim2.fromOffset(width, 22),
 		Parent = parent,
 	})
-	corner(frame, 23)
-	stroke(frame, darker(color), 3)
+	corner(frame, 11)
+	stroke(frame, rarityEdge(rarityId), 2)
+	rarityGradient(frame, rarityId)
+	new("TextLabel", {
+		BackgroundTransparency = 1,
+		Size = UDim2.fromScale(1, 1),
+		Font = FONT,
+		Text = if rarity then rarity.name else rarityId,
+		TextSize = 13,
+		TextColor3 = COLORS.white,
+		TextStrokeColor3 = COLORS.black,
+		TextStrokeTransparency = 0.35,
+		Parent = frame,
+	})
 	return frame
 end
 
-local function progressBar(parent: Instance, fraction: number, position: UDim2, size: UDim2, color: Color3)
+-- quadradinho arredondado com o icone (emoji) do item, na cor do item e com borda da raridade
+local function iconBubble(parent: Instance, icon: string, color: Color3, rarityId: string?, size: number?): Frame
+	local side = size or 58
+	local bubble = new("Frame", {
+		Name = "Icone",
+		BackgroundColor3 = COLORS.white,
+		Position = UDim2.new(0, 12, 0.5, -side / 2),
+		Size = UDim2.fromOffset(side, side),
+		Parent = parent,
+	})
+	corner(bubble, math.floor(side * 0.3))
+	gradient(bubble, lighter(color, 0.78), lighter(color, 0.45))
+	stroke(bubble, rarityEdge(rarityId), 3)
+	local shine = new("Frame", {
+		BackgroundColor3 = COLORS.white,
+		BackgroundTransparency = 0.45,
+		Position = UDim2.fromScale(0.14, 0.08),
+		Size = UDim2.fromScale(0.42, 0.18),
+		Parent = bubble,
+	})
+	corner(shine, 99)
+	new("TextLabel", {
+		Name = "Emoji",
+		BackgroundTransparency = 1,
+		Size = UDim2.fromScale(1, 1),
+		Font = FONT,
+		Text = icon,
+		TextSize = math.floor(side * 0.56),
+		TextColor3 = darker(color, 0.2),
+		Parent = bubble,
+	})
+	return bubble
+end
+
+local function progressBar(parent: Instance, fraction: number, position: UDim2, size: UDim2, color: Color3, label: string?)
 	local back = new("Frame", {
-		BackgroundColor3 = COLORS.header,
+		BackgroundColor3 = Color3.fromRGB(222, 202, 168),
 		Position = position,
 		Size = size,
 		Parent = parent,
 	})
-	corner(back, 6)
+	corner(back, 8)
+	stroke(back, Color3.fromRGB(176, 140, 96), 2)
 	local fill = new("Frame", {
-		BackgroundColor3 = color,
+		BackgroundColor3 = lighter(color, 0.1),
 		Size = UDim2.fromScale(math.clamp(fraction, 0, 1), 1),
+		Visible = fraction > 0.01,
 		Parent = back,
 	})
-	corner(fill, 6)
+	corner(fill, 8)
+	shade(fill)
+	if label then
+		local caption = text(back, label, UDim2.fromScale(0, 0), UDim2.fromScale(1, 1), 13, COLORS.white, Enum.TextXAlignment.Center)
+		caption.TextStrokeColor3 = darker(color, 0.6)
+		caption.TextStrokeTransparency = 0
+	end
 	return back
 end
 
@@ -7796,24 +8873,34 @@ end
 
 local function makeRow(list: Instance, order: number, height: number): Frame
 	local row = new("Frame", {
-		BackgroundColor3 = COLORS.row,
-		Size = UDim2.new(1, -12, 0, height),
+		BackgroundColor3 = COLORS.card,
+		Size = UDim2.new(1, -16, 0, height),
 		LayoutOrder = order,
 		Parent = list,
 	})
-	corner(row, 10)
+	corner(row, 14)
+	stroke(row, COLORS.cardStroke, 2)
+	gradient(row, COLORS.white, Color3.fromRGB(244, 234, 214))
 	return row
 end
 
 local function sectionRow(list: Instance, order: number, title: string)
 	local row = new("Frame", {
-		BackgroundColor3 = COLORS.header,
-		Size = UDim2.new(1, -12, 0, 30),
+		BackgroundColor3 = COLORS.white,
+		Size = UDim2.new(1, -16, 0, 34),
 		LayoutOrder = order,
 		Parent = list,
 	})
-	corner(row, 8)
-	text(row, title, UDim2.fromOffset(12, 0), UDim2.new(1, -24, 1, 0), 18, COLORS.text)
+	corner(row, 10)
+	stroke(row, Color3.fromRGB(170, 120, 70), 2)
+	gradient(row, Color3.fromRGB(250, 220, 160), Color3.fromRGB(226, 182, 120))
+	local label = text(row, title, UDim2.fromOffset(12, 0), UDim2.new(1, -24, 1, 0), 18, COLORS.white)
+	label.TextStrokeColor3 = Color3.fromRGB(120, 72, 30)
+	label.TextStrokeTransparency = 0
+end
+
+local function iconOf(id: string, fallback: string): string
+	return Config.Icons[id] or fallback
 end
 
 local function fruitTitle(fruit): string
@@ -7827,6 +8914,10 @@ local function fruitColor(fruit): Color3
 	end
 	local variant = Formulas.variantInfo(seed, fruit.v)
 	return if variant then variant.color else seed.fruitColor
+end
+
+local function chipWidth(value: string): number
+	return math.clamp(18 + (utf8.len(value) or #value) * 8, 50, 140)
 end
 
 ---------------------------------------------------------------------
@@ -7864,34 +8955,60 @@ function Interface.create(remotes)
 		end
 	end
 
+	local function pop(target: Instance, from: number)
+		local scale = target:FindFirstChild("Pop")
+		if not scale then
+			scale = new("UIScale", { Name = "Pop", Parent = target })
+		end
+		scale.Scale = from
+		TweenService:Create(scale, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+	end
+
 	local function notify(message: string, kind: string?)
 		local toasts = gui:FindFirstChild("Avisos")
 		if not toasts then
 			return
 		end
 		toastCounter += 1
+		local style = NOTIFY_STYLE[kind or "info"] or NOTIFY_STYLE.info
 		local toast = new("TextLabel", {
 			Name = "Aviso",
-			BackgroundColor3 = NOTIFY_COLORS[kind or "info"] or COLORS.blue,
+			BackgroundColor3 = lighter(style[1], 0.08),
 			Size = UDim2.fromScale(1, 0),
 			AutomaticSize = Enum.AutomaticSize.Y,
 			Font = FONT,
 			Text = message,
 			TextSize = 19,
 			TextColor3 = COLORS.white,
-			TextStrokeTransparency = 0.5,
+			TextStrokeColor3 = darker(style[1], 0.6),
+			TextStrokeTransparency = 0,
 			TextWrapped = true,
 			LayoutOrder = toastCounter,
 			Parent = toasts,
 		})
-		corner(toast, 10)
+		corner(toast, 14)
+		stroke(toast, darker(style[1], 0.4), 3)
+		shade(toast)
 		new("UIPadding", {
-			PaddingTop = UDim.new(0, 6),
-			PaddingBottom = UDim.new(0, 6),
-			PaddingLeft = UDim.new(0, 10),
-			PaddingRight = UDim.new(0, 10),
+			PaddingTop = UDim.new(0, 8),
+			PaddingBottom = UDim.new(0, 8),
+			PaddingLeft = UDim.new(0, 48),
+			PaddingRight = UDim.new(0, 14),
 			Parent = toast,
 		})
+		new("TextLabel", {
+			Name = "Icone",
+			BackgroundTransparency = 1,
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.new(0, -40, 0.5, 0),
+			Size = UDim2.fromOffset(32, 32),
+			Font = FONT,
+			Text = style[2],
+			TextSize = 24,
+			TextColor3 = COLORS.white,
+			Parent = toast,
+		})
+		pop(toast, 0.7)
 		local list = {}
 		for _, child in toasts:GetChildren() do
 			if child:IsA("TextLabel") then
@@ -7923,13 +9040,13 @@ function Interface.create(remotes)
 		Name = "Avisos",
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -100),
-		Size = UDim2.fromOffset(480, 330),
+		Size = UDim2.fromOffset(500, 340),
 		BackgroundTransparency = 1,
 		Parent = gui,
 	})
 	new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Vertical,
-		Padding = UDim.new(0, 6),
+		Padding = UDim.new(0, 8),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		VerticalAlignment = Enum.VerticalAlignment.Bottom,
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
@@ -7937,43 +9054,101 @@ function Interface.create(remotes)
 	})
 	addScale(toasts)
 
-	-- dinheiro, dia/noite e botoes laterais
+	local function hudCard(parent: Instance, name: string, position: UDim2, size: UDim2): Frame
+		local card = new("Frame", {
+			Name = name,
+			BackgroundColor3 = COLORS.hud,
+			BackgroundTransparency = 0.18,
+			Position = position,
+			Size = size,
+			Parent = parent,
+		})
+		corner(card, 16)
+		stroke(card, COLORS.black, 2, 0.45)
+		gradient(card, Color3.fromRGB(255, 255, 255), Color3.fromRGB(170, 175, 190))
+		return card
+	end
+
+	-- dinheiro, dia/noite, plantas e botoes laterais
 	local side = new("Frame", {
 		Name = "Lateral",
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.new(0, 12, 0.5, 0),
-		Size = UDim2.fromOffset(220, 330),
+		Size = UDim2.fromOffset(220, 380),
 		BackgroundTransparency = 1,
 		Parent = gui,
 	})
 	addScale(side)
-	local moneyFrame = new("Frame", {
-		BackgroundColor3 = Color3.fromRGB(40, 40, 40),
-		BackgroundTransparency = 0.35,
-		Size = UDim2.fromOffset(220, 56),
-		Parent = side,
+
+	local moneyFrame = hudCard(side, "Carteira", UDim2.new(), UDim2.fromOffset(220, 58))
+	local coin = new("Frame", {
+		Name = "Moeda",
+		BackgroundColor3 = COLORS.white,
+		Position = UDim2.fromOffset(9, 9),
+		Size = UDim2.fromOffset(40, 40),
+		Parent = moneyFrame,
 	})
-	corner(moneyFrame, 12)
+	corner(coin, 20)
+	gradient(coin, Color3.fromRGB(255, 232, 110), Color3.fromRGB(230, 150, 20))
+	stroke(coin, Color3.fromRGB(150, 90, 10), 3)
+	local coinInner = new("Frame", {
+		BackgroundColor3 = COLORS.white,
+		BackgroundTransparency = 0.2,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.56, 0.56),
+		Parent = coin,
+	})
+	corner(coinInner, 12)
+	gradient(coinInner, Color3.fromRGB(240, 170, 30), Color3.fromRGB(255, 225, 110))
+	local coinShine = new("Frame", {
+		BackgroundColor3 = COLORS.white,
+		BackgroundTransparency = 0.3,
+		Position = UDim2.fromScale(0.22, 0.14),
+		Size = UDim2.fromScale(0.22, 0.14),
+		Parent = coin,
+	})
+	corner(coinShine, 6)
 	local moneyLabel = new("TextLabel", {
+		Name = "Dinheiro",
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(10, 0),
-		Size = UDim2.new(1, -20, 1, 0),
+		Position = UDim2.fromOffset(58, 4),
+		Size = UDim2.new(1, -66, 1, -8),
 		Font = FONT,
 		Text = Config.CurrencySymbol .. "...",
 		TextScaled = true,
 		TextColor3 = COLORS.money,
-		TextStrokeTransparency = 0.2,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Parent = moneyFrame,
 	})
-	new("UITextSizeConstraint", { MaxTextSize = 38, Parent = moneyLabel })
+	outline(moneyLabel, Color3.fromRGB(20, 70, 20), 2)
+	new("UITextSizeConstraint", { MaxTextSize = 36, Parent = moneyLabel })
+
+	local phaseFrame = hudCard(side, "Fase", UDim2.fromOffset(0, 64), UDim2.fromOffset(220, 62))
+	local phaseIcon = text(phaseFrame, "☀️", UDim2.fromOffset(6, 6), UDim2.fromOffset(40, 40), 30, COLORS.white, Enum.TextXAlignment.Center)
 	-- ate 2 linhas (a noite mostra se o jardim esta protegido); TextScaled diminui o texto se precisar
-	local phaseLabel = text(side, "", UDim2.fromOffset(4, 58), UDim2.fromOffset(216, 44), 17, COLORS.white)
-	phaseLabel.TextStrokeTransparency = 0.3
+	local phaseLabel = text(phaseFrame, "", UDim2.fromOffset(50, 4), UDim2.new(1, -58, 0, 38), 16, COLORS.white)
 	phaseLabel.TextScaled = true
-	new("UITextSizeConstraint", { MaxTextSize = 17, Parent = phaseLabel })
-	local plantsLabel = text(side, "🌱 0/" .. Config.MaxPlantsPerGarden .. " plantas", UDim2.fromOffset(4, 103), UDim2.fromOffset(216, 20), 17, COLORS.white)
-	plantsLabel.TextStrokeTransparency = 0.3
+	phaseLabel.TextStrokeTransparency = 0.2
+	new("UITextSizeConstraint", { MaxTextSize = 16, Parent = phaseLabel })
+	local phaseBarBack = new("Frame", {
+		BackgroundColor3 = COLORS.black,
+		BackgroundTransparency = 0.5,
+		Position = UDim2.fromOffset(50, 46),
+		Size = UDim2.new(1, -60, 0, 8),
+		Parent = phaseFrame,
+	})
+	corner(phaseBarBack, 4)
+	local phaseBar = new("Frame", {
+		BackgroundColor3 = PHASE_TEXT.Day[3],
+		Size = UDim2.fromScale(0, 1),
+		Parent = phaseBarBack,
+	})
+	corner(phaseBar, 4)
+
+	local plantsFrame = hudCard(side, "Plantas", UDim2.fromOffset(0, 132), UDim2.fromOffset(220, 30))
+	local plantsLabel = text(plantsFrame, "🌱 0/" .. Config.MaxPlantsPerGarden .. " plantas", UDim2.fromOffset(12, 0), UDim2.new(1, -24, 1, 0), 16, COLORS.white)
+	plantsLabel.TextStrokeTransparency = 0.2
 
 	---------------------------------------------------------------
 	-- Paineis
@@ -7992,63 +9167,98 @@ function Interface.create(remotes)
 		local frame = new("Frame", {
 			Name = "Painel" .. name,
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.53),
-			Size = UDim2.fromOffset(600, 450),
-			BackgroundColor3 = COLORS.panel,
+			Position = UDim2.fromScale(0.5, 0.54),
+			Size = UDim2.fromOffset(620, 460),
+			BackgroundTransparency = 1,
 			Visible = false,
 			Parent = gui,
 		})
-		corner(frame, 14)
-		stroke(frame, COLORS.border, 3)
 		addScale(frame)
-		local titleBar = new("Frame", {
-			BackgroundColor3 = accent,
-			Size = UDim2.new(1, 0, 0, 50),
+		local shadow = new("Frame", {
+			Name = "Sombra",
+			BackgroundColor3 = COLORS.black,
+			BackgroundTransparency = 0.62,
+			Position = UDim2.fromOffset(0, 8),
+			Size = UDim2.fromScale(1, 1),
+			ZIndex = 1,
 			Parent = frame,
 		})
-		corner(titleBar, 14)
+		corner(shadow, 22)
+		local body = new("Frame", {
+			Name = "Corpo",
+			BackgroundColor3 = COLORS.panel,
+			Size = UDim2.fromScale(1, 1),
+			ZIndex = 2,
+			Parent = frame,
+		})
+		corner(body, 22)
+		stroke(body, COLORS.border, 4)
+		gradient(body, COLORS.white, Color3.fromRGB(238, 222, 190))
+		local titleBar = new("Frame", {
+			Name = "Titulo",
+			BackgroundColor3 = COLORS.white,
+			Size = UDim2.new(1, 0, 0, 60),
+			Parent = body,
+		})
+		corner(titleBar, 22)
+		new("UIGradient", {
+			Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, lighter(accent, 0.35)),
+				ColorSequenceKeypoint.new(0.6, accent),
+				ColorSequenceKeypoint.new(1, accent),
+			}),
+			Rotation = 90,
+			Parent = titleBar,
+		})
 		new("Frame", {
 			BackgroundColor3 = accent,
 			BorderSizePixel = 0,
-			Position = UDim2.new(0, 0, 1, -14),
-			Size = UDim2.new(1, 0, 0, 14),
+			Position = UDim2.new(0, 0, 1, -22),
+			Size = UDim2.new(1, 0, 0, 22),
 			Parent = titleBar,
 		})
-		local titleLabel = text(titleBar, title, UDim2.fromOffset(16, 0), UDim2.new(1, -80, 1, 0), 28, COLORS.white)
-		titleLabel.TextStrokeTransparency = 0.4
-		titleLabel.ZIndex = 2
-		local closeButton = button(titleBar, "X", COLORS.red, UDim2.new(1, -46, 0, 6), UDim2.fromOffset(38, 38), closePanels)
-		closeButton.ZIndex = 2
-		local info = text(frame, "", UDim2.fromOffset(14, 56), UDim2.new(1, -240, 0, 34), 16, COLORS.text)
+		new("Frame", {
+			Name = "Linha",
+			BackgroundColor3 = darker(accent, 0.35),
+			BorderSizePixel = 0,
+			Position = UDim2.new(0, 0, 1, 0),
+			Size = UDim2.new(1, 0, 0, 3),
+			Parent = titleBar,
+		})
+		local titleLabel = text(titleBar, title, UDim2.fromOffset(20, 0), UDim2.new(1, -90, 1, 0), 30, COLORS.white)
+		outline(titleLabel, darker(accent, 0.55), 3)
+		local closeButton = button(titleBar, "X", COLORS.red, UDim2.new(1, -54, 0, 10), UDim2.fromOffset(42, 40), closePanels)
+		closeButton.TextSize = 24
+		local info = text(body, "", UDim2.fromOffset(18, 68), UDim2.new(1, -256, 0, 36), 16, COLORS.soft)
 		local header = new("Frame", {
 			BackgroundTransparency = 1,
 			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -14, 0, 56),
-			Size = UDim2.fromOffset(220, 34),
-			Parent = frame,
+			Position = UDim2.new(1, -18, 0, 68),
+			Size = UDim2.fromOffset(220, 36),
+			Parent = body,
 		})
 		local list = new("ScrollingFrame", {
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
-			Position = UDim2.fromOffset(10, 96),
-			Size = UDim2.new(1, -20, 1, -106),
+			Position = UDim2.fromOffset(10, 110),
+			Size = UDim2.new(1, -20, 1, -120),
 			CanvasSize = UDim2.new(),
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
 			ScrollingDirection = Enum.ScrollingDirection.Y,
 			ScrollBarThickness = 8,
 			ScrollBarImageColor3 = COLORS.border,
-			Parent = frame,
+			Parent = body,
 		})
 		new("UIListLayout", {
 			FillDirection = Enum.FillDirection.Vertical,
-			Padding = UDim.new(0, 6),
+			Padding = UDim.new(0, 8),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 			HorizontalAlignment = Enum.HorizontalAlignment.Center,
 			VerticalAlignment = Enum.VerticalAlignment.Top,
 			Parent = list,
 		})
-		new("UIPadding", { PaddingTop = UDim.new(0, 2), PaddingBottom = UDim.new(0, 6), Parent = list })
-		local panel = { frame = frame, info = info, header = header, list = list }
+		new("UIPadding", { PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 8), Parent = list })
+		local panel = { frame = frame, body = body, info = info, header = header, list = list }
 		panels[name] = panel
 		return panel
 	end
@@ -8059,7 +9269,7 @@ function Interface.create(remotes)
 	local sellPanel = makePanel("Sell", "💰 Venda do Steven", COLORS.yellow)
 	local inventoryPanel = makePanel("Inventory", "🎒 Inventário", COLORS.brown)
 	local petsPanel = makePanel("Pets", "🐾 Meus Pets", COLORS.pink)
-	local questsPanel = makePanel("Quests", "📜 Missões do Dia", Color3.fromRGB(90, 160, 130))
+	local questsPanel = makePanel("Quests", "📜 Missões do Dia", COLORS.teal)
 	local indexPanel = makePanel("Index", "✨ Índice de Mutações", Color3.fromRGB(120, 90, 200))
 
 	local function invoke(remote: RemoteFunction, ...): (boolean, string)
@@ -8091,24 +9301,27 @@ function Interface.create(remotes)
 		return "🔄 Reabastece em " .. Formulas.formatTime(state.restockAt - workspace:GetServerTimeNow())
 	end
 
-	local function shopRow(list: Instance, item, category: string, stock: number, owned: number, subtitle: string, color: Color3, badges: { { string } }?)
-		local row = makeRow(list, item.order, 78)
-		swatch(row, color)
-		text(row, item.name, UDim2.fromOffset(66, 4), UDim2.new(1, -220, 0, 26), 21, COLORS.text)
-		local rarity = Config.Rarities[item.rarity]
-		pill(row, rarity.name, if item.rarity == "Secret" then Color3.fromRGB(60, 60, 60) else rarity.color, UDim2.fromOffset(66, 31), 84)
-		local x = 156
+	local function shopRow(list: Instance, item, category: string, stock: number, owned: number, subtitle: string, color: Color3, badges: { { any } }?)
+		local row = makeRow(list, item.order, 90)
+		iconBubble(row, iconOf(item.id, "🌱"), color, item.rarity)
+		text(row, item.name, UDim2.fromOffset(84, 6), UDim2.new(1, -250, 0, 28), 22, COLORS.text)
+		local x = 84
+		rarityPill(row, item.rarity, UDim2.fromOffset(x, 37), 86)
+		x += 92
 		for _, badge in badges or {} do
-			pill(row, badge[1], badge[2], UDim2.fromOffset(x, 31), 84)
-			x += 90
+			local width = chipWidth(badge[1])
+			pill(row, badge[1], badge[2], UDim2.fromOffset(x, 37), width)
+			x += width + 6
 		end
-		text(row, "Você tem: " .. owned, UDim2.fromOffset(x + 2, 31), UDim2.fromOffset(120, 20), 14, COLORS.text)
-		text(row, subtitle, UDim2.fromOffset(66, 53), UDim2.new(1, -220, 0, 22), 13, COLORS.soft)
-		text(row, Formulas.formatMoney(item.price), UDim2.new(1, -146, 0, 4), UDim2.fromOffset(136, 26), 20, COLORS.darkGreen, Enum.TextXAlignment.Right)
+		text(row, "Você tem: " .. owned, UDim2.fromOffset(x + 2, 37), UDim2.fromOffset(110, 22), 14, COLORS.soft)
+		text(row, subtitle, UDim2.fromOffset(84, 62), UDim2.new(1, -250, 0, 22), 13, COLORS.soft)
+		text(row, Formulas.formatMoney(item.price), UDim2.new(1, -160, 0, 6), UDim2.fromOffset(148, 26), 22, COLORS.darkGreen, Enum.TextXAlignment.Right)
+		local stockLabel = text(row, if stock > 0 then "📦 Estoque: " .. stock else "Esgotado", UDim2.new(1, -160, 0, 31), UDim2.fromOffset(148, 18), 13, if stock > 0 then COLORS.soft else COLORS.red, Enum.TextXAlignment.Right)
+		stockLabel.Name = "Estoque"
 		local affordable = state and state.sheckles >= item.price
-		local label = if stock > 0 then "Comprar (x" .. stock .. ")" else "Sem estoque"
-		local color2 = if stock > 0 and affordable then COLORS.green elseif stock > 0 then COLORS.yellow else COLORS.gray
-		button(row, label, color2, UDim2.new(1, -146, 0, 36), UDim2.fromOffset(136, 34), function()
+		local label = if stock <= 0 then "Esgotado" elseif affordable then "Comprar" else "Sem dinheiro"
+		local buttonColor = if stock <= 0 then COLORS.gray elseif affordable then COLORS.green else COLORS.orange
+		button(row, label, buttonColor, UDim2.new(1, -150, 0, 51), UDim2.fromOffset(138, 32), function()
 			report(invoke(remotes.Buy, category, item.id))
 		end)
 	end
@@ -8121,19 +9334,19 @@ function Interface.create(remotes)
 			if seed.inShop then
 				local stock = state.stock.seeds[seed.id] or 0
 				local subtitle = string.format(
-					"%s • cresce em %s • vale ~%s",
-					if seed.multiHarvest then "Várias colheitas" else "Colheita única",
+					"%s • ⏱️ %s • 💰 ~%s",
+					if seed.multiHarvest then "🔁 Várias colheitas" else "1️⃣ Colheita única",
 					Formulas.formatTime(seed.growTime),
 					Formulas.formatMoney(seed.baseValue)
 				)
 				local badges = {}
 				if seed.defense then
-					table.insert(badges, { "🛡️ Defesa", Color3.fromRGB(200, 70, 60) })
+					table.insert(badges, { "🛡️ Defesa", Color3.fromRGB(205, 70, 60) })
 				end
 				if seed.limited then
-					table.insert(badges, { "⏳ Limitada", Color3.fromRGB(230, 120, 40) })
+					table.insert(badges, { "⏳ Limitada", Color3.fromRGB(235, 120, 40) })
 				elseif seed.classic then
-					table.insert(badges, { "Clássica", Color3.fromRGB(120, 120, 140) })
+					table.insert(badges, { "Clássica", Color3.fromRGB(120, 120, 145) })
 				end
 				shopRow(panel.list, seed, "Seeds", stock, state.seeds[seed.id] or 0, subtitle, seed.fruitColor, badges)
 			end
@@ -8150,9 +9363,13 @@ function Interface.create(remotes)
 		end
 	end
 
+	local function eggsInfo(): string
+		return restockText() .. "  •  Variantes: Grande 10%, Arco-íris 4%, Mega 1%"
+	end
+
 	local function renderEggs()
 		local panel = eggsPanel
-		panel.info.Text = restockText() .. "  •  Variantes: Grande 10%, Arco-íris 4%, Mega 1%"
+		panel.info.Text = eggsInfo()
 		clearList(panel.list)
 		for _, egg in Config.EggList do
 			local stock = state.stock.eggs[egg.id] or 0
@@ -8163,9 +9380,9 @@ function Interface.create(remotes)
 			local chances = {}
 			for _, entry in egg.pets do
 				local pet = Config.Pets[entry.pet]
-				table.insert(chances, string.format("%s %d%%", pet.name, math.floor(entry.weight / total * 100 + 0.5)))
+				table.insert(chances, string.format("%s %s %d%%", iconOf(pet.id, ""), pet.name, math.floor(entry.weight / total * 100 + 0.5)))
 			end
-			local subtitle = "Choca em " .. Formulas.formatTime(egg.hatchTime) .. " • " .. table.concat(chances, ", ")
+			local subtitle = "⏱️ " .. Formulas.formatTime(egg.hatchTime) .. " • " .. table.concat(chances, ", ")
 			shopRow(panel.list, egg, "Eggs", stock, state.eggs[egg.id] or 0, subtitle, egg.color)
 		end
 	end
@@ -8189,16 +9406,47 @@ function Interface.create(remotes)
 		return total
 	end
 
+	local function mutationChips(row: Instance, mutations: { string }, x: number, y: number, maxX: number)
+		if #mutations == 0 then
+			text(row, "Sem mutações", UDim2.fromOffset(x, y), UDim2.fromOffset(160, 22), 14, COLORS.soft)
+			return
+		end
+		for index, id in mutations do
+			local mutation = Config.Mutations[id]
+			if mutation then
+				local width = chipWidth(mutation.name)
+				if x + width > maxX then
+					pill(row, "+" .. (#mutations - index + 1), COLORS.purple, UDim2.fromOffset(x, y), 40)
+					return
+				end
+				local chip = pill(row, mutation.name, mutation.color, UDim2.fromOffset(x, y), width)
+				if id == "Rainbow" then
+					chip.BackgroundColor3 = COLORS.white
+					local shine = chip:FindFirstChildOfClass("UIGradient")
+					if shine then
+						shine:Destroy()
+					end
+					new("UIGradient", { Color = RAINBOW, Parent = chip })
+				end
+				x += width + 6
+			end
+		end
+	end
+
 	local function fruitRow(list: Instance, fruit, order: number, withSell: boolean)
-		local row = makeRow(list, order, 62)
-		swatch(row, fruitColor(fruit))
-		text(row, fruitTitle(fruit), UDim2.fromOffset(66, 4), UDim2.new(1, -230, 0, 26), 18, COLORS.text)
-		local mutations = Formulas.mutationNames(fruit.m)
-		local mutationText = if mutations ~= "" then "✨ " .. mutations .. " (x" .. Formulas.formatNumber(Formulas.mutationMultiplier(fruit.m)) .. ")" else "Sem mutações"
-		text(row, mutationText, UDim2.fromOffset(66, 32), UDim2.new(1, -230, 0, 22), 14, if mutations ~= "" then COLORS.purple else COLORS.soft)
-		text(row, Formulas.formatMoney(fruit.val), UDim2.new(1, -156, 0, if withSell then 2 else 18), UDim2.fromOffset(146, 26), 19, COLORS.darkGreen, Enum.TextXAlignment.Right)
+		local row = makeRow(list, order, 72)
+		local seed = Config.Seeds[fruit.s]
+		iconBubble(row, iconOf(fruit.s, "🍎"), fruitColor(fruit), seed and seed.rarity, 52)
+		text(row, fruitTitle(fruit), UDim2.fromOffset(76, 6), UDim2.new(1, -250, 0, 26), 18, COLORS.text)
+		mutationChips(row, fruit.m, 76, 40, 380)
+		local multiplier = if #fruit.m > 0 then " (x" .. Formulas.formatNumber(Formulas.mutationMultiplier(fruit.m)) .. ")" else ""
+		local value = text(row, Formulas.formatMoney(fruit.val), UDim2.new(1, -170, 0, if withSell then 4 else 12), UDim2.fromOffset(158, 26), 20, COLORS.darkGreen, Enum.TextXAlignment.Right)
+		value.Name = "Valor"
+		if multiplier ~= "" and not withSell then
+			text(row, "✨" .. multiplier, UDim2.new(1, -170, 0, 38), UDim2.fromOffset(158, 20), 14, COLORS.purple, Enum.TextXAlignment.Right)
+		end
 		if withSell then
-			button(row, "Vender", COLORS.yellow, UDim2.new(1, -116, 0, 28), UDim2.fromOffset(106, 30), function()
+			button(row, "Vender", COLORS.yellow, UDim2.new(1, -122, 0, 34), UDim2.fromOffset(110, 32), function()
 				report(invoke(remotes.Sell, "one", fruit.i, fruit.s, fruit.w))
 			end)
 		end
@@ -8209,17 +9457,18 @@ function Interface.create(remotes)
 	end)
 	sellAllButton.TextSize = 20
 
-	local function emptyRow(list: Instance, message: string)
-		local row = makeRow(list, 1, 60)
-		text(row, message, UDim2.fromOffset(12, 0), UDim2.new(1, -24, 1, 0), 17, COLORS.text, Enum.TextXAlignment.Center)
+	local function emptyRow(list: Instance, icon: string, message: string)
+		local row = makeRow(list, 1, 84)
+		text(row, icon, UDim2.fromOffset(14, 0), UDim2.new(0, 56, 1, 0), 38, COLORS.text, Enum.TextXAlignment.Center)
+		text(row, message, UDim2.fromOffset(76, 0), UDim2.new(1, -92, 1, 0), 17, COLORS.text)
 	end
 
 	local function renderSell()
 		local panel = sellPanel
-		panel.info.Text = string.format("%d fruto(s) • Total: %s", #state.fruits, Formulas.formatMoney(totalValue()))
+		panel.info.Text = string.format("🧺 %d fruto(s) • Total: %s", #state.fruits, Formulas.formatMoney(totalValue()))
 		clearList(panel.list)
 		if #state.fruits == 0 then
-			emptyRow(panel.list, "Você não tem frutos. Colha frutos maduros no seu jardim!")
+			emptyRow(panel.list, "🧺", "Você não tem frutos. Colha frutos maduros no seu jardim!")
 			return
 		end
 		for order, fruit in sortedFruits() do
@@ -8227,38 +9476,49 @@ function Interface.create(remotes)
 		end
 	end
 
+	local function statBox(parent: Instance, index: number, icon: string, label: string, value: string)
+		local column = (index - 1) % 4
+		local line = (index - 1) // 4
+		local box = new("Frame", {
+			BackgroundColor3 = COLORS.white,
+			Position = UDim2.new(column * 0.25, 4, 0, 6 + line * 50),
+			Size = UDim2.new(0.25, -8, 0, 44),
+			Parent = parent,
+		})
+		corner(box, 10)
+		stroke(box, COLORS.cardStroke, 2)
+		gradient(box, COLORS.white, Color3.fromRGB(248, 238, 218))
+		text(box, icon, UDim2.fromOffset(4, 0), UDim2.new(0, 30, 1, 0), 20, COLORS.text, Enum.TextXAlignment.Center)
+		text(box, value, UDim2.fromOffset(36, 2), UDim2.new(1, -40, 0, 22), 16, COLORS.text)
+		text(box, label, UDim2.fromOffset(36, 22), UDim2.new(1, -40, 0, 18), 12, COLORS.soft)
+	end
+
 	local function renderInventory()
 		local panel = inventoryPanel
 		panel.info.Text = string.format(
-			"Frutos: %d/%d • Valor: %s",
+			"🧺 Frutos: %d/%d • Valor: %s",
 			#state.fruits,
 			state.capacity or Config.MaxFruitsInInventory,
 			Formulas.formatMoney(totalValue())
 		)
 		clearList(panel.list)
 		local stats = state.stats or {}
-		local statsRow = makeRow(panel.list, 0, 58)
-		text(
-			statsRow,
-			string.format(
-				"Plantados: %d • Colhidos: %d • Vendidos: %d • Ganhos: %s\nRoubados por você: %d • Roubados de você: %d • Pets chocados: %d • Fusões: %d",
-				stats.planted or 0,
-				stats.harvested or 0,
-				stats.sold or 0,
-				Formulas.formatMoney(stats.earned or 0),
-				stats.stolen or 0,
-				stats.stolenFrom or 0,
-				stats.hatched or 0,
-				stats.merged or 0
-			),
-			UDim2.fromOffset(12, 0),
-			UDim2.new(1, -24, 1, 0),
-			14,
-			COLORS.text,
-			Enum.TextXAlignment.Center
-		)
+		local statsRow = makeRow(panel.list, 0, 112)
+		local entries = {
+			{ "🌱", "Plantados", tostring(stats.planted or 0) },
+			{ "🧺", "Colhidos", tostring(stats.harvested or 0) },
+			{ "💰", "Vendidos", tostring(stats.sold or 0) },
+			{ "🪙", "Ganhos", Formulas.formatMoney(stats.earned or 0) },
+			{ "🦝", "Roubados", tostring(stats.stolen or 0) },
+			{ "😱", "Roubaram de você", tostring(stats.stolenFrom or 0) },
+			{ "🥚", "Pets chocados", tostring(stats.hatched or 0) },
+			{ "🔮", "Fusões", tostring(stats.merged or 0) },
+		}
+		for index, entry in entries do
+			statBox(statsRow, index, entry[1], entry[2], entry[3])
+		end
 		if #state.fruits == 0 then
-			emptyRow(panel.list, "Nenhum fruto ainda. Plante, espere crescer e aperte E para colher!")
+			emptyRow(panel.list, "🌱", "Nenhum fruto ainda. Plante, espere crescer e aperte E para colher!")
 			return
 		end
 		for order, fruit in sortedFruits() do
@@ -8276,7 +9536,7 @@ function Interface.create(remotes)
 			end
 		end
 		panel.info.Text = string.format(
-			"Equipados %d/%d • Cresc. +%s • Venda +%s • Sorte +%s • Tamanho +%s",
+			"🐾 Equipados %d/%d • 🌿 +%s • 💰 +%s • 🍀 +%s • 📏 +%s",
 			equipped,
 			Config.MaxPetsEquipped,
 			Formulas.formatPercent(bonuses.Growth or 0),
@@ -8284,10 +9544,10 @@ function Interface.create(remotes)
 			Formulas.formatPercent(bonuses.Luck or 0),
 			Formulas.formatPercent(bonuses.Size or 0)
 		)
-		panel.info.Size = UDim2.new(1, -28, 0, 34)
+		panel.info.Size = UDim2.new(1, -36, 0, 36)
 		clearList(panel.list)
 		if #state.pets == 0 then
-			emptyRow(panel.list, "Você ainda não tem pets. Compre um ovo com a Eloise e choque no seu jardim!")
+			emptyRow(panel.list, "🥚", "Você ainda não tem pets. Compre um ovo com a Eloise e choque no seu jardim!")
 			return
 		end
 		local list = table.clone(state.pets)
@@ -8304,19 +9564,28 @@ function Interface.create(remotes)
 		end)
 		for order, pet in list do
 			local info = Config.Pets[pet.p]
-			local rarity = Config.Rarities[info.rarity]
 			local variant = Formulas.petVariant(pet.v ~= "" and pet.v or nil)
-			local row = makeRow(panel.list, order, 84)
-			swatch(row, info.color)
-			local name = info.name .. (if variant.name ~= "" then " " .. variant.name else "") .. (if pet.eq then "  ✅" else "")
-			text(row, name, UDim2.fromOffset(66, 4), UDim2.new(1, -230, 0, 24), 19, COLORS.text)
-			pill(row, rarity.name, if info.rarity == "Secret" then Color3.fromRGB(60, 60, 60) else rarity.color, UDim2.fromOffset(66, 30), 84)
-			pill(row, "Nv " .. pet.lvl, COLORS.blue, UDim2.fromOffset(156, 30), 60)
-			text(row, table.concat(pet.ab, " • "), UDim2.fromOffset(222, 30), UDim2.new(1, -370, 0, 22), 13, COLORS.text)
+			local row = makeRow(panel.list, order, 92)
+			local bubble = iconBubble(row, iconOf(info.id, "🐾"), info.color, info.rarity)
+			if variant.id == "Rainbow" then
+				local tint = bubble:FindFirstChildOfClass("UIGradient")
+				if tint then
+					tint.Color = RAINBOW
+				end
+			end
+			local name = info.name .. (if variant.name ~= "" then " " .. variant.name else "")
+			text(row, name, UDim2.fromOffset(84, 4), UDim2.new(1, -330, 0, 26), 20, COLORS.text)
+			if pet.eq then
+				pill(row, "✅ Equipado", COLORS.green, UDim2.new(1, -258, 0, 7), 100)
+			end
+			rarityPill(row, info.rarity, UDim2.fromOffset(84, 33), 86)
+			pill(row, "Nv " .. pet.lvl, COLORS.blue, UDim2.fromOffset(176, 33), 60)
+			text(row, table.concat(pet.ab, " • "), UDim2.fromOffset(242, 31), UDim2.new(1, -398, 0, 26), 13, COLORS.text)
 			local fraction = if pet.nextXp > 0 then pet.xp / pet.nextXp else 1
-			progressBar(row, fraction, UDim2.fromOffset(66, 58), UDim2.new(1, -220, 0, 10), COLORS.blue)
+			local xpText = if pet.nextXp > 0 then string.format("XP %d / %d", pet.xp, pet.nextXp) else "Nível máximo"
+			progressBar(row, fraction, UDim2.fromOffset(84, 62), UDim2.new(1, -250, 0, 18), COLORS.blue, xpText)
 			local action = if pet.eq then "unequip" else "equip"
-			button(row, if pet.eq then "Guardar" else "Equipar", if pet.eq then COLORS.gray else COLORS.green, UDim2.new(1, -126, 0.5, -17), UDim2.fromOffset(116, 34), function()
+			button(row, if pet.eq then "Guardar" else "Equipar", if pet.eq then COLORS.gray else COLORS.green, UDim2.new(1, -140, 0.5, -10), UDim2.fromOffset(126, 36), function()
 				report(invoke(remotes.PetAction, action, pet.id))
 			end)
 		end
@@ -8325,25 +9594,24 @@ function Interface.create(remotes)
 	local function renderQuests()
 		local panel = questsPanel
 		local now = workspace:GetServerTimeNow()
-		panel.info.Text = "Novas missões em " .. Formulas.formatTime(86400 - now % 86400)
+		panel.info.Text = "⏰ Novas missões em " .. Formulas.formatTime(86400 - now % 86400)
 		clearList(panel.list)
 		local quests = state.quests or {}
 		if #quests == 0 then
-			emptyRow(panel.list, "Carregando missões...")
+			emptyRow(panel.list, "📜", "Carregando missões...")
 			return
 		end
 		for order, quest in quests do
-			local row = makeRow(panel.list, order, 78)
+			local row = makeRow(panel.list, order, 86)
 			local done = quest.progress >= quest.target
-			local icon = swatch(row, if quest.claimed then COLORS.gray elseif done then COLORS.green else COLORS.yellow)
-			text(icon, quest.icon or "📜", UDim2.fromScale(0, 0), UDim2.fromScale(1, 1), 24, COLORS.white, Enum.TextXAlignment.Center)
-			text(row, quest.text, UDim2.fromOffset(66, 4), UDim2.new(1, -230, 0, 26), 19, COLORS.text)
-			progressBar(row, quest.progress / quest.target, UDim2.fromOffset(66, 36), UDim2.new(1, -230, 0, 14), COLORS.green)
-			text(row, string.format("%d / %d", quest.progress, quest.target), UDim2.fromOffset(66, 52), UDim2.fromOffset(120, 22), 14, COLORS.soft)
-			text(row, "🎁 " .. Formulas.formatMoney(quest.reward), UDim2.new(1, -146, 0, 4), UDim2.fromOffset(136, 26), 18, COLORS.darkGreen, Enum.TextXAlignment.Right)
-			local label = if quest.claimed then "Feita ✓" elseif done then "Pegar!" else "Em andamento"
 			local color = if quest.claimed then COLORS.gray elseif done then COLORS.green else COLORS.yellow
-			button(row, label, color, UDim2.new(1, -146, 0, 36), UDim2.fromOffset(136, 34), function()
+			iconBubble(row, quest.icon or "📜", color, if done then "Uncommon" else "Legendary")
+			text(row, quest.text, UDim2.fromOffset(84, 6), UDim2.new(1, -250, 0, 28), 20, COLORS.text)
+			local progress = math.min(quest.progress, quest.target)
+			progressBar(row, progress / quest.target, UDim2.fromOffset(84, 44), UDim2.new(1, -250, 0, 22), COLORS.green, string.format("%d / %d", progress, quest.target))
+			text(row, "🎁 " .. Formulas.formatMoney(quest.reward), UDim2.new(1, -160, 0, 6), UDim2.fromOffset(148, 26), 19, COLORS.darkGreen, Enum.TextXAlignment.Right)
+			local label = if quest.claimed then "Feita ✓" elseif done then "Pegar!" else "Em andamento"
+			button(row, label, color, UDim2.new(1, -150, 0, 40), UDim2.fromOffset(138, 34), function()
 				report(invoke(remotes.QuestAction, quest.i))
 			end)
 		end
@@ -8352,7 +9620,7 @@ function Interface.create(remotes)
 	local function renderIndex()
 		local panel = indexPanel
 		panel.info.Text = "Valor = Crescimento x (1 + soma dos climas). Combine mutações para multiplicadores enormes!"
-		panel.info.Size = UDim2.new(1, -28, 0, 34)
+		panel.info.Size = UDim2.new(1, -36, 0, 36)
 		clearList(panel.list)
 		local order = 0
 		local function nextOrder()
@@ -8369,12 +9637,22 @@ function Interface.create(remotes)
 		end
 		local function mutationRow(id: string)
 			local mutation = Config.Mutations[id]
-			local row = makeRow(panel.list, nextOrder(), 52)
-			local dot = swatch(row, mutation.color)
-			dot.Size = UDim2.fromOffset(34, 34)
-			dot.Position = UDim2.new(0, 12, 0.5, -17)
-			text(row, string.format("%s  (x%s)", mutation.name, Formulas.formatNumber(mutation.mult)), UDim2.fromOffset(60, 2), UDim2.new(1, -70, 0, 26), 18, COLORS.text)
-			text(row, mutation.source or "", UDim2.fromOffset(60, 26), UDim2.new(1, -70, 0, 22), 14, COLORS.soft)
+			local row = makeRow(panel.list, nextOrder(), 58)
+			local bubble = iconBubble(row, "✨", mutation.color, nil, 40)
+			bubble.Position = UDim2.new(0, 10, 0.5, -20)
+			local tint = bubble:FindFirstChildOfClass("UIGradient")
+			if tint then
+				tint.Color = if mutation.rainbow then RAINBOW else ColorSequence.new(lighter(mutation.color, 0.3), mutation.color)
+			end
+			text(row, mutation.name, UDim2.fromOffset(62, 4), UDim2.new(1, -170, 0, 26), 19, COLORS.text)
+			text(row, mutation.source or "", UDim2.fromOffset(62, 30), UDim2.new(1, -170, 0, 22), 14, COLORS.soft)
+			local multiplier = "x" .. Formulas.formatNumber(mutation.mult)
+			local chip = pill(row, multiplier, if mutation.mult >= 100 then COLORS.red elseif mutation.mult >= 25 then COLORS.orange else COLORS.yellow, UDim2.new(1, -92, 0.5, -13), 80)
+			chip.Size = UDim2.fromOffset(80, 26)
+			local chipLabel = chip:FindFirstChildOfClass("TextLabel")
+			if chipLabel then
+				chipLabel.TextSize = 16
+			end
 		end
 		for _, id in growth do
 			mutationRow(id)
@@ -8393,13 +9671,21 @@ function Interface.create(remotes)
 				table.insert(names, Config.Mutations[id].name)
 			end
 			local result = Config.Mutations[combo.result]
-			local row = makeRow(panel.list, nextOrder(), 40)
-			text(row, string.format("%s  =  %s (x%s)", table.concat(names, " + "), result.name, Formulas.formatNumber(result.mult)), UDim2.fromOffset(14, 0), UDim2.new(1, -28, 1, 0), 16, COLORS.text)
+			local row = makeRow(panel.list, nextOrder(), 44)
+			text(row, string.format("%s  ➜  %s (x%s)", table.concat(names, " + "), result.name, Formulas.formatNumber(result.mult)), UDim2.fromOffset(16, 0), UDim2.new(1, -32, 1, 0), 16, COLORS.text)
 		end
 		sectionRow(panel.list, nextOrder(), "🔮 Fusões secretas (use a Espátula em duas plantas adultas)")
 		for _, recipe in Config.MergeRecipes do
-			local row = makeRow(panel.list, nextOrder(), 40)
-			text(row, string.format("%s  +  %s  =  %s", Config.Seeds[recipe.a].name, Config.Seeds[recipe.b].name, Config.Seeds[recipe.result].name), UDim2.fromOffset(14, 0), UDim2.new(1, -28, 1, 0), 16, COLORS.text)
+			local row = makeRow(panel.list, nextOrder(), 44)
+			local a, b, result = Config.Seeds[recipe.a], Config.Seeds[recipe.b], Config.Seeds[recipe.result]
+			text(
+				row,
+				string.format("%s %s  +  %s %s  ➜  %s %s", iconOf(a.id, ""), a.name, iconOf(b.id, ""), b.name, iconOf(result.id, ""), result.name),
+				UDim2.fromOffset(16, 0),
+				UDim2.new(1, -32, 1, 0),
+				16,
+				COLORS.text
+			)
 		end
 		sectionRow(panel.list, nextOrder(), "💎 Variantes e tamanhos")
 		local sizes = {}
@@ -8416,8 +9702,8 @@ function Interface.create(remotes)
 				tostring(Config.CrystalVariant.mult),
 				table.concat(sizes, ", ")
 			),
-			UDim2.fromOffset(14, 0),
-			UDim2.new(1, -28, 1, 0),
+			UDim2.fromOffset(16, 0),
+			UDim2.new(1, -32, 1, 0),
 			15,
 			COLORS.text
 		)
@@ -8448,9 +9734,13 @@ function Interface.create(remotes)
 		if not panel then
 			return
 		end
+		local wasOpen = openName == name
 		closePanels()
 		openName = name
 		panel.frame.Visible = true
+		if not wasOpen then
+			pop(panel.body, 0.85)
+		end
 		if state then
 			refresh()
 		else
@@ -8470,11 +9760,11 @@ function Interface.create(remotes)
 	local sideButtons = {
 		{ "🎒 Inventário", COLORS.brown, "Inventory" },
 		{ "🐾 Pets", COLORS.pink, "Pets" },
-		{ "📜 Missões", Color3.fromRGB(90, 160, 130), "Quests" },
+		{ "📜 Missões", COLORS.teal, "Quests" },
 		{ "✨ Mutações", Color3.fromRGB(120, 90, 200), "Index" },
 	}
 	for index, info in sideButtons do
-		local b = button(side, info[1], info[2], UDim2.fromOffset(0, 126 + (index - 1) * 50), UDim2.fromOffset(220, 44), function()
+		local b = button(side, info[1], info[2], UDim2.fromOffset(0, 172 + (index - 1) * 52), UDim2.fromOffset(220, 46), function()
 			togglePanel(info[3])
 		end)
 		b.TextSize = 21
@@ -8485,7 +9775,7 @@ function Interface.create(remotes)
 		Name = "Topo",
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 6),
-		Size = UDim2.fromOffset(660, 46),
+		Size = UDim2.fromOffset(680, 48),
 		BackgroundTransparency = 1,
 		Parent = gui,
 	})
@@ -8493,7 +9783,7 @@ function Interface.create(remotes)
 	new("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		Padding = UDim.new(0, 6),
+		Padding = UDim.new(0, 8),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		Parent = top,
 	})
@@ -8505,7 +9795,7 @@ function Interface.create(remotes)
 		{ label = "🥚 Ovos", place = "Eggs", panel = "Eggs", color = COLORS.purple },
 	}
 	for order, info in teleports do
-		local b = button(top, info.label, info.color, UDim2.new(), UDim2.fromOffset(124, 44), function()
+		local b = button(top, info.label, info.color, UDim2.new(), UDim2.fromOffset(126, 46), function()
 			remotes.Teleport:FireServer(info.place)
 			if info.panel then
 				openPanel(info.panel)
@@ -8514,76 +9804,110 @@ function Interface.create(remotes)
 			end
 		end)
 		b.LayoutOrder = order
-		b.TextSize = 18
+		b.TextSize = 19
 	end
 
 	-- faixa do clima
 	local weatherBanner = new("Frame", {
 		Name = "Clima",
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 58),
-		Size = UDim2.fromOffset(600, 52),
-		BackgroundColor3 = COLORS.blue,
+		Position = UDim2.new(0.5, 0, 0, 62),
+		Size = UDim2.fromOffset(620, 58),
+		BackgroundColor3 = COLORS.white,
 		Visible = false,
 		Parent = gui,
 	})
-	corner(weatherBanner, 10)
+	corner(weatherBanner, 16)
+	local weatherStroke = stroke(weatherBanner, COLORS.black, 3, 0.3)
+	local weatherTint = gradient(weatherBanner, COLORS.blue, darker(COLORS.blue, 0.4))
 	addScale(weatherBanner)
-	local weatherLabel = text(weatherBanner, "", UDim2.fromOffset(10, 0), UDim2.new(1, -20, 1, 0), 16, COLORS.white, Enum.TextXAlignment.Center)
-	weatherLabel.TextStrokeTransparency = 0.4
+	local weatherIcon = text(weatherBanner, "", UDim2.fromOffset(8, 5), UDim2.fromOffset(48, 48), 32, COLORS.white, Enum.TextXAlignment.Center)
+	local weatherTitle = text(weatherBanner, "", UDim2.fromOffset(62, 4), UDim2.new(1, -74, 0, 26), 19, COLORS.white)
+	weatherTitle.TextStrokeTransparency = 0
+	local weatherLabel = text(weatherBanner, "", UDim2.fromOffset(62, 29), UDim2.new(1, -74, 0, 24), 14, COLORS.white)
+	weatherLabel.TextStrokeTransparency = 0.3
 
 	-- faixa de roubo (quando voce carrega um fruto roubado)
 	local carryBanner = new("Frame", {
 		Name = "Roubo",
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 116),
-		Size = UDim2.fromOffset(560, 40),
-		BackgroundColor3 = COLORS.red,
+		Position = UDim2.new(0.5, 0, 0, 126),
+		Size = UDim2.fromOffset(580, 44),
+		BackgroundColor3 = COLORS.white,
 		Visible = false,
 		Parent = gui,
 	})
-	corner(carryBanner, 10)
+	corner(carryBanner, 14)
+	stroke(carryBanner, darker(COLORS.red, 0.45), 3)
+	gradient(carryBanner, lighter(COLORS.red, 0.2), darker(COLORS.red, 0.2))
 	addScale(carryBanner)
-	local carryLabel = text(carryBanner, "", UDim2.fromOffset(10, 0), UDim2.new(1, -20, 1, 0), 17, COLORS.white, Enum.TextXAlignment.Center)
-	carryLabel.TextStrokeTransparency = 0.4
+	local carryLabel = text(carryBanner, "", UDim2.fromOffset(12, 0), UDim2.new(1, -24, 1, 0), 18, COLORS.white, Enum.TextXAlignment.Center)
+	carryLabel.TextStrokeColor3 = darker(COLORS.red, 0.6)
+	carryLabel.TextStrokeTransparency = 0
 
 	-- dica ao passar o mouse nas plantas
 	local tooltip = new("TextLabel", {
 		Name = "Dica",
-		BackgroundColor3 = Color3.fromRGB(30, 30, 30),
-		BackgroundTransparency = 0.25,
+		BackgroundColor3 = Color3.fromRGB(24, 26, 36),
+		BackgroundTransparency = 0.12,
 		AutomaticSize = Enum.AutomaticSize.XY,
 		Size = UDim2.fromOffset(0, 0),
 		Font = FONT,
 		Text = "",
 		TextSize = 16,
 		TextColor3 = COLORS.white,
+		TextXAlignment = Enum.TextXAlignment.Left,
 		Visible = false,
 		ZIndex = 10,
 		Parent = gui,
 	})
-	corner(tooltip, 8)
+	corner(tooltip, 10)
+	stroke(tooltip, COLORS.white, 2, 0.75)
 	new("UIPadding", {
-		PaddingTop = UDim.new(0, 5),
-		PaddingBottom = UDim.new(0, 5),
-		PaddingLeft = UDim.new(0, 8),
-		PaddingRight = UDim.new(0, 8),
+		PaddingTop = UDim.new(0, 7),
+		PaddingBottom = UDim.new(0, 7),
+		PaddingLeft = UDim.new(0, 10),
+		PaddingRight = UDim.new(0, 10),
 		Parent = tooltip,
 	})
 
 	function api.setTooltip(message: string?, x: number?, y: number?)
 		if message and x and y then
 			tooltip.Text = message
-			tooltip.Position = UDim2.fromOffset(x + 16, y + 10)
+			tooltip.Position = UDim2.fromOffset(x + 18, y + 12)
 			tooltip.Visible = true
 		else
 			tooltip.Visible = false
 		end
 	end
 
+	-- o dinheiro sobe/desce aos poucos quando muda
+	local shownMoney: number? = nil
+	local moneyAnimation = 0
+	local function showMoney(target: number)
+		moneyAnimation += 1
+		local id = moneyAnimation
+		local start = shownMoney or target
+		shownMoney = target
+		if start == target then
+			moneyLabel.Text = Formulas.formatMoney(target)
+			return
+		end
+		task.spawn(function()
+			for step = 1, 10 do
+				if moneyAnimation ~= id then
+					return
+				end
+				local alpha = 1 - (1 - step / 10) ^ 3
+				moneyLabel.Text = Formulas.formatMoney(math.floor(start + (target - start) * alpha + 0.5))
+				task.wait(0.03)
+			end
+		end)
+	end
+
 	function api.setState(newState)
 		state = newState
-		moneyLabel.Text = Formulas.formatMoney(state.sheckles)
+		showMoney(state.sheckles)
 		plantsLabel.Text = string.format("🌱 %d/%d plantas", state.plantCount or 0, Config.MaxPlantsPerGarden)
 		refresh()
 	end
@@ -8599,6 +9923,12 @@ function Interface.create(remotes)
 		return plot ~= nil and plot:GetAttribute("Locked") == true
 	end
 
+	local PHASE_LENGTH = {
+		Day = Config.DayNight.dayLength,
+		Sunset = Config.DayNight.sunsetLength,
+		Night = Config.DayNight.nightLength,
+	}
+
 	-- atualiza contadores a cada segundo
 	task.spawn(function()
 		while gui.Parent do
@@ -8608,8 +9938,12 @@ function Interface.create(remotes)
 			if weather then
 				local ends = workspace:GetAttribute("WeatherEnds")
 				local remaining = if type(ends) == "number" then ends - now else 0
-				weatherBanner.BackgroundColor3 = (weather.sky and weather.sky.color or COLORS.blue):Lerp(Color3.new(0, 0, 0), 0.45)
-				weatherLabel.Text = string.format("%s %s (%s) — %s", weather.emoji, weather.name, Formulas.formatTime(remaining), weather.description)
+				local base = weather.sky and weather.sky.color or COLORS.blue
+				weatherTint.Color = ColorSequence.new(base:Lerp(Color3.new(0, 0, 0), 0.25), base:Lerp(Color3.new(0, 0, 0), 0.6))
+				weatherStroke.Color = base:Lerp(Color3.new(0, 0, 0), 0.7)
+				weatherIcon.Text = weather.emoji
+				weatherTitle.Text = string.format("%s  •  %s", weather.name, Formulas.formatTime(remaining))
+				weatherLabel.Text = weather.description
 				weatherBanner.Visible = true
 			else
 				weatherBanner.Visible = false
@@ -8617,23 +9951,28 @@ function Interface.create(remotes)
 			local phase = workspace:GetAttribute("Phase")
 			local phaseEnds = workspace:GetAttribute("PhaseEnds")
 			local phaseInfo = PHASE_TEXT[phase or "Day"] or PHASE_TEXT.Day
-			local remaining = if type(phaseEnds) == "number" then Formulas.formatTime(phaseEnds - now) else "--:--"
+			local left = if type(phaseEnds) == "number" then math.max(phaseEnds - now, 0) else 0
+			local remaining = if type(phaseEnds) == "number" then Formulas.formatTime(left) else "--:--"
+			phaseIcon.Text = phaseInfo[1]
 			if phase == "Night" then
-				phaseLabel.Text = string.format("%s • %s\n%s", phaseInfo[1], remaining, if myPlotLocked() then "🔒 Jardim protegido" else "🔓 Ladrões à solta!")
+				phaseLabel.Text = string.format("%s • %s\n%s", phaseInfo[2], remaining, if myPlotLocked() then "🔒 Jardim protegido" else "🔓 Ladrões à solta!")
 			else
-				phaseLabel.Text = string.format("%s • %s %s", phaseInfo[1], if phase == "Day" then "noite em" else "termina em", remaining)
+				phaseLabel.Text = string.format("%s • %s %s", phaseInfo[2], if phase == "Day" then "noite em" else "termina em", remaining)
 			end
-			phaseLabel.TextColor3 = phaseInfo[2]
+			phaseLabel.TextColor3 = phaseInfo[3]
+			local length = PHASE_LENGTH[phase or "Day"] or 1
+			phaseBar.BackgroundColor3 = phaseInfo[3]
+			phaseBar.Size = UDim2.fromScale(math.clamp(1 - left / math.max(length, 1), 0, 1), 1)
 			if player:GetAttribute("Carrying") then
 				local untilTime = player:GetAttribute("CarryUntil")
-				local left = if type(untilTime) == "number" then untilTime - now else 0
-				carryLabel.Text = string.format("🏃 Carregando %s! Leve ao SEU jardim (%s)", tostring(player:GetAttribute("CarryName")), Formulas.formatTime(left))
+				local carryLeft = if type(untilTime) == "number" then untilTime - now else 0
+				carryLabel.Text = string.format("🏃 Carregando %s! Leve ao SEU jardim (%s)", tostring(player:GetAttribute("CarryName")), Formulas.formatTime(carryLeft))
 				carryBanner.Visible = true
 			else
 				carryBanner.Visible = false
 			end
 			if state and (openName == "Seeds" or openName == "Gear" or openName == "Eggs") then
-				panels[openName].info.Text = restockText() .. (if openName == "Eggs" then "  •  Variantes: Grande 10%, Arco-íris 4%, Mega 1%" else "")
+				panels[openName].info.Text = if openName == "Eggs" then eggsInfo() else restockText()
 			end
 			task.wait(1)
 		end

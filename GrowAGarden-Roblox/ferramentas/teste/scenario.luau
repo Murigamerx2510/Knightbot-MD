@@ -238,6 +238,9 @@ local function guiNode(inst)
 		node.visible = inst.Visible
 		node.order = inst.LayoutOrder
 		node.auto = inst.AutomaticSize.Name
+		node.z = inst.ZIndex
+		node.rot = inst.Rotation
+		node.clip = inst.ClipsDescendants
 		if inst:IsA("TextLabel") or inst:IsA("TextButton") then
 			node.text = inst.Text
 			node.tc = color(inst.TextColor3)
@@ -246,6 +249,8 @@ local function guiNode(inst)
 			node.xa = inst.TextXAlignment.Name
 			node.wrap = inst.TextWrapped
 			node.strokeT = inst.TextStrokeTransparency
+			node.tsc = color(inst.TextStrokeColor3)
+			node.tt = inst.TextTransparency
 		end
 	elseif inst:IsA("UIListLayout") then
 		node.dir = inst.FillDirection.Name
@@ -257,6 +262,25 @@ local function guiNode(inst)
 	elseif inst:IsA("UIStroke") then
 		node.c = color(inst.Color)
 		node.th = inst.Thickness
+		node.mode = inst.ApplyStrokeMode.Name
+		node.t = inst.Transparency
+	elseif inst:IsA("UIGradient") then
+		local cs = {}
+		for _, kp in inst.Color.Keypoints do
+			table.insert(cs, { kp.Time, kp.Value.R, kp.Value.G, kp.Value.B })
+		end
+		node.gc = cs
+		local ok, transparency = pcall(function()
+			return inst.Transparency
+		end)
+		local ts = {}
+		if ok and transparency then
+			for _, kp in transparency.Keypoints do
+				table.insert(ts, { kp.Time, kp.Value })
+			end
+		end
+		node.gt = ts
+		node.grot = inst.Rotation
 	elseif inst:IsA("UIPadding") then
 		node.p = { inst.PaddingTop.Offset, inst.PaddingRight.Offset, inst.PaddingBottom.Offset, inst.PaddingLeft.Offset }
 	elseif inst:IsA("UIScale") then
@@ -283,7 +307,7 @@ section("Jogador 1 entra")
 local p1 = H.addPlayer(1001, "Jogador1", true)
 H.run(0.5)
 H.spawnCharacter(p1)
-startClient(p1)
+local clientScript1 = startClient(p1)
 H.run(3)
 chat(p1, "/dia")
 H.run(1)
@@ -302,12 +326,8 @@ check(seedTool ~= nil, "ferramenta de semente de cenoura na mochila")
 local rootPos = p1.Character.HumanoidRootPart.Position
 local spawnPos = plotOf(p1).Base.CFrame:PointToWorldSpace(Vector3.new(0, 3, -31))
 check((rootPos - spawnPos).Magnitude < 1, "personagem teleportado para o jardim")
-local moneyText = nil
-for _, d in gui:GetDescendants() do
-	if d:IsA("TextLabel") and string.sub(d.Text, 1, #Config.CurrencySymbol) == Config.CurrencySymbol then
-		moneyText = d.Text
-	end
-end
+local moneyLabel = gui:FindFirstChild("Dinheiro", true)
+local moneyText = if moneyLabel then moneyLabel.Text else nil
 check(moneyText == "¢20", "HUD mostra ¢20 (mostrou " .. tostring(moneyText) .. ")")
 dumpGui("1_inicio", p1)
 
@@ -439,6 +459,31 @@ if __DUMP then
 				shape, c[1], c[2], c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12],
 				size.X, size.Y, size.Z, color.R, color.G, color.B, d.Transparency, d.Material.Name))
 		end
+	end
+end
+
+if __DUMP then
+	local P = H.realPrint
+	local EffectsModule = require(clientScript1:WaitForChild("Effects"))
+	for index, info in Config.PetList do
+		local variant = Formulas.petVariant(nil)
+		local pet = EffectsModule.buildPet(info, variant, 1)
+		local column, line = (index - 1) % 8, (index - 1) // 8
+		pet:PivotTo(CFrame.new(column * 3.4, 1.6, line * 4) * CFrame.Angles(0, math.pi * 0.85, 0))
+		for _, d in pet:GetDescendants() do
+			if d:IsA("BasePart") and d.Transparency < 0.95 then
+				local shape = "block"
+				local mesh = d:FindFirstChildOfClass("SpecialMesh")
+				if mesh and mesh.MeshType.Name == "Sphere" then
+					shape = "ball"
+				end
+				local c = { d.CFrame:GetComponents() }
+				P(string.format("PET|%s|%.3f|%.3f|%.3f|%.5f|%.5f|%.5f|%.5f|%.5f|%.5f|%.5f|%.5f|%.5f|%.3f|%.3f|%.3f|%.4f|%.4f|%.4f|%.2f|%s",
+					shape, c[1], c[2], c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12],
+					d.Size.X, d.Size.Y, d.Size.Z, d.Color.R, d.Color.G, d.Color.B, d.Transparency, d.Material.Name))
+			end
+		end
+		pet:Destroy()
 	end
 end
 
