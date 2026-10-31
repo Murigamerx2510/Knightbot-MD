@@ -1,0 +1,12 @@
+{
+  "name": "cultive-um-jardim-testes",
+  "private": true,
+  "type": "module",
+  "description": "Simulador do Roblox para testar os scripts do jogo fora do Studio",
+  "scripts": {
+    "test": "bash testar.sh"
+  },
+  "dependencies": {
+    "luau-web": "1.5.1"
+  }
+}
