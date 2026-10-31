@@ -2,25 +2,37 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="ReplicatedStorage" referent="RBX00000001">
+	<Item class="Workspace" referent="RBX00000001">
+		<Properties>
+			<string name="Name">Workspace</string>
+		</Properties>
+		<Item class="Terrain" referent="RBX00000002">
+			<Properties>
+				<string name="Name">Terrain</string>
+				<bool name="Decoration">true</bool>
+				<float name="GrassLength">0.7</float>
+			</Properties>
+		</Item>
+	</Item>
+	<Item class="ReplicatedStorage" referent="RBX00000003">
 		<Properties>
 			<string name="Name">ReplicatedStorage</string>
 		</Properties>
-		<Item class="Folder" referent="RBX00000002">
+		<Item class="Folder" referent="RBX00000004">
 			<Properties>
 				<string name="Name">Shared</string>
 			</Properties>
-			<Item class="ModuleScript" referent="RBX00000003">
+			<Item class="ModuleScript" referent="RBX00000005">
 				<Properties>
 					<string name="Name">Config</string>
 					<ProtectedString name="Source"><![CDATA[-- Config: todas as regras e valores do jogo ficam aqui.
 -- Para balancear o jogo (precos, tempos, chances), altere apenas este arquivo.
 --
 -- Conteudo baseado no Grow a Garden 2 (plantas, raridades, clima, roubo a noite,
--- defesas, equipamentos e pets) com as mecanicas do Grow a Garden original
--- (mutacoes que se combinam, clima que muta frutos, crescimento offline, ovos no jardim)
+-- defesas e equipamentos) com as mecanicas do Grow a Garden original
+-- (mutacoes que se combinam, clima que muta frutos, crescimento offline)
 -- e varias novidades: variantes de cor, tamanhos, combinacoes de mutacoes,
--- fusoes secretas, niveis de pets, ovos com variantes e missoes diarias.
+-- fusoes secretas e missoes diarias. O jogo e so de plantas (sem pets).
 
 local Config = {}
 
@@ -35,9 +47,6 @@ Config.RestockInterval = 300 -- segundos entre reabastecimentos das lojas
 Config.MaxPlantsPerGarden = 80
 Config.MaxFruitsInInventory = 200
 Config.MaxSprinklersPerGarden = 6
-Config.MaxEggsPerGarden = 3
-Config.MaxPetsOwned = 60
-Config.MaxPetsEquipped = 3
 Config.MinPlantSpacing = 1.6
 Config.ShopInteractDistance = 30
 Config.AutoSaveInterval = 90
@@ -716,140 +725,6 @@ Config.LegacyIds = {
 	seeds = {
 		OrangeTulip = "Tulip",
 	},
-	pets = {
-		Fox = "Deer",
-		Panda = "Bear",
-	},
-}
-
----------------------------------------------------------------------
--- Pets: cada pet tem uma ou mais habilidades
----------------------------------------------------------------------
---[[
-	Tipos de habilidade:
-	  Growth, Sell, Luck, NightLuck, Gold, Rainbow, Size  -> bonus em fracao (0.1 = +10%)
-	  Speed, Jump, Inventory                              -> bonus fixo
-	  AutoHarvest (cooldown, seedChance)  -> colhe um fruto maduro sozinho
-	  AutoHarvestBest (cooldown)          -> colhe o fruto mais valioso
-	  GuardStun / GuardSting / GuardLaunch / GuardEject (cooldown) -> ataca ladroes no seu jardim
-	  Pollinate / Ignite (chance)         -> aplica mutacao nos seus frutos
-	  Raccoon                             -> uma vez por noite copia um fruto maduro de outro jardim
-]]
-Config.PetList = {
-	{ id = "Frog", name = "Sapo", rarity = "Common", color = Color3.fromRGB(90, 200, 70), accent = Color3.fromRGB(240, 240, 120), size = 0.85,
-		abilities = { { kind = "Jump", value = 4 } } },
-	{ id = "Bunny", name = "Coelho", rarity = "Common", color = Color3.fromRGB(240, 240, 240), accent = Color3.fromRGB(255, 180, 200), size = 0.9,
-		abilities = { { kind = "Speed", value = 3 } } },
-	{ id = "Cat", name = "Gato", rarity = "Common", color = Color3.fromRGB(250, 170, 70), accent = Color3.fromRGB(255, 240, 220), size = 0.9,
-		abilities = { { kind = "Sell", value = 0.05 } } },
-	{ id = "Owl", name = "Coruja", rarity = "Uncommon", color = Color3.fromRGB(140, 100, 70), accent = Color3.fromRGB(240, 210, 120), size = 0.9,
-		abilities = { { kind = "NightLuck", value = 0.3 } } },
-	{ id = "Dog", name = "Cachorro", rarity = "Uncommon", color = Color3.fromRGB(190, 140, 90), accent = Color3.fromRGB(120, 80, 50), size = 1,
-		abilities = { { kind = "GuardStun", value = 1, cooldown = 12 } } },
-	{ id = "Chicken", name = "Galinha", rarity = "Uncommon", color = Color3.fromRGB(255, 255, 250), accent = Color3.fromRGB(230, 40, 40), size = 0.9,
-		abilities = { { kind = "Growth", value = 0.08 } } },
-	{ id = "Deer", name = "Cervo", rarity = "Rare", color = Color3.fromRGB(170, 110, 60), accent = Color3.fromRGB(250, 240, 220), size = 1.1,
-		abilities = { { kind = "Growth", value = 0.1 } } },
-	{ id = "Turtle", name = "Tartaruga", rarity = "Rare", color = Color3.fromRGB(90, 160, 80), accent = Color3.fromRGB(150, 110, 60), size = 1,
-		abilities = { { kind = "Inventory", value = 10 }, { kind = "Speed", value = -2 } } },
-	{ id = "Pig", name = "Porco", rarity = "Rare", color = Color3.fromRGB(255, 170, 190), accent = Color3.fromRGB(230, 120, 150), size = 1,
-		abilities = { { kind = "Sell", value = 0.1 } } },
-	{ id = "Robin", name = "Pintarroxo", rarity = "Legendary", color = Color3.fromRGB(120, 90, 70), accent = Color3.fromRGB(240, 110, 50), size = 0.8,
-		abilities = { { kind = "AutoHarvest", value = 1, cooldown = 30, seedChance = 0.1 } } },
-	{ id = "Bee", name = "Abelha", rarity = "Legendary", color = Color3.fromRGB(255, 210, 40), accent = Color3.fromRGB(30, 30, 30), size = 0.8,
-		abilities = { { kind = "GuardSting", value = 12, cooldown = 4 }, { kind = "Pollinate", value = 0.002 } } },
-	{ id = "Butterfly", name = "Borboleta", rarity = "Legendary", color = Color3.fromRGB(120, 160, 255), accent = Color3.fromRGB(255, 150, 220), size = 0.8,
-		abilities = { { kind = "Growth", value = 0.2 } } },
-	{ id = "Monkey", name = "Macaco", rarity = "Mythic", color = Color3.fromRGB(140, 90, 60), accent = Color3.fromRGB(240, 200, 160), size = 1,
-		abilities = { { kind = "AutoHarvestBest", value = 1, cooldown = 45 } } },
-	{ id = "Bear", name = "Urso", rarity = "Mythic", color = Color3.fromRGB(120, 80, 50), accent = Color3.fromRGB(80, 50, 30), size = 1.3,
-		abilities = { { kind = "GuardLaunch", value = 1, cooldown = 15 } } },
-	{ id = "Unicorn", name = "Unicórnio", rarity = "Mythic", color = Color3.fromRGB(255, 250, 255), accent = Color3.fromRGB(255, 120, 220), size = 1.2,
-		abilities = { { kind = "Rainbow", value = 1 } } },
-	{ id = "GoldenDragonfly", name = "Libélula Dourada", rarity = "Mythic", color = Color3.fromRGB(255, 200, 40), accent = Color3.fromRGB(255, 240, 150), size = 0.8,
-		abilities = { { kind = "Gold", value = 1 } } },
-	{ id = "Firefly", name = "Vagalume", rarity = "Mythic", color = Color3.fromRGB(60, 60, 40), accent = Color3.fromRGB(230, 255, 100), size = 0.7,
-		abilities = { { kind = "Size", value = 0.25 } } },
-	{ id = "BaldEagle", name = "Águia", rarity = "Mythic", color = Color3.fromRGB(110, 70, 40), accent = Color3.fromRGB(255, 255, 255), size = 1.1,
-		abilities = { { kind = "GuardEject", value = 1, cooldown = 20 } } },
-	{ id = "Dragon", name = "Dragão", rarity = "Super", color = Color3.fromRGB(200, 40, 40), accent = Color3.fromRGB(255, 200, 40), size = 1.25,
-		abilities = { { kind = "Ignite", value = 0.0006 }, { kind = "Sell", value = 0.15 } } },
-	{ id = "Phoenix", name = "Fênix", rarity = "Super", color = Color3.fromRGB(255, 120, 30), accent = Color3.fromRGB(255, 230, 60), size = 1.15,
-		abilities = { { kind = "Growth", value = 0.35 }, { kind = "Luck", value = 0.2 } } },
-	{ id = "Raccoon", name = "Guaxinim", rarity = "Secret", color = Color3.fromRGB(120, 120, 130), accent = Color3.fromRGB(40, 40, 45), size = 1,
-		abilities = { { kind = "Raccoon", value = 1 } } },
-	{ id = "Kitsune", name = "Kitsune", rarity = "Secret", color = Color3.fromRGB(255, 160, 60), accent = Color3.fromRGB(255, 255, 255), size = 1.1,
-		abilities = { { kind = "Luck", value = 0.6 }, { kind = "Gold", value = 0.5 }, { kind = "Rainbow", value = 0.5 } } },
-}
-
-Config.PetAbilityText = {
-	Growth = "Crescimento +%s",
-	Sell = "Venda +%s",
-	Luck = "Sorte de mutação +%s",
-	NightLuck = "Sorte à noite +%s",
-	Gold = "Chance de Dourado +%s",
-	Rainbow = "Chance de Arco-íris +%s",
-	Size = "Frutos maiores +%s",
-	Speed = "Velocidade %s",
-	Jump = "Pulo %s",
-	Inventory = "Mochila %s espaços",
-	AutoHarvest = "Colhe um fruto sozinho a cada %ds",
-	AutoHarvestBest = "Colhe o fruto mais valioso a cada %ds",
-	GuardStun = "Atordoa ladrões (a cada %ds)",
-	GuardSting = "Ferroa ladrões (a cada %ds)",
-	GuardLaunch = "Arremessa ladrões para fora (a cada %ds)",
-	GuardEject = "Expulsa ladrões voando (a cada %ds)",
-	Pollinate = "Poliniza seus frutos",
-	Ignite = "Incendeia seus frutos (Inflamado)",
-	Raccoon = "Copia 1 fruto de outro jardim por noite",
-}
-
--- Variantes de pet ao chocar (novidade inspirada nos ovos Big/Rainbow/Mega do GAG2)
-Config.PetVariants = {
-	{ id = "Normal", name = "", weight = 85, mult = 1, scale = 1 },
-	{ id = "Big", name = "Grande", weight = 10, mult = 1.5, scale = 1.3 },
-	{ id = "Rainbow", name = "Arco-íris", weight = 4, mult = 2, scale = 1.1 },
-	{ id = "Mega", name = "Mega", weight = 1, mult = 3, scale = 1.8 },
-}
-Config.PetMaxLevel = 50
-Config.PetXpPerLevel = 20 -- nivel = 1 + raiz(xp / 20)
-Config.PetLevelBonus = 0.02 -- +2% de forca por nivel
-
--- Ovos (pesos = chance de cada pet)
-Config.EggList = {
-	{
-		id = "CommonEgg", name = "Ovo Comum", rarity = "Common", price = 10000, hatchTime = 60,
-		stockChance = 1, stockMin = 1, stockMax = 3, color = Color3.fromRGB(240, 235, 220),
-		pets = { { pet = "Frog", weight = 30 }, { pet = "Bunny", weight = 30 }, { pet = "Cat", weight = 25 }, { pet = "Owl", weight = 10 }, { pet = "Dog", weight = 5 } },
-	},
-	{
-		id = "UncommonEgg", name = "Ovo Incomum", rarity = "Uncommon", price = 50000, hatchTime = 180,
-		stockChance = 0.7, stockMin = 1, stockMax = 2, color = Color3.fromRGB(150, 230, 140),
-		pets = { { pet = "Owl", weight = 30 }, { pet = "Dog", weight = 30 }, { pet = "Chicken", weight = 30 }, { pet = "Deer", weight = 10 } },
-	},
-	{
-		id = "RareEgg", name = "Ovo Raro", rarity = "Rare", price = 300000, hatchTime = 360,
-		stockChance = 0.45, stockMin = 1, stockMax = 2, color = Color3.fromRGB(120, 170, 255),
-		pets = { { pet = "Deer", weight = 35 }, { pet = "Turtle", weight = 30 }, { pet = "Pig", weight = 30 }, { pet = "Robin", weight = 5 } },
-	},
-	{
-		id = "LegendaryEgg", name = "Ovo Lendário", rarity = "Legendary", price = 2500000, hatchTime = 600,
-		stockChance = 0.2, stockMin = 1, stockMax = 1, color = Color3.fromRGB(255, 215, 70),
-		pets = { { pet = "Robin", weight = 30 }, { pet = "Bee", weight = 30 }, { pet = "Butterfly", weight = 30 }, { pet = "Monkey", weight = 10 } },
-	},
-	{
-		id = "MythicEgg", name = "Ovo Mítico", rarity = "Mythic", price = 25000000, hatchTime = 900,
-		stockChance = 0.08, stockMin = 1, stockMax = 1, color = Color3.fromRGB(255, 110, 180),
-		pets = {
-			{ pet = "Monkey", weight = 15 }, { pet = "Bear", weight = 25 }, { pet = "Unicorn", weight = 15 },
-			{ pet = "GoldenDragonfly", weight = 15 }, { pet = "Firefly", weight = 20 }, { pet = "BaldEagle", weight = 10 },
-		},
-	},
-	{
-		id = "SuperEgg", name = "Ovo Super", rarity = "Super", price = 150000000, hatchTime = 1200,
-		stockChance = 0.03, stockMin = 1, stockMax = 1, color = Color3.fromRGB(255, 140, 50),
-		pets = { { pet = "Dragon", weight = 45 }, { pet = "Phoenix", weight = 45 }, { pet = "Raccoon", weight = 6 }, { pet = "Kitsune", weight = 4 } },
-	},
 }
 
 ---------------------------------------------------------------------
@@ -857,7 +732,7 @@ Config.EggList = {
 ---------------------------------------------------------------------
 --[[
 	kind = "growth": aparece quando o fruto nasce (so uma por fruto, fica a melhor).
-	kind = "env": vem do clima, da noite, de pets, plantas e sprinklers.
+	kind = "env": vem do clima, da noite, das plantas e dos sprinklers.
 	Valor final = crescimento x (1 + soma(mult - 1) das mutacoes de ambiente).
 	effect = efeito visual no fruto (sparkles, fire, smoke ou nenhum).
 ]]
@@ -868,7 +743,7 @@ Config.Mutations = {
 	Chilled = { name = "Gelado", kind = "env", mult = 2, color = Color3.fromRGB(160, 215, 255), material = "SmoothPlastic", blend = 0.55, source = "Geada" },
 	Choc = { name = "Chocolate", kind = "env", mult = 2, color = Color3.fromRGB(110, 60, 30), material = "SmoothPlastic", blend = 0.6, source = "Chuva de Chocolate" },
 	Moonlit = { name = "Lunar", kind = "env", mult = 3, color = Color3.fromRGB(170, 170, 255), material = "SmoothPlastic", blend = 0.5, effect = "sparkles", source = "Noite" },
-	Pollinated = { name = "Polinizado", kind = "env", mult = 3, color = Color3.fromRGB(255, 220, 60), material = "SmoothPlastic", blend = 0.4, source = "Pet Abelha" },
+	Pollinated = { name = "Polinizado", kind = "env", mult = 3, color = Color3.fromRGB(255, 220, 60), material = "SmoothPlastic", blend = 0.4, source = "Cerejeira (pétalas)" },
 	Sandy = { name = "Arenoso", kind = "env", mult = 3, color = Color3.fromRGB(225, 200, 140), material = "Sand", blend = 0.6, source = "Tempestade de Areia" },
 	Clay = { name = "Barro", kind = "env", mult = 5, color = Color3.fromRGB(170, 110, 70), material = "Slate", source = "Molhado + Arenoso" },
 	Frozen = { name = "Congelado", kind = "env", mult = 10, color = Color3.fromRGB(175, 235, 255), material = "Ice", effect = "sparkles", source = "Molhado + Gelado, ou Nevasca" },
@@ -1056,7 +931,6 @@ Config.Quests = {
 		{ id = "mutated", icon = "✨", text = "Colha %d frutos com mutação", min = 3, max = 12, reward = 400 },
 		{ id = "sell", icon = "💰", text = "Venda %d frutos", min = 20, max = 80, reward = 30 },
 		{ id = "steal", icon = "🦝", text = "Roube %d fruto(s) à noite", min = 1, max = 3, reward = 1500 },
-		{ id = "hatch", icon = "🥚", text = "Choque %d ovo(s)", min = 1, max = 2, reward = 2500 },
 	},
 }
 
@@ -1073,7 +947,7 @@ local function index(list)
 	return map
 end
 
--- Icones da interface (lojas, inventario, pets)
+-- Icones da interface (lojas e inventario)
 Config.Icons = {
 	-- sementes
 	Carrot = "🥕", Strawberry = "🍓", Blueberry = "🫐", Tulip = "🌷", Tomato = "🍅", Apple = "🍎",
@@ -1089,19 +963,10 @@ Config.Icons = {
 	WateringCan = "💧", Trowel = "🥄", Shovel = "⛏️", SpeedMushroom = "⚡", JumpMushroom = "🦘",
 	InvisibilityMushroom = "👻", CommonSprinkler = "💦", UncommonSprinkler = "💦", RareSprinkler = "💦",
 	LegendarySprinkler = "💦", SuperSprinkler = "💦", Lantern = "🏮", Gnome = "🧙", StrawberrySniper = "🎯",
-	-- ovos
-	CommonEgg = "🥚", UncommonEgg = "🥚", RareEgg = "🥚", LegendaryEgg = "🥚", MythicEgg = "🥚", SuperEgg = "🥚",
-	-- pets
-	Frog = "🐸", Bunny = "🐰", Cat = "🐱", Owl = "🦉", Dog = "🐶", Chicken = "🐔", Deer = "🦌", Turtle = "🐢",
-	Pig = "🐷", Robin = "🐦", Bee = "🐝", Butterfly = "🦋", Monkey = "🐵", Bear = "🐻", Unicorn = "🦄",
-	GoldenDragonfly = "✨", Firefly = "💡", BaldEagle = "🦅", Dragon = "🐉", Phoenix = "🔥", Raccoon = "🦝",
-	Kitsune = "🦊",
 }
 
 Config.Seeds = index(Config.SeedList)
 Config.Gear = index(Config.GearList)
-Config.Pets = index(Config.PetList)
-Config.Eggs = index(Config.EggList)
 Config.Weather = index(Config.WeatherList)
 
 for _, seed in Config.SeedList do
@@ -1114,10 +979,10 @@ return Config
 ]]></ProtectedString>
 				</Properties>
 			</Item>
-			<Item class="ModuleScript" referent="RBX00000004">
+			<Item class="ModuleScript" referent="RBX00000006">
 				<Properties>
 					<string name="Name">Formulas</string>
-					<ProtectedString name="Source"><![CDATA[-- Formulas: calculos de valor, peso, mutacoes, variantes, pets, ciclo do dia e formatacao.
+					<ProtectedString name="Source"><![CDATA[-- Formulas: calculos de valor, peso, mutacoes, variantes, ciclo do dia e formatacao.
 -- Usado tanto pelo servidor quanto pelo cliente.
 
 local Config = require(script.Parent:WaitForChild("Config"))
@@ -1315,7 +1180,7 @@ function Formulas.rollVariant(seed, rng: Random, luck: number?): string?
 end
 
 -- Valor de venda de um fruto
-function Formulas.fruitValue(seedId: string, weight: number, mutations: { string }?, sellBonus: number?, variantId: string?): number
+function Formulas.fruitValue(seedId: string, weight: number, mutations: { string }?, variantId: string?): number
 	local seed = Config.Seeds[seedId]
 	if not seed then
 		return 0
@@ -1326,7 +1191,6 @@ function Formulas.fruitValue(seedId: string, weight: number, mutations: { string
 	if variant then
 		value *= variant.mult
 	end
-	value *= 1 + (sellBonus or 0)
 	return math.max(1, math.floor(value + 0.5))
 end
 
@@ -1408,103 +1272,6 @@ function Formulas.weightedPick(entries, rng: Random)
 end
 
 ---------------------------------------------------------------------
--- Pets
----------------------------------------------------------------------
-
-function Formulas.petLevel(xp: number?): number
-	local level = 1 + math.floor(math.sqrt(math.max(xp or 0, 0) / Config.PetXpPerLevel))
-	return math.min(level, Config.PetMaxLevel)
-end
-
--- XP necessaria para chegar a um nivel
-function Formulas.petXpForLevel(level: number): number
-	return Config.PetXpPerLevel * (level - 1) ^ 2
-end
-
-function Formulas.petVariant(variantId: string?)
-	for _, variant in Config.PetVariants do
-		if variant.id == (variantId or "Normal") then
-			return variant
-		end
-	end
-	return Config.PetVariants[1]
-end
-
--- Forca das habilidades do pet (variante x nivel)
-function Formulas.petStrength(pet): number
-	local variant = Formulas.petVariant(pet.v)
-	return variant.mult * (1 + Config.PetLevelBonus * (Formulas.petLevel(pet.xp) - 1))
-end
-
--- Nome de exibicao: "Cachorro", "Cachorro Mega"
-function Formulas.petName(pet): string
-	local info = Config.Pets[pet.p]
-	local name = if info then info.name else tostring(pet.p)
-	local variant = Formulas.petVariant(pet.v)
-	if variant.name ~= "" then
-		name ..= " " .. variant.name
-	end
-	return name
-end
-
-local PERCENT_KINDS = { Growth = true, Sell = true, Luck = true, NightLuck = true, Gold = true, Rainbow = true, Size = true }
-local FLAT_KINDS = { Speed = true, Jump = true, Inventory = true }
-
--- Texto da habilidade ja com a forca aplicada
-function Formulas.abilityText(ability, strength: number): string
-	local template = Config.PetAbilityText[ability.kind] or ability.kind
-	if PERCENT_KINDS[ability.kind] then
-		return string.format(template, Formulas.formatPercent(ability.value * strength))
-	elseif FLAT_KINDS[ability.kind] then
-		local value = if ability.value > 0 then math.floor(ability.value * strength + 0.5) else ability.value
-		return string.format(template, (if value > 0 then "+" else "") .. tostring(value))
-	elseif ability.cooldown then
-		return string.format(template, math.max(1, math.floor(ability.cooldown / strength + 0.5)))
-	end
-	return template
-end
-
--- Soma dos bonus dos pets equipados.
--- pets = { {id, p, v, xp} }, equipped = { id, ... }
--- active = habilidades com efeito proprio (guardas, colheita automatica...)
-function Formulas.petBonuses(pets, equipped)
-	local bonuses = {
-		Growth = 0, Sell = 0, Luck = 0, NightLuck = 0, Gold = 0, Rainbow = 0, Size = 0,
-		Speed = 0, Jump = 0, Inventory = 0, Pollinate = 0, Ignite = 0,
-		active = {},
-	}
-	if type(pets) ~= "table" or type(equipped) ~= "table" then
-		return bonuses
-	end
-	for _, pet in pets do
-		if table.find(equipped, pet.id) then
-			local info = Config.Pets[pet.p]
-			if info then
-				local strength = Formulas.petStrength(pet)
-				for _, ability in info.abilities do
-					local kind = ability.kind
-					if PERCENT_KINDS[kind] or kind == "Pollinate" or kind == "Ignite" then
-						bonuses[kind] += ability.value * strength
-					elseif FLAT_KINDS[kind] then
-						bonuses[kind] += if ability.value > 0 then math.floor(ability.value * strength + 0.5) else ability.value
-					else
-						table.insert(bonuses.active, {
-							kind = kind,
-							petUid = pet.id,
-							petId = pet.p,
-							value = ability.value * strength,
-							cooldown = (ability.cooldown or 0) / strength,
-							seedChance = ability.seedChance,
-						})
-					end
-				end
-			end
-		end
-	end
-	return bonuses
-end
-
----------------------------------------------------------------------
 -- Ciclo de dia e noite
 ---------------------------------------------------------------------
 
@@ -1579,17 +1346,17 @@ return Formulas
 				</Properties>
 			</Item>
 		</Item>
-		<Item class="Folder" referent="RBX00000005">
+		<Item class="Folder" referent="RBX00000007">
 			<Properties>
 				<string name="Name">Modelos</string>
 			</Properties>
 		</Item>
 	</Item>
-	<Item class="ServerScriptService" referent="RBX00000006">
+	<Item class="ServerScriptService" referent="RBX00000008">
 		<Properties>
 			<string name="Name">ServerScriptService</string>
 		</Properties>
-		<Item class="Script" referent="RBX00000007">
+		<Item class="Script" referent="RBX00000009">
 			<Properties>
 				<string name="Name">GardenServer</string>
 				<ProtectedString name="Source"><![CDATA[-- GardenServer: script principal do servidor.
@@ -1604,7 +1371,6 @@ local Remotes = require(script.Remotes)
 local DataService = require(script.DataService)
 local MapBuilder = require(script.MapBuilder)
 local Sync = require(script.Sync)
-local PetService = require(script.PetService)
 local QuestService = require(script.QuestService)
 local GardenService = require(script.GardenService)
 local ShopService = require(script.ShopService)
@@ -1624,7 +1390,6 @@ GardenService.hooks.consume = StealService.consume
 GardenService.hooks.weatherTrigger = function(weatherId)
 	WeatherService.trigger(weatherId)
 end
-PetService.onChanged(GardenService.invalidateBonuses)
 Sync.addProvider(function(player, snapshot)
 	local data = DataService.get(player)
 	if data then
@@ -1692,29 +1457,6 @@ local function findWeather(name: string)
 	return nil
 end
 
-local function findPet(name: string)
-	name = plain(name)
-	for _, pet in Config.PetList do
-		if plain(pet.id) == name or plain(pet.name) == name then
-			return pet
-		end
-	end
-	return nil
-end
-
-local function findPetVariant(name: string?): string?
-	if not name then
-		return nil
-	end
-	name = plain(name)
-	for _, variant in Config.PetVariants do
-		if plain(variant.id) == name or (variant.name ~= "" and plain(variant.name) == name) then
-			return variant.id
-		end
-	end
-	return nil
-end
-
 local function handleCommand(player: Player, message: string)
 	local data = DataService.get(player)
 	if not data then
@@ -1750,17 +1492,6 @@ local function handleCommand(player: Player, message: string)
 	elseif command == "/estoque" then
 		ShopService.fillStock(data)
 		Sync.notify(player, "[Teste] Estoque das lojas cheio!", "info")
-	elseif command == "/pet" then
-		-- "/pet libelula dourada mega": a ultima palavra pode ser a variante
-		local variantId = findPetVariant(words[#words])
-		local last = if variantId and #words > 2 then #words - 1 else #words
-		local pet = findPet(table.concat(words, "", 2, last))
-		if pet then
-			PetService.addPet(player, data, pet.id, variantId)
-			Sync.notify(player, "[Teste] Pet " .. pet.name .. " adicionado!", "info")
-		else
-			Sync.notify(player, "[Teste] Pet não encontrado. Ex.: /pet unicornio, /pet dragao mega", "error")
-		end
 	end
 	Sync.markDirty(player)
 end
@@ -1790,7 +1521,6 @@ local function onPlayerAdded(player: Player)
 		return
 	end
 	ShopService.ensureStock(data)
-	PetService.setup(player, data)
 	QuestService.ensure(player, data)
 	if not GardenService.assignPlot(player, data) then
 		DataService.release(player)
@@ -1803,7 +1533,7 @@ local function onPlayerAdded(player: Player)
 		Sync.notify(player, "⚠️ Salvamento indisponível: seu progresso NÃO será salvo nesta sessão.", "error")
 	end
 	if RunService:IsStudio() then
-		Sync.notify(player, "Modo Studio: /sheckles 1000, /crescer, /estoque, /noite, /dia, /clima chuva, /pet unicornio", "info")
+		Sync.notify(player, "Modo Studio: /sheckles 1000, /crescer, /estoque, /noite, /dia, /clima chuva", "info")
 		player.Chatted:Connect(function(message)
 			handleCommand(player, message)
 		end)
@@ -1855,7 +1585,6 @@ end
 
 Remotes.Buy.OnServerInvoke = safe(ShopService.buy)
 Remotes.Sell.OnServerInvoke = safe(ShopService.sell)
-Remotes.PetAction.OnServerInvoke = safe(PetService.handleAction)
 Remotes.QuestAction.OnServerInvoke = safe(QuestService.claim)
 
 Remotes.UseItem.OnServerEvent:Connect(function(player, kind, id, position)
@@ -1887,7 +1616,7 @@ end)
 print("[Jardim] Servidor pronto!")
 ]]></ProtectedString>
 			</Properties>
-			<Item class="ModuleScript" referent="RBX00000008">
+			<Item class="ModuleScript" referent="RBX0000000A">
 				<Properties>
 					<string name="Name">DataService</string>
 					<ProtectedString name="Source"><![CDATA[-- DataService: carrega e salva o progresso dos jogadores com DataStore.
@@ -1936,22 +1665,18 @@ end
 
 function DataService.defaultData()
 	return {
-		version = 2,
+		version = 3,
 		sheckles = Config.StartingSheckles,
 		seeds = deepCopy(Config.StartingSeeds),
 		gear = {},
-		eggs = {},
 		fruits = {},
 		plants = {},
 		sprinklers = {},
 		props = {},
-		placedEggs = {},
-		pets = {},
-		equippedPets = {},
-		stock = { window = -1, seeds = {}, gear = {}, eggs = {} },
+		stock = { window = -1, seeds = {}, gear = {} },
 		quests = { day = -1, list = {} },
 		nextId = 1,
-		stats = { harvested = 0, earned = 0, planted = 0, sold = 0, stolen = 0, stolenFrom = 0, hatched = 0, merged = 0 },
+		stats = { harvested = 0, earned = 0, planted = 0, sold = 0, stolen = 0, stolenFrom = 0, merged = 0 },
 	}
 end
 
@@ -1982,9 +1707,16 @@ local function reconcile(data)
 			end
 		end
 	end
+	-- versoes antigas tinham pets e ovos: o jogo agora e so de plantas
+	data.eggs = nil
+	data.placedEggs = nil
+	data.pets = nil
+	data.equippedPets = nil
+	data.stock.eggs = nil
+	data.stats.hatched = nil
 	migrateIds(data.gear, Config.LegacyIds.gear)
 	migrateIds(data.seeds, Config.LegacyIds.seeds)
-	for _, key in { "seeds", "gear", "eggs" } do
+	for _, key in { "seeds", "gear" } do
 		for id, count in data[key] do
 			if type(count) ~= "number" or count <= 0 then
 				data[key][id] = nil
@@ -1999,11 +1731,6 @@ local function reconcile(data)
 	for id in data.gear do
 		if not Config.Gear[id] then
 			data.gear[id] = nil
-		end
-	end
-	for id in data.eggs do
-		if not Config.Eggs[id] then
-			data.eggs[id] = nil
 		end
 	end
 	for i = #data.plants, 1, -1 do
@@ -2064,32 +1791,12 @@ local function reconcile(data)
 			table.remove(data.props, i)
 		end
 	end
-	for i = #data.placedEggs, 1, -1 do
-		local egg = data.placedEggs[i]
-		if type(egg) ~= "table" or not Config.Eggs[egg.e] then
-			table.remove(data.placedEggs, i)
-		end
-	end
-	for i = #data.pets, 1, -1 do
-		local pet = data.pets[i]
-		if type(pet) == "table" and Config.LegacyIds.pets[pet.p] then
-			pet.p = Config.LegacyIds.pets[pet.p]
-		end
-		if type(pet) ~= "table" or not Config.Pets[pet.p] then
-			table.remove(data.pets, i)
-		else
-			pet.xp = if type(pet.xp) == "number" then pet.xp else 0
-			if pet.v ~= nil and type(pet.v) ~= "string" then
-				pet.v = nil
-			end
-		end
-	end
 	if type(data.quests.list) ~= "table" then
 		data.quests.list = {}
 	end
 	-- o maior id em uso define o proximo id livre
 	local maxId = 0
-	for _, list in { data.plants, data.sprinklers, data.props, data.placedEggs, data.pets } do
+	for _, list in { data.plants, data.sprinklers, data.props } do
 		for _, item in list do
 			if type(item.id) == "number" then
 				maxId = math.max(maxId, item.id)
@@ -2097,7 +1804,7 @@ local function reconcile(data)
 		end
 	end
 	data.nextId = math.max(data.nextId, maxId + 1)
-	data.version = 2
+	data.version = 3
 	return data
 end
 
@@ -2206,7 +1913,7 @@ return DataService
 ]]></ProtectedString>
 				</Properties>
 			</Item>
-			<Item class="ModuleScript" referent="RBX00000009">
+			<Item class="ModuleScript" referent="RBX0000000B">
 				<Properties>
 					<string name="Name">DayNightService</string>
 					<ProtectedString name="Source"><![CDATA[-- DayNightService: ciclo de dia (7,5 min), por do sol (30 s) e noite (2 min), igual ao GAG2.
@@ -2308,16 +2015,16 @@ return DayNightService
 ]]></ProtectedString>
 				</Properties>
 			</Item>
-			<Item class="ModuleScript" referent="RBX0000000A">
+			<Item class="ModuleScript" referent="RBX0000000C">
 				<Properties>
 					<string name="Name">GardenService</string>
-					<ProtectedString name="Source"><![CDATA[-- GardenService: jardins dos jogadores, plantio, crescimento, colheita, itens
--- (regador, pa, espatula, sprinklers, lanternas, gnomos, ovos) e habilidades dos pets.
+					<ProtectedString name="Source"><![CDATA[-- GardenService: jardins dos jogadores, plantio, crescimento, colheita e itens
+-- (regador, pa, espatula, sprinklers, lanternas e gnomos).
 --
 -- O crescimento usa os.time(), entao as plantas continuam crescendo
 -- mesmo com o jogador offline.
 --   idade da planta = agora - plantadaEm + bonus
--- Clima, sprinklers, regador, lanternas e pets aumentam o "bonus".
+-- Clima, sprinklers, regador e lanternas aumentam o "bonus".
 --
 -- Crescimento visivel: broto na terra -> planta jovem que vai crescendo -> adulta.
 -- Os frutos nascem pequenos e verdes, crescem e mudam para a cor final ao amadurecer.
@@ -2330,7 +2037,6 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
 local MapBuilder = require(script.Parent.MapBuilder)
-local PetService = require(script.Parent.PetService)
 local QuestService = require(script.Parent.QuestService)
 local Sync = require(script.Parent.Sync)
 local Visuals = require(script.Parent.Visuals)
@@ -2352,7 +2058,6 @@ local plots = {}
 local gardens: { [Player]: any } = {}
 local weather = { growthBonus = 0, goldBoost = 1, rainbowBoost = 1, sizeBoost = 0 }
 local phase = "Day"
-local nightIndex = 0
 
 local function round2(n: number): number
 	return math.floor(n * 100 + 0.5) / 100
@@ -2446,7 +2151,7 @@ local function resolvePosition(garden, position: any, check: (number, number) ->
 	return nil, nil
 end
 
-local function isFarFromEverything(garden, lx: number, lz: number, plantSpacing: number, eggSpacing: number, ignorePlantId: number?): boolean
+local function isFarFromEverything(garden, lx: number, lz: number, plantSpacing: number, itemSpacing: number, ignorePlantId: number?): boolean
 	local plantMin = plantSpacing * plantSpacing
 	for _, plant in garden.data.plants do
 		if plant.id ~= ignorePlantId then
@@ -2456,33 +2161,19 @@ local function isFarFromEverything(garden, lx: number, lz: number, plantSpacing:
 			end
 		end
 	end
-	local eggMin = eggSpacing * eggSpacing
-	for _, list in { garden.data.placedEggs, garden.data.props } do
-		for _, item in list do
-			local dx, dz = item.x - lx, item.z - lz
-			if dx * dx + dz * dz < eggMin then
-				return false
-			end
+	local itemMin = itemSpacing * itemSpacing
+	for _, item in garden.data.props do
+		local dx, dz = item.x - lx, item.z - lz
+		if dx * dx + dz * dz < itemMin then
+			return false
 		end
 	end
 	return true
 end
 
-local function bonusesOf(garden)
-	if not garden.bonuses then
-		garden.bonuses = Formulas.petBonuses(garden.data.pets, garden.data.equippedPets)
-	end
-	return garden.bonuses
-end
-
-local function luckOf(garden): number
-	local bonuses = bonusesOf(garden)
-	return bonuses.Luck + (if phase == "Night" then bonuses.NightLuck else 0)
-end
-
--- Bonus de tamanho para frutos novos (pets, clima e sprinklers por perto)
+-- Bonus de tamanho para frutos novos (clima e sprinklers por perto)
 local function sizeBonusFor(garden, plant): number
-	local bonus = bonusesOf(garden).Size + weather.sizeBoost
+	local bonus = weather.sizeBoost
 	local best = 0
 	for _, entry in garden.data.sprinklers do
 		local gear = Config.Gear[entry.g]
@@ -2497,21 +2188,14 @@ local function sizeBonusFor(garden, plant): number
 end
 
 local function newFruit(garden, plant, seed, startAge: number?)
-	local luck = luckOf(garden)
-	local bonuses = bonusesOf(garden)
-	local mutations = Formulas.rollGrowthMutations(
-		rng,
-		luck,
-		(1 + bonuses.Gold) * weather.goldBoost,
-		(1 + bonuses.Rainbow) * weather.rainbowBoost
-	)
+	local mutations = Formulas.rollGrowthMutations(rng, 0, weather.goldBoost, weather.rainbowBoost)
 	local special = seed.special or {}
 	if special.alwaysMutation then
 		Formulas.addMutation(mutations, special.alwaysMutation)
 	end
 	if special.fruitMutations then
 		for id, chance in special.fruitMutations do
-			if rng:NextNumber() < chance * (1 + luck) then
+			if rng:NextNumber() < chance then
 				Formulas.addMutation(mutations, id)
 			end
 		end
@@ -2552,8 +2236,8 @@ local function applyChanceToPlant(plant, mutationId: string, chance: number, now
 	end)
 end
 
-local function capacityOf(garden): number
-	return Config.MaxFruitsInInventory + math.max(0, bonusesOf(garden).Inventory)
+local function capacityOf(_garden): number
+	return Config.MaxFruitsInInventory
 end
 
 ---------------------------------------------------------------------
@@ -2838,14 +2522,12 @@ function GardenService.addFruit(player: Player, fruit): boolean
 	return true
 end
 
--- Colheita pelo dono (ou pelos pets do dono)
-local function ownerHarvest(garden, view, slotIndex: number?, source: string?): any
+-- Colheita pelo dono do jardim
+local function ownerHarvest(garden, view, slotIndex: number?): any
 	local player = garden.player
 	local data = garden.data
 	if #data.fruits >= capacityOf(garden) then
-		if not source then
-			Sync.notify(player, "Sua mochila está cheia! Venda seus frutos para o Steven.", "error")
-		end
+		Sync.notify(player, "Sua mochila está cheia! Venda seus frutos para o Steven.", "error")
 		return nil
 	end
 	local seed = view.seed
@@ -2861,11 +2543,7 @@ local function ownerHarvest(garden, view, slotIndex: number?, source: string?): 
 	end
 	Sync.markDirty(player)
 	local label = fruitLabel(seed, fruit.w, fruit.m, fruit.v)
-	if source then
-		Sync.notify(player, source .. " colheu: " .. label, "info")
-	else
-		Sync.notify(player, "+ " .. label, if #fruit.m > 0 or fruit.v then "rare" else "success")
-	end
+	Sync.notify(player, "+ " .. label, if #fruit.m > 0 or fruit.v then "rare" else "success")
 	local special = seed.special or {}
 	if special.triggersWeather and GardenService.hooks.weatherTrigger then
 		GardenService.hooks.weatherTrigger(special.triggersWeather)
@@ -2883,30 +2561,9 @@ onPromptTriggered = function(who: Player, garden, view, slotIndex: number?)
 		end
 		return
 	end
-	ownerHarvest(garden, view, slotIndex, nil)
+	ownerHarvest(garden, view, slotIndex)
 end
 
--- Frutos maduros do jardim: { {view, slot, value} }
-local function ripeFruits(garden, now: number)
-	local list = {}
-	local sellBonus = bonusesOf(garden).Sell
-	for _, view in garden.plantViews do
-		if not view.destroyed then
-			local plant, seed = view.plant, view.seed
-			if seed.multiHarvest then
-				for index, slot in plant.slots do
-					if isFruitRipe(view, index, now) then
-						table.insert(list, { view = view, slot = index, value = Formulas.fruitValue(seed.id, slot.w, slot.m, sellBonus, plant.v) })
-					end
-				end
-			elseif isFruitRipe(view, nil, now) then
-				table.insert(list, { view = view, slot = nil, value = Formulas.fruitValue(seed.id, plant.f.w, plant.f.m, sellBonus, plant.v) })
-			end
-		end
-	end
-	return list
-end
-GardenService.ripeFruits = ripeFruits
 
 function GardenService.fruitWorldPosition(view, slotIndex: number?): Vector3
 	if slotIndex and view.fruits[slotIndex] then
@@ -2961,92 +2618,6 @@ local function removeProp(garden, propId: number)
 	end
 end
 
-local hatchEgg: (Player, any, any) -> ()
-
-local function updateEggView(garden, view, now: number)
-	local remaining = view.entry.t - now
-	local text
-	if remaining > 0 then
-		text = view.egg.name .. "\n" .. Formulas.formatTime(remaining)
-	else
-		text = view.egg.name .. "\nPronto para chocar!"
-		if not view.prompt then
-			local target = primaryOf(view.model)
-			if target then
-				local prompt = makePrompt(target, "Chocar", view.egg.name, garden.player.UserId, "Hatch")
-				prompt.Triggered:Connect(function(who)
-					hatchEgg(who, garden, view)
-				end)
-				view.prompt = prompt
-			end
-		end
-	end
-	if view.label.Text ~= text then
-		view.label.Text = text
-	end
-end
-
-local function createEggView(garden, entry)
-	local egg = Config.Eggs[entry.e]
-	if not egg then
-		return
-	end
-	local model, label = Visuals.buildEgg(egg)
-	model:PivotTo(garden.plot.cframe * CFrame.new(entry.x, groundHeight(entry.x, entry.z), entry.z))
-	model:SetAttribute("OwnerUserId", garden.player.UserId)
-	model.Parent = garden.plot.plantsFolder
-	local view = { entry = entry, egg = egg, model = model, label = label, prompt = nil, destroyed = false }
-	garden.eggViews[entry.id] = view
-	updateEggView(garden, view, os.time())
-end
-
-local function removeEgg(garden, eggId: number)
-	local eggs = garden.data.placedEggs
-	for i = #eggs, 1, -1 do
-		if eggs[i].id == eggId then
-			table.remove(eggs, i)
-		end
-	end
-	local view = garden.eggViews[eggId]
-	if view then
-		view.destroyed = true
-		view.model:Destroy()
-		garden.eggViews[eggId] = nil
-	end
-end
-
-hatchEgg = function(player: Player, garden, view)
-	if player ~= garden.player or gardens[player] ~= garden or view.destroyed then
-		return
-	end
-	if os.time() < view.entry.t then
-		return
-	end
-	local data = garden.data
-	if #data.pets >= Config.MaxPetsOwned then
-		Sync.notify(player, string.format("Você já tem %d pets (máximo).", Config.MaxPetsOwned), "error")
-		return
-	end
-	local pick = Formulas.weightedPick(view.egg.pets, rng)
-	local variant = Formulas.weightedPick(Config.PetVariants, rng)
-	removeEgg(garden, view.entry.id)
-	local pet = PetService.addPet(player, data, pick.pet, if variant.id == "Normal" then nil else variant.id)
-	garden.bonuses = nil
-	data.stats.hatched += 1
-	QuestService.progress(player, "hatch", 1)
-	local info = Config.Pets[pick.pet]
-	local strength = Formulas.petStrength(pet)
-	local abilities = {}
-	for _, ability in info.abilities do
-		table.insert(abilities, Formulas.abilityText(ability, strength))
-	end
-	Sync.notify(
-		player,
-		string.format("🎉 Você chocou: %s (%s)! %s", Formulas.petName(pet), Config.Rarities[info.rarity].name, table.concat(abilities, " • ")),
-		"rare"
-	)
-end
-
 ---------------------------------------------------------------------
 -- Uso de itens
 ---------------------------------------------------------------------
@@ -3079,7 +2650,7 @@ local function plantSeed(player: Player, garden, seed, position: any)
 		z = round2(lz),
 		p = os.time(),
 		b = 0,
-		v = Formulas.rollVariant(seed, rng, luckOf(garden)),
+		v = Formulas.rollVariant(seed, rng),
 	}
 	data.nextId += 1
 	if seed.multiHarvest then
@@ -3329,28 +2900,6 @@ local function placeProp(player: Player, garden, gear, position: any)
 	end
 end
 
-local function placeEgg(player: Player, garden, egg, position: any)
-	local data = garden.data
-	if #data.placedEggs >= Config.MaxEggsPerGarden then
-		Sync.notify(player, string.format("Máximo de %d ovos chocando ao mesmo tempo.", Config.MaxEggsPerGarden), "error")
-		return
-	end
-	local lx, lz = resolvePosition(garden, position, function(x, z)
-		return inPlot(x, z) and isFarFromEverything(garden, x, z, 1.8, 2.5)
-	end)
-	if not lx or not lz then
-		Sync.notify(player, "Coloque o ovo em um espaço livre do seu jardim.", "error")
-		return
-	end
-	consume(data.eggs, egg.id, 1)
-	local entry = { id = data.nextId, e = egg.id, x = round2(lx), z = round2(lz), t = os.time() + egg.hatchTime }
-	data.nextId += 1
-	table.insert(data.placedEggs, entry)
-	createEggView(garden, entry)
-	Sync.markDirty(player)
-	Sync.notify(player, string.format("🥚 %s vai chocar em %s.", egg.name, Formulas.formatTime(egg.hatchTime)), "success")
-end
-
 function GardenService.useItem(player: Player, kind: any, id: any, position: any)
 	local garden = gardens[player]
 	if not garden or type(kind) ~= "string" or type(id) ~= "string" then
@@ -3392,11 +2941,6 @@ function GardenService.useItem(player: Player, kind: any, id: any, position: any
 				GardenService.hooks.snipe(player, gear, if isValidVector(position) then position else nil)
 			end
 		end
-	elseif kind == "Egg" then
-		local egg = Config.Eggs[id]
-		if egg and (data.eggs[id] or 0) > 0 then
-			placeEgg(player, garden, egg, position)
-		end
 	end
 end
 
@@ -3411,17 +2955,15 @@ function GardenService.setWeatherEffects(effects)
 	weather.sizeBoost = effects.sizeBoost or 0
 end
 
-function GardenService.setPhase(newPhase: string, index: number)
+function GardenService.setPhase(newPhase: string, _index: number)
 	phase = newPhase
-	nightIndex = index
 end
 
 function GardenService.applyWeatherMutation(mutationId: string, chance: number)
 	local now = os.time()
 	for _, garden in gardens do
-		local luck = luckOf(garden)
 		for _, plant in garden.data.plants do
-			applyChanceToPlant(plant, mutationId, chance * (1 + luck), now)
+			applyChanceToPlant(plant, mutationId, chance, now)
 		end
 	end
 end
@@ -3453,65 +2995,10 @@ end
 -- Atualizacao periodica
 ---------------------------------------------------------------------
 
-local function petAbilities(garden, bonuses, dt: number, now: number)
-	local player = garden.player
-	local data = garden.data
-	garden.petTimers = garden.petTimers or {}
-	for _, ability in bonuses.active do
-		if ability.kind == "AutoHarvest" or ability.kind == "AutoHarvestBest" then
-			local key = ability.petUid .. ability.kind
-			garden.petTimers[key] = (garden.petTimers[key] or 0) + dt
-			if garden.petTimers[key] >= ability.cooldown then
-				garden.petTimers[key] = 0
-				local ripe = ripeFruits(garden, now)
-				if #ripe > 0 then
-					local pick = ripe[rng:NextInteger(1, #ripe)]
-					if ability.kind == "AutoHarvestBest" then
-						for _, candidate in ripe do
-							if candidate.value > pick.value then
-								pick = candidate
-							end
-						end
-					end
-					local seedId = pick.view.seed.id
-					local petName = Config.Pets[ability.petId].name
-					local fruit = ownerHarvest(garden, pick.view, pick.slot, "🐾 " .. petName)
-					if fruit and ability.seedChance and rng:NextNumber() < ability.seedChance and Config.Seeds[seedId].inShop then
-						data.seeds[seedId] = (data.seeds[seedId] or 0) + 1
-						Sync.notify(player, string.format("🐾 %s achou uma semente de %s!", petName, Config.Seeds[seedId].name), "rare")
-					end
-				end
-			end
-		elseif ability.kind == "Raccoon" and phase == "Night" and garden.raccoonNight ~= nightIndex then
-			garden.raccoonNight = nightIndex
-			local options = {}
-			for _, other in gardens do
-				if other ~= garden then
-					for _, item in ripeFruits(other, now) do
-						table.insert(options, item)
-					end
-				end
-			end
-			if #options > 0 then
-				local pick = options[rng:NextInteger(1, #options)]
-				local plant, seed = pick.view.plant, pick.view.seed
-				local source = if pick.slot then plant.slots[pick.slot] else plant.f
-				local copy = { s = seed.id, w = source.w, m = table.clone(source.m), v = plant.v }
-				if GardenService.addFruit(player, copy) then
-					Sync.notify(player, "🦝 Seu Guaxinim trouxe um fruto de outro jardim: " .. fruitLabel(seed, copy.w, copy.m, copy.v), "rare")
-				end
-			end
-		end
-	end
-end
-
 local function tickGarden(garden, dt: number, now: number)
 	local data = garden.data
-	local bonuses = Formulas.petBonuses(data.pets, data.equippedPets)
-	garden.bonuses = bonuses
 	local night = phase == "Night"
-	local luck = bonuses.Luck + (if night then bonuses.NightLuck else 0)
-	local baseRate = weather.growthBonus + bonuses.Growth
+	local baseRate = weather.growthBonus
 
 	local activeSprinklers = {}
 	for i = #data.sprinklers, 1, -1 do
@@ -3591,15 +3078,9 @@ local function tickGarden(garden, dt: number, now: number)
 		if rate ~= 0 then
 			plant.b += dt * rate
 		end
-		local factor = dt * (1 + luck)
+		local factor = dt
 		if wetChance > 0 then
 			applyChanceToPlant(plant, "Wet", wetChance * factor, now)
-		end
-		if bonuses.Pollinate > 0 then
-			applyChanceToPlant(plant, "Pollinated", bonuses.Pollinate * factor, now)
-		end
-		if bonuses.Ignite > 0 then
-			applyChanceToPlant(plant, "Ignited", bonuses.Ignite * factor, now)
 		end
 		for _, source in glowSources do
 			if source.plant ~= plant then
@@ -3614,13 +3095,6 @@ local function tickGarden(garden, dt: number, now: number)
 			updatePlantView(garden, view, now)
 		end
 	end
-
-	for _, view in garden.eggViews do
-		updateEggView(garden, view, now)
-	end
-
-	petAbilities(garden, bonuses, dt, now)
-	PetService.addXp(garden.player, data, dt)
 end
 
 ---------------------------------------------------------------------
@@ -3645,13 +3119,9 @@ function GardenService.assignPlot(player: Player, data): boolean
 				plantViews = {},
 				sprinklerViews = {},
 				propViews = {},
-				eggViews = {},
 				shovelPending = nil,
 				trowel = nil,
 				lastUse = 0,
-				bonuses = nil,
-				petTimers = {},
-				raccoonNight = -1,
 			}
 			gardens[player] = garden
 			player:SetAttribute("PlotIndex", plot.index)
@@ -3663,9 +3133,6 @@ function GardenService.assignPlot(player: Player, data): boolean
 			end
 			for _, entry in data.props do
 				createPropView(garden, entry)
-			end
-			for _, entry in data.placedEggs do
-				createEggView(garden, entry)
 			end
 			return true
 		end
@@ -3684,9 +3151,6 @@ function GardenService.releasePlot(player: Player)
 		if view.body then
 			view.body:Destroy()
 		end
-	end
-	for _, view in garden.eggViews do
-		view.destroyed = true
 	end
 	local plot = garden.plot
 	plot.plantsFolder:ClearAllChildren()
@@ -3760,21 +3224,6 @@ function GardenService.defenses(garden): { any }
 	return list
 end
 
-function GardenService.bonuses(player: Player)
-	local garden = gardens[player]
-	if garden then
-		return bonusesOf(garden)
-	end
-	return nil
-end
-
-function GardenService.invalidateBonuses(player: Player)
-	local garden = gardens[player]
-	if garden then
-		garden.bonuses = nil
-	end
-end
-
 -- Comando de teste: faz todas as plantas crescerem
 function GardenService.growAll(player: Player)
 	local garden = gardens[player]
@@ -3784,9 +3233,6 @@ function GardenService.growAll(player: Player)
 	for _, plant in garden.data.plants do
 		local seed = Config.Seeds[plant.s]
 		plant.b += seed.growTime + (seed.fruitTime or 0) * (seed.maxFruits or 1)
-	end
-	for _, entry in garden.data.placedEggs do
-		entry.t = os.time()
 	end
 end
 
@@ -3816,7 +3262,7 @@ return GardenService
 ]]></ProtectedString>
 				</Properties>
 			</Item>
-			<Item class="ModuleScript" referent="RBX0000000B">
+			<Item class="ModuleScript" referent="RBX0000000D">
 				<Properties>
 					<string name="Name">Inventory</string>
 					<ProtectedString name="Source"><![CDATA[-- Inventory: mantem as ferramentas (Tools) da mochila iguais aos itens salvos.
@@ -3855,17 +3301,6 @@ local function wantedItems(data): { Wanted }
 				label = string.format("%s [x%d]", gear.name, count)
 			end
 			table.insert(list, { kind = "Gear", id = gear.id, label = label, tip = gear.description })
-		end
-	end
-	for _, egg in Config.EggList do
-		local count = data.eggs[egg.id] or 0
-		if count > 0 then
-			table.insert(list, {
-				kind = "Egg",
-				id = egg.id,
-				label = string.format("%s [x%d]", egg.name, count),
-				tip = "Clique no seu jardim para colocar o ovo",
-			})
 		end
 	end
 	return list
@@ -3934,7 +3369,7 @@ return Inventory
 ]]></ProtectedString>
 				</Properties>
 			</Item>
-			<Item class="ModuleScript" referent="RBX0000000C">
+			<Item class="ModuleScript" referent="RBX0000000E">
 				<Properties>
 					<string name="Name">MapBuilder</string>
 					<ProtectedString name="Source"><![CDATA[-- MapBuilder: cria o mapa inteiro (chao, rua, praca com chafariz, 6 jardins, lojas,
@@ -4360,12 +3795,9 @@ local function stallGoods(model: Model, cf: CFrame, info, rng: Random)
 				decor(model, "Etiqueta", Vector3.new(0.7, 0.35, 0.05), at(x, y + 0.95, 3.66) * CFrame.Angles(math.rad(-8), 0, 0), WHITE)
 			elseif info.id == "Sell" then -- potes e frutas
 				ball(model, "Fruta", Vector3.new(0.85, 0.85, 0.85), at(x, y + 0.55, 3.8), color)
-			elseif info.id == "Gear" then -- regadores e ferramentas
+			else -- regadores e ferramentas
 				decor(model, "Ferramenta", Vector3.new(0.9, 0.8, 0.6), at(x, y + 0.55, 3.8), color, Enum.Material.Metal)
 				decor(model, "Bico", Vector3.new(0.5, 0.12, 0.12), at(x + 0.55, y + 0.75, 3.8) * CFrame.Angles(0, 0, math.rad(30)), color, Enum.Material.Metal)
-			else -- ovos em ninhos
-				cylinderPart(model, "Ninho", 0.3, 1.1, at(x, y + 0.3, 3.8), Color3.fromRGB(170, 130, 80), Enum.Material.Fabric)
-				ball(model, "Ovo", Vector3.new(0.6, 0.8, 0.6), at(x, y + 0.75, 3.8), color)
 			end
 		end
 	end
@@ -4374,9 +3806,7 @@ local function stallGoods(model: Model, cf: CFrame, info, rng: Random)
 		decor(model, "Caixote", Vector3.new(2.6, 1.8, 2.6), at(x, 0.9, -4) * CFrame.Angles(0, math.rad(index * 7), 0), WOOD, Enum.Material.WoodPlanks)
 		for i = 1, 4 do
 			local color = info.goods[(i + index) % #info.goods + 1]
-			if info.id == "Eggs" then
-				ball(model, "Ovo", Vector3.new(0.8, 1, 0.8), at(x - 0.6 + (i % 2) * 1.2, 2, -4.6 + math.floor((i - 1) / 2) * 1.2), color)
-			elseif info.id == "Gear" then
+			if info.id == "Gear" then
 				decor(model, "Saco", Vector3.new(1, 1.2, 0.8), at(x - 0.6 + (i % 2) * 1.2, 2.2, -4.6 + math.floor((i - 1) / 2) * 1.2), Color3.fromRGB(190, 160, 110), Enum.Material.Fabric)
 			else
 				ball(model, "Produto", Vector3.new(1, 1, 1), at(x - 0.6 + (i % 2) * 1.2, 2, -4.6 + math.floor((i - 1) / 2) * 1.2), color)
@@ -4463,6 +3893,80 @@ local function buildStall(parent: Instance, info, rng: Random)
 
 	model.Parent = parent
 	return cf * CFrame.new(0, 3, -9) * CFrame.Angles(0, math.pi, 0)
+end
+
+---------------------------------------------------------------------
+-- Estufa de vidro (decoracao no 4o canto das lojas)
+---------------------------------------------------------------------
+
+local function buildGreenhouse(parent: Instance, position: Vector3, rotation: number, rng: Random)
+	local cf = CFrame.new(position) * CFrame.Angles(0, rotation, 0)
+	local model = Instance.new("Model")
+	model.Name = "Estufa"
+	local function at(x: number, y: number, z: number): CFrame
+		return cf * CFrame.new(x, y, z)
+	end
+	local frame = Color3.fromRGB(245, 245, 240)
+	local glassColor = Color3.fromRGB(190, 230, 245)
+	local function glass(size: Vector3, where: CFrame)
+		local pane = decor(model, "Vidro", size, where, glassColor, Enum.Material.Glass)
+		pane.Transparency = 0.6
+		pane.CastShadow = false
+		return pane
+	end
+	part(model, "Piso", Vector3.new(14, 0.3, 11), at(0, 0.15, 0), Color3.fromRGB(200, 190, 170), Enum.Material.Slate)
+	-- paredes de vidro (com porta na frente) e armacao branca
+	glass(Vector3.new(14, 6, 0.15), at(0, 3.3, 5.4))
+	glass(Vector3.new(0.15, 6, 11), at(-7, 3.3, 0))
+	glass(Vector3.new(0.15, 6, 11), at(7, 3.3, 0))
+	glass(Vector3.new(4.6, 6, 0.15), at(-4.7, 3.3, -5.4))
+	glass(Vector3.new(4.6, 6, 0.15), at(4.7, 3.3, -5.4))
+	glass(Vector3.new(4.8, 1.3, 0.15), at(0, 5.65, -5.4))
+	for _, x in { -7, -2.4, 2.4, 7 } do
+		for _, z in { -5.4, 5.4 } do
+			part(model, "Armacao", Vector3.new(0.3, 6.3, 0.3), at(x, 3.3, z), frame, Enum.Material.Metal)
+		end
+	end
+	for _, z in { -5.4, 0, 5.4 } do
+		decor(model, "Viga", Vector3.new(14.3, 0.3, 0.3), at(0, 6.4, z), frame, Enum.Material.Metal)
+	end
+	-- telhado de vidro em duas aguas
+	for _, side in { -1, 1 } do
+		glass(Vector3.new(7.6, 0.15, 11.4), at(side * 3.5, 7.75, 0) * CFrame.Angles(0, 0, math.rad(side * -21)))
+		decor(model, "Caibro", Vector3.new(7.6, 0.25, 0.25), at(side * 3.5, 7.75, -5.6) * CFrame.Angles(0, 0, math.rad(side * -21)), frame, Enum.Material.Metal)
+		decor(model, "Caibro", Vector3.new(7.6, 0.25, 0.25), at(side * 3.5, 7.75, 5.6) * CFrame.Angles(0, 0, math.rad(side * -21)), frame, Enum.Material.Metal)
+	end
+	decor(model, "Cumeeira", Vector3.new(0.35, 0.35, 11.6), at(0, 9.1, 0), frame, Enum.Material.Metal)
+	-- mesas com vasos de flores dentro
+	for _, x in { -4, 4 } do
+		decor(model, "Mesa", Vector3.new(3, 0.25, 8.5), at(x, 2.2, 0.5), WOOD_LIGHT, Enum.Material.WoodPlanks)
+		for _, dz in { -3.6, 3.6 } do
+			for _, dx in { -1.2, 1.2 } do
+				decor(model, "PeMesa", Vector3.new(0.25, 2.1, 0.25), at(x + dx, 1.1, 0.5 + dz), WOOD_DARK, Enum.Material.Wood)
+			end
+		end
+		for i = 0, 3 do
+			local potCF = at(x, 2.33, -2.6 + i * 2.1)
+			cylinderPart(model, "Vaso", 0.9, 1.1, potCF * CFrame.new(0, 0.45, 0), Color3.fromRGB(200, 110, 70), Enum.Material.Slate)
+			ball(model, "Folhas", Vector3.new(1.3, 1, 1.3), potCF * CFrame.new(0, 1.2, 0), Color3.fromRGB(70, 160, 60))
+			for j = 1, 3 do
+				local angle = j * math.pi * 2 / 3 + i
+				ball(model, "Flor", Vector3.new(0.42, 0.3, 0.42), potCF * CFrame.new(math.cos(angle) * 0.4, 1.6, math.sin(angle) * 0.4), FLOWER_COLORS[rng:NextInteger(1, #FLOWER_COLORS)])
+			end
+		end
+	end
+	-- vasos grandes no fundo e floreiras do lado de fora
+	for _, x in { -5.5, 0, 5.5 } do
+		cylinderPart(model, "VasoGrande", 1.6, 2, at(x, 1.1, 4.3), Color3.fromRGB(190, 100, 65), Enum.Material.Slate)
+		ball(model, "Planta", Vector3.new(2.6, 3.2, 2.6), at(x, 3.4, 4.3), Color3.fromRGB(60, 150 + rng:NextInteger(0, 30), 60))
+	end
+	for _, x in { -9.6, 9.6 } do
+		flowerBox(model, at(x, 0, -3), 4, rng)
+	end
+	local sign = part(model, "Placa", Vector3.new(7, 1.6, 0.3), at(0, 7.4, -5.75), WHITE)
+	sign.CanCollide = false
+	surfaceText(sign, "🌸 Estufa", Color3.fromRGB(90, 160, 70))
+	model.Parent = parent
 end
 
 ---------------------------------------------------------------------
@@ -4691,10 +4195,27 @@ local function setupLighting()
 	end
 end
 
--- area livre para enfeites (fora da rua, dos jardins, das lojas e da praca)
+-- lagos atras dos jardins do meio
+local PONDS = { Vector3.new(0, 0, 124), Vector3.new(0, 0, -124) }
+local POND_RADIUS = 15
+
+local function nearPond(x: number, z: number, margin: number): boolean
+	for _, pond in PONDS do
+		local dx, dz = x - pond.X, z - pond.Z
+		if dx * dx + dz * dz < (POND_RADIUS + 8 + margin) ^ 2 then
+			return true
+		end
+	end
+	return false
+end
+
+-- area livre para enfeites (fora da rua, dos jardins, das lojas, da praca e dos lagos)
 local function isFree(x: number, z: number, margin: number): boolean
 	local L = MapBuilder.Layout
 	if math.abs(x) > 200 or math.abs(z) > 150 then
+		return false
+	end
+	if nearPond(x, z, margin) then
 		return false
 	end
 	if math.abs(z) < 23 + margin and math.abs(x) < 190 then
@@ -4728,6 +4249,91 @@ local function randomFreeSpot(rng: Random, margin: number): Vector3?
 end
 
 ---------------------------------------------------------------------
+-- Terreno (grama de verdade, morros e lagos)
+---------------------------------------------------------------------
+
+-- Usa o terreno do Roblox: grama com folhinhas (Terrain > Decoration, ja ligado no arquivo
+-- do lugar), morros suaves e lagos com agua. Sem terreno, usa uma peca de grama.
+local function buildTerrain(map: Instance, rng: Random): Terrain?
+	local terrain = workspace:FindFirstChildOfClass("Terrain")
+	if not terrain then
+		part(map, "Chao", Vector3.new(900, 2, 800), CFrame.new(0, -1, 0), Color3.fromRGB(95, 170, 70), Enum.Material.Grass)
+		return nil
+	end
+	terrain:SetMaterialColor(Enum.Material.Grass, Color3.fromRGB(106, 178, 72))
+	terrain:SetMaterialColor(Enum.Material.LeafyGrass, Color3.fromRGB(88, 158, 62))
+	terrain:SetMaterialColor(Enum.Material.Sand, Color3.fromRGB(226, 206, 156))
+	terrain:SetMaterialColor(Enum.Material.Ground, Color3.fromRGB(122, 88, 58))
+	terrain:SetMaterialColor(Enum.Material.Rock, Color3.fromRGB(150, 146, 140))
+	terrain.WaterColor = Color3.fromRGB(55, 165, 205)
+	terrain.WaterTransparency = 0.55
+	terrain.WaterReflectance = 0.35
+	terrain.WaterWaveSize = 0.08
+	terrain.WaterWaveSpeed = 8
+	-- chao: o topo fica exatamente em y = 0
+	terrain:FillBlock(CFrame.new(0, -8, 0), Vector3.new(900, 16, 800), Enum.Material.Grass)
+	-- morros no horizonte (fora da area de jogo)
+	for i = 1, 26 do
+		local angle = i * math.pi * 2 / 26 + rng:NextNumber(-0.08, 0.08)
+		local distance = rng:NextNumber(280, 350)
+		local radius = rng:NextNumber(45, 80)
+		local center = Vector3.new(math.cos(angle) * distance * 1.2, -radius * 0.45, math.sin(angle) * distance)
+		terrain:FillBall(center, radius, if i % 3 == 0 then Enum.Material.LeafyGrass else Enum.Material.Grass)
+		if i % 4 == 0 then -- pedras aparecendo no morro
+			terrain:FillBall(center + Vector3.new(radius * 0.3, radius * 0.4, 0), radius * 0.25, Enum.Material.Rock)
+		end
+	end
+	-- lagos cheios (agua no nivel do chao) com margem de areia
+	for _, pond in PONDS do
+		terrain:FillCylinder(CFrame.new(pond + Vector3.new(0, -1, 0)), 2, POND_RADIUS + 5, Enum.Material.Sand)
+		terrain:FillCylinder(CFrame.new(pond + Vector3.new(0, -3, 0)), 6, POND_RADIUS, Enum.Material.Water)
+	end
+	return terrain
+end
+
+-- enfeites do lago: vitorias-regias, taboas, pedras e um deque de madeira
+local function buildPondDecor(parent: Instance, center: Vector3, rng: Random)
+	local pond = Instance.new("Model")
+	pond.Name = "Lago"
+	for i = 1, 9 do
+		local angle = rng:NextNumber(0, math.pi * 2)
+		local radius = rng:NextNumber(3, POND_RADIUS - 3)
+		local position = center + Vector3.new(math.cos(angle) * radius, 0.06, math.sin(angle) * radius)
+		local size = rng:NextNumber(1.6, 2.6)
+		cylinderPart(pond, "VitoriaRegia", 0.08, size, CFrame.new(position), Color3.fromRGB(70, 160, 70))
+		if i % 3 == 0 then
+			ball(pond, "Flor", Vector3.new(0.6, 0.45, 0.6), CFrame.new(position + Vector3.new(0.2, 0.25, 0.1)), Color3.fromRGB(255, 160, 200))
+		end
+	end
+	for i = 1, 16 do
+		local angle = i * math.pi * 2 / 16 + rng:NextNumber(-0.15, 0.15)
+		local radius = POND_RADIUS + rng:NextNumber(-0.5, 1.5)
+		local position = center + Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
+		if i % 2 == 0 then -- taboas
+			for j = 1, 3 do
+				local offset = Vector3.new(rng:NextNumber(-0.6, 0.6), 0, rng:NextNumber(-0.6, 0.6))
+				local height = rng:NextNumber(2.2, 3.4)
+				decor(pond, "Taboa", Vector3.new(0.12, height, 0.12), CFrame.new(position + offset + Vector3.new(0, height / 2, 0)), Color3.fromRGB(80, 150, 60))
+				decor(pond, "Espiga", Vector3.new(0.3, 0.7, 0.3), CFrame.new(position + offset + Vector3.new(0, height - 0.2, 0)), Color3.fromRGB(120, 80, 45))
+			end
+		else
+			local size = rng:NextNumber(1, 2.2)
+			ball(pond, "Pedra", Vector3.new(size * 1.4, size * 0.7, size), CFrame.new(position + Vector3.new(0, 0.15, 0)), Color3.fromRGB(150, 148, 140), Enum.Material.Slate)
+		end
+	end
+	-- deque de madeira entrando no lago (virado para o jardim)
+	local towardGarden = if center.Z > 0 then -1 else 1
+	for i = 0, 4 do
+		local z = center.Z + towardGarden * (POND_RADIUS + 3 - i * 2)
+		decor(pond, "Tabua", Vector3.new(4, 0.3, 1.8), CFrame.new(center.X + 4, 0.35, z), WOOD_LIGHT, Enum.Material.WoodPlanks).CanCollide = true
+		for _, x in { -1.8, 1.8 } do
+			decor(pond, "Estaca", Vector3.new(0.35, 2.4, 0.35), CFrame.new(center.X + 4 + x, -0.8, z), WOOD_DARK, Enum.Material.Wood)
+		end
+	end
+	pond.Parent = parent
+end
+
+---------------------------------------------------------------------
 -- Construcao completa
 ---------------------------------------------------------------------
 
@@ -4742,7 +4348,7 @@ function MapBuilder.build()
 
 	setupLighting()
 
-	part(map, "Chao", Vector3.new(900, 2, 800), CFrame.new(0, -1, 0), Color3.fromRGB(95, 170, 70), Enum.Material.Grass)
+	local terrain = buildTerrain(map, rng)
 	part(map, "Rua", Vector3.new(360, 0.2, 40), CFrame.new(0, 0, 0), Color3.fromRGB(220, 200, 150), Enum.Material.Sand)
 	-- meio-fio de pedra (com aberturas nas entradas dos jardins)
 	for _, z in { -20.3, 20.3 } do
@@ -4776,6 +4382,15 @@ function MapBuilder.build()
 		local rotation = if row == 1 then 0 else math.pi
 		for _, x in L.columns do
 			table.insert(plots, buildPlot(#plots + 1, Vector3.new(x, 0, z), rotation, map, rng))
+		end
+	end
+
+	if terrain then
+		for _, plot in plots do
+			local base = plot.model:FindFirstChild("Base")
+			if base and base:IsA("BasePart") then
+				base.Transparency = 1
+			end
 		end
 	end
 
@@ -4820,19 +4435,6 @@ function MapBuilder.build()
 				outfit = "vest", outfitColor = Color3.fromRGB(250, 130, 40),
 			},
 		},
-		{
-			id = "Eggs", title = "Ovos & Pets", icon = "🥚", npc = "Eloise", action = "Comprar ovos",
-			position = Vector3.new(40, 0, -30), rotation = math.pi,
-			roofA = Color3.fromRGB(200, 90, 200), roofB = Color3.fromRGB(240, 240, 230),
-			goods = { Color3.fromRGB(240, 235, 220), Color3.fromRGB(150, 230, 140), Color3.fromRGB(120, 170, 255), Color3.fromRGB(255, 215, 70) },
-			look = {
-				tagColor = Color3.fromRGB(230, 140, 255),
-				skin = Color3.fromRGB(255, 215, 185), hair = Color3.fromRGB(250, 140, 190), hairStyle = "long",
-				hat = "bow", hatColor = Color3.fromRGB(255, 255, 255),
-				shirt = Color3.fromRGB(250, 240, 250), sleeves = Color3.fromRGB(170, 90, 210), pants = Color3.fromRGB(170, 90, 210), shoes = Color3.fromRGB(250, 250, 250),
-				outfit = "dress", outfitColor = Color3.fromRGB(170, 90, 210),
-			},
-		},
 	}
 	local locations = {}
 	local shopPositions = {}
@@ -4841,6 +4443,7 @@ function MapBuilder.build()
 		shopPositions[info.id] = info.position
 	end
 	locations.Spawn = CFrame.new(0, 3, -12)
+	buildGreenhouse(map, Vector3.new(40, 0, -30), math.pi, rng)
 
 	-- decoracao
 	local decorFolder = Instance.new("Folder")
@@ -4865,8 +4468,19 @@ function MapBuilder.build()
 	end
 	-- arvores na borda do mapa e entre os jardins
 	for x = -180, 180, 30 do
-		buildTree(decorFolder, Vector3.new(x + (x % 20), 0, 115 + (x % 3) * 4), 1 + (x % 7) / 10, rng)
-		buildTree(decorFolder, Vector3.new(x - (x % 20), 0, -115 - (x % 3) * 4), 1 + (x % 5) / 10, rng)
+		local north = Vector3.new(x + (x % 20), 0, 115 + (x % 3) * 4)
+		local south = Vector3.new(x - (x % 20), 0, -115 - (x % 3) * 4)
+		if not (terrain and nearPond(north.X, north.Z, 2)) then
+			buildTree(decorFolder, north, 1 + (x % 7) / 10, rng)
+		end
+		if not (terrain and nearPond(south.X, south.Z, 2)) then
+			buildTree(decorFolder, south, 1 + (x % 5) / 10, rng)
+		end
+	end
+	if terrain then
+		for _, pond in PONDS do
+			buildPondDecor(decorFolder, pond, rng)
+		end
 	end
 	for _, x in { -150, -130, 130, 150 } do
 		for _, z in { -60, -30, 30, 60 } do
@@ -4909,8 +4523,8 @@ function MapBuilder.build()
 			buildRock(decorFolder, spot, rng)
 		end
 	end
-	-- morros no horizonte (fora da area de jogo)
-	for i = 1, 26 do
+	-- morros no horizonte (fora da area de jogo); com terreno eles sao feitos de terreno
+	for i = 1, if terrain then 0 else 26 do
 		local angle = i * math.pi * 2 / 26 + rng:NextNumber(-0.08, 0.08)
 		local distance = rng:NextNumber(270, 340)
 		local width = rng:NextNumber(90, 150)
@@ -4947,157 +4561,7 @@ return MapBuilder
 ]]></ProtectedString>
 				</Properties>
 			</Item>
-			<Item class="ModuleScript" referent="RBX0000000D">
-				<Properties>
-					<string name="Name">PetService</string>
-					<ProtectedString name="Source"><![CDATA[-- PetService: pets chocados dos ovos, equipar/desequipar, variantes e niveis.
--- Os pets ganham XP enquanto estao equipados e ficam mais fortes a cada nivel.
-
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Config = require(Shared:WaitForChild("Config"))
-local Formulas = require(Shared:WaitForChild("Formulas"))
-local DataService = require(script.Parent.DataService)
-local Sync = require(script.Parent.Sync)
-
-local PetService = {}
-
-local listeners: { (Player) -> () } = {}
-
--- Avisa outros servicos quando os pets equipados mudam
-function PetService.onChanged(callback: (Player) -> ())
-	table.insert(listeners, callback)
-end
-
-local function changed(player: Player)
-	for _, callback in listeners do
-		callback(player)
-	end
-end
-
-function PetService.getBonuses(data)
-	return Formulas.petBonuses(data.pets, data.equippedPets)
-end
-
--- Atributo lido pelos clientes para desenhar os pets seguindo o jogador
--- formato: "Dog:Big:12,Cat::3" (id, variante, nivel)
-function PetService.updateAttribute(player: Player, data)
-	local entries = {}
-	for _, pet in data.pets do
-		if table.find(data.equippedPets, pet.id) then
-			table.insert(entries, string.format("%s:%s:%d", pet.p, pet.v or "", Formulas.petLevel(pet.xp)))
-		end
-	end
-	player:SetAttribute("EquippedPets", table.concat(entries, ","))
-end
-
--- Remove ids de pets equipados que nao existem mais
-local function cleanEquipped(data)
-	for i = #data.equippedPets, 1, -1 do
-		local id = data.equippedPets[i]
-		local exists = false
-		for _, pet in data.pets do
-			if pet.id == id then
-				exists = true
-				break
-			end
-		end
-		if not exists or i > Config.MaxPetsEquipped then
-			table.remove(data.equippedPets, i)
-		end
-	end
-end
-
-function PetService.setup(player: Player, data)
-	cleanEquipped(data)
-	PetService.updateAttribute(player, data)
-end
-
-function PetService.addPet(player: Player, data, petId: string, variantId: string?)
-	local pet = { id = data.nextId, p = petId, v = variantId, xp = 0 }
-	data.nextId += 1
-	table.insert(data.pets, pet)
-	if #data.equippedPets < Config.MaxPetsEquipped then
-		table.insert(data.equippedPets, pet.id)
-	end
-	PetService.updateAttribute(player, data)
-	Sync.markDirty(player)
-	changed(player)
-	return pet
-end
-
--- XP para os pets equipados (chamado a cada meio segundo)
-function PetService.addXp(player: Player, data, dt: number)
-	local leveled = false
-	for _, pet in data.pets do
-		if table.find(data.equippedPets, pet.id) then
-			local before = Formulas.petLevel(pet.xp)
-			pet.xp = (pet.xp or 0) + dt
-			local after = Formulas.petLevel(pet.xp)
-			if after > before then
-				leveled = true
-				Sync.notify(player, string.format("⬆️ %s subiu para o nível %d!", Formulas.petName(pet), after), "success")
-			end
-		end
-	end
-	if leveled then
-		PetService.updateAttribute(player, data)
-		Sync.markDirty(player)
-		changed(player)
-	end
-end
-
-function PetService.handleAction(player: Player, action: any, petUid: any): (boolean, string)
-	local data = DataService.get(player)
-	if not data then
-		return false, "Seus dados ainda estão carregando."
-	end
-	if type(action) ~= "string" or type(petUid) ~= "number" then
-		return false, "Pedido inválido."
-	end
-	local pet = nil
-	for _, candidate in data.pets do
-		if candidate.id == petUid then
-			pet = candidate
-			break
-		end
-	end
-	if not pet then
-		return false, "Pet não encontrado."
-	end
-	local name = Formulas.petName(pet)
-	local equippedIndex = table.find(data.equippedPets, pet.id)
-	if action == "equip" then
-		if equippedIndex then
-			return false, "Esse pet já está equipado."
-		end
-		if #data.equippedPets >= Config.MaxPetsEquipped then
-			return false, string.format("Você só pode equipar %d pets.", Config.MaxPetsEquipped)
-		end
-		table.insert(data.equippedPets, pet.id)
-		PetService.updateAttribute(player, data)
-		Sync.markDirty(player)
-		changed(player)
-		return true, name .. " equipado!"
-	elseif action == "unequip" then
-		if not equippedIndex then
-			return false, "Esse pet não está equipado."
-		end
-		table.remove(data.equippedPets, equippedIndex)
-		PetService.updateAttribute(player, data)
-		Sync.markDirty(player)
-		changed(player)
-		return true, name .. " guardado."
-	end
-	return false, "Ação desconhecida."
-end
-
-return PetService
-]]></ProtectedString>
-				</Properties>
-			</Item>
-			<Item class="ModuleScript" referent="RBX0000000E">
+			<Item class="ModuleScript" referent="RBX0000000F">
 				<Properties>
 					<string name="Name">QuestService</string>
 					<ProtectedString name="Source"><![CDATA[-- QuestService: missoes diarias (3 por dia, trocam a meia-noite UTC).
@@ -5222,7 +4686,7 @@ return QuestService
 ]]></ProtectedString>
 				</Properties>
 			</Item>
-			<Item class="ModuleScript" referent="RBX0000000F">
+			<Item class="ModuleScript" referent="RBX00000010">
 				<Properties>
 					<string name="Name">Remotes</string>
 					<ProtectedString name="Source"><![CDATA[-- Remotes: cria os RemoteEvents/RemoteFunctions usados entre cliente e servidor.
@@ -5256,7 +4720,6 @@ Remotes.Teleport = make("RemoteEvent", "Teleport") :: RemoteEvent
 Remotes.RequestState = make("RemoteEvent", "RequestState") :: RemoteEvent
 Remotes.Buy = make("RemoteFunction", "Buy") :: RemoteFunction
 Remotes.Sell = make("RemoteFunction", "Sell") :: RemoteFunction
-Remotes.PetAction = make("RemoteFunction", "PetAction") :: RemoteFunction
 Remotes.QuestAction = make("RemoteFunction", "QuestAction") :: RemoteFunction
 
 folder.Parent = ReplicatedStorage
@@ -5265,10 +4728,10 @@ return Remotes
 ]]></ProtectedString>
 				</Properties>
 			</Item>
-			<Item class="ModuleScript" referent="RBX00000010">
+			<Item class="ModuleScript" referent="RBX00000011">
 				<Properties>
 					<string name="Name">ShopService</string>
-					<ProtectedString name="Source"><![CDATA[-- ShopService: lojas de sementes, equipamentos e ovos, venda de frutos
+					<ProtectedString name="Source"><![CDATA[-- ShopService: lojas de sementes e equipamentos, venda de frutos
 -- e reabastecimento a cada 5 minutos (estoque igual para todos os servidores).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -5287,7 +4750,6 @@ local shopPositions: { [string]: Vector3 } = {}
 local CATEGORIES = {
 	Seeds = { items = Config.Seeds, stockKey = "seeds", shop = "Seeds" },
 	Gear = { items = Config.Gear, stockKey = "gear", shop = "Gear" },
-	Eggs = { items = Config.Eggs, stockKey = "eggs", shop = "Eggs" },
 }
 
 local function currentWindow(): number
@@ -5307,7 +4769,6 @@ function ShopService.ensureStock(data): boolean
 	data.stock.window = window
 	data.stock.seeds = Formulas.rollStock(Config.SeedList, window, 1)
 	data.stock.gear = Formulas.rollStock(Config.GearList, window, 2)
-	data.stock.eggs = Formulas.rollStock(Config.EggList, window, 3)
 	return true
 end
 
@@ -5356,11 +4817,9 @@ function ShopService.buy(player: Player, category: any, itemId: any): (boolean, 
 	stockList[itemId] = stock - 1
 	if category == "Seeds" then
 		data.seeds[itemId] = (data.seeds[itemId] or 0) + 1
-	elseif category == "Gear" then
+	else
 		local amount = if item.kind == "water" then item.uses else 1
 		data.gear[itemId] = (data.gear[itemId] or 0) + amount
-	else
-		data.eggs[itemId] = (data.eggs[itemId] or 0) + 1
 	end
 	Sync.markDirty(player)
 	return true, "Você comprou " .. item.name .. "!"
@@ -5376,7 +4835,6 @@ function ShopService.sell(player: Player, mode: any, index: any, seedId: any, we
 	if not isNear(player, "Sell") then
 		return false, "Vá até a barraca de Venda do Steven!"
 	end
-	local bonuses = Formulas.petBonuses(data.pets, data.equippedPets)
 	if mode == "all" then
 		local count = #data.fruits
 		if count == 0 then
@@ -5384,7 +4842,7 @@ function ShopService.sell(player: Player, mode: any, index: any, seedId: any, we
 		end
 		local total = 0
 		for _, fruit in data.fruits do
-			total += Formulas.fruitValue(fruit.s, fruit.w, fruit.m, bonuses.Sell, fruit.v)
+			total += Formulas.fruitValue(fruit.s, fruit.w, fruit.m, fruit.v)
 		end
 		table.clear(data.fruits)
 		data.sheckles += total
@@ -5401,7 +4859,7 @@ function ShopService.sell(player: Player, mode: any, index: any, seedId: any, we
 		if not fruit or fruit.s ~= seedId or fruit.w ~= weight then
 			return false, "Fruto não encontrado. Tente de novo."
 		end
-		local value = Formulas.fruitValue(fruit.s, fruit.w, fruit.m, bonuses.Sell, fruit.v)
+		local value = Formulas.fruitValue(fruit.s, fruit.w, fruit.m, fruit.v)
 		table.remove(data.fruits, index)
 		data.sheckles += value
 		data.stats.earned += value
@@ -5447,7 +4905,7 @@ return ShopService
 ]]></ProtectedString>
 				</Properties>
 			</Item>
-			<Item class="ModuleScript" referent="RBX00000011">
+			<Item class="ModuleScript" referent="RBX00000012">
 				<Properties>
 					<string name="Name">StealService</string>
 					<ProtectedString name="Source"><![CDATA[-- StealService: roubo a noite (novidade do GAG2) e todas as defesas.
@@ -5459,7 +4917,7 @@ return ShopService
 --     e precisa leva-lo ate o PROPRIO jardim para ficar com ele.
 --   * Se morrer, for atingido por certas defesas, levar uma "pazada" do dono,
 --     sair do jogo ou demorar demais, o fruto volta para o dono.
---   * Plantas de defesa e pets guardas atacam intrusos a noite.
+--   * Plantas de defesa atacam intrusos a noite.
 --   * Cogumelos: velocidade, pulo e invisibilidade (defesas nao veem, exceto perto de lanternas).
 
 local Players = game:GetService("Players")
@@ -5775,9 +5233,8 @@ local function updateMovement(player: Player)
 	if not humanoid then
 		return
 	end
-	local bonuses = GardenService.bonuses(player)
-	local speed = Config.BaseWalkSpeed + (if bonuses then bonuses.Speed else 0)
-	local jump = Config.BaseJumpHeight + (if bonuses then bonuses.Jump else 0)
+	local speed = Config.BaseWalkSpeed
+	local jump = Config.BaseJumpHeight
 	if effectActive(player, "speed") then
 		speed += Config.Gear.SpeedMushroom.amount
 	end
@@ -5838,7 +5295,7 @@ local function hit(intruder: Player, garden, kind: string, amount: number?, sour
 		return
 	end
 	if from then
-		local color = if kind == "dragon" then Color3.fromRGB(255, 100, 20) elseif kind == "sniper" then Color3.fromRGB(225, 30, 55) else Color3.fromRGB(130, 230, 50)
+		local color = if kind == "dragon" then Color3.fromRGB(255, 100, 20) else Color3.fromRGB(130, 230, 50)
 		Visuals.projectile(from, root.Position, color)
 	end
 	if amount and amount > 0 then
@@ -5846,9 +5303,7 @@ local function hit(intruder: Player, garden, kind: string, amount: number?, sour
 	end
 	if kind == "poison" then
 		setEffect(intruder, "slow", 3)
-	elseif kind == "stun" then
-		setEffect(intruder, "stun", S.stunTime)
-	elseif kind == "hypno" or kind == "launch" or kind == "eject" then
+	elseif kind == "hypno" then
 		setEffect(intruder, "stun", 1.5)
 		Visuals.ring(root.Position, Color3.fromRGB(200, 90, 255), 5)
 		if carriers[intruder] then
@@ -5866,15 +5321,12 @@ local function hit(intruder: Player, garden, kind: string, amount: number?, sour
 	end
 end
 
-local GUARD_KINDS = { GuardStun = "stun", GuardSting = "sting", GuardLaunch = "launch", GuardEject = "eject" }
-
 -- Defesas do jardim contra intrusos (so a noite)
 local function defendGarden(garden)
 	if not garden.player.Parent then
 		return
 	end
 	local defenses = GardenService.defenses(garden)
-	local bonuses = GardenService.bonuses(garden.player)
 	for _, intruder in Players:GetPlayers() do
 		if intruder ~= garden.player then
 			local root = rootOf(intruder)
@@ -5890,18 +5342,6 @@ local function defendGarden(garden)
 								local kind = info.kind
 								local from = if kind == "ranged" or kind == "dragon" then defense.position else nil
 								hit(intruder, garden, kind, info.damage, defense.seed.name, from)
-							end
-						end
-					end
-					if bonuses then
-						for _, ability in bonuses.active do
-							local kind = GUARD_KINDS[ability.kind]
-							if kind then
-								local key = string.format("pet:%d:%d", ability.petUid, intruder.UserId)
-								if ready(key, ability.cooldown) then
-									local damage = if kind == "sting" then ability.value else nil
-									hit(intruder, garden, kind, damage, Config.Pets[ability.petId].name, nil)
-								end
 							end
 						end
 					end
@@ -5976,7 +5416,7 @@ return StealService
 ]]></ProtectedString>
 				</Properties>
 			</Item>
-			<Item class="ModuleScript" referent="RBX00000012">
+			<Item class="ModuleScript" referent="RBX00000013">
 				<Properties>
 					<string name="Name">Sync</string>
 					<ProtectedString name="Source"><![CDATA[-- Sync: envia o estado do jogador para a interface e mostra notificacoes.
@@ -6017,7 +5457,6 @@ function Sync.notifyAll(text: string, kind: string?)
 end
 
 local function buildSnapshot(player: Player, data)
-	local bonuses = Formulas.petBonuses(data.pets, data.equippedPets)
 	local fruits = {}
 	for index, fruit in data.fruits do
 		table.insert(fruits, {
@@ -6027,47 +5466,16 @@ local function buildSnapshot(player: Player, data)
 			m = fruit.m,
 			v = fruit.v,
 			sz = Formulas.sizeClass(fruit.s, fruit.w),
-			val = Formulas.fruitValue(fruit.s, fruit.w, fruit.m, bonuses.Sell, fruit.v),
-		})
-	end
-	local pets = {}
-	for _, pet in data.pets do
-		local info = Config.Pets[pet.p]
-		local strength = Formulas.petStrength(pet)
-		local level = Formulas.petLevel(pet.xp)
-		local abilities = {}
-		for _, ability in info.abilities do
-			table.insert(abilities, Formulas.abilityText(ability, strength))
-		end
-		table.insert(pets, {
-			id = pet.id,
-			p = pet.p,
-			v = pet.v or "",
-			lvl = level,
-			xp = math.floor(pet.xp or 0),
-			nextXp = if level < Config.PetMaxLevel then Formulas.petXpForLevel(level + 1) else 0,
-			ab = abilities,
-			eq = table.find(data.equippedPets, pet.id) ~= nil,
+			val = Formulas.fruitValue(fruit.s, fruit.w, fruit.m, fruit.v),
 		})
 	end
 	local snapshot = {
 		sheckles = data.sheckles,
 		seeds = data.seeds,
 		gear = data.gear,
-		eggs = data.eggs,
 		fruits = fruits,
-		capacity = Config.MaxFruitsInInventory + math.max(0, bonuses.Inventory),
-		pets = pets,
-		bonuses = {
-			Growth = bonuses.Growth,
-			Sell = bonuses.Sell,
-			Luck = bonuses.Luck,
-			NightLuck = bonuses.NightLuck,
-			Gold = bonuses.Gold,
-			Rainbow = bonuses.Rainbow,
-			Size = bonuses.Size,
-		},
-		stock = { seeds = data.stock.seeds, gear = data.stock.gear, eggs = data.stock.eggs },
+		capacity = Config.MaxFruitsInInventory,
+		stock = { seeds = data.stock.seeds, gear = data.stock.gear },
 		restockAt = (data.stock.window + 1) * Config.RestockInterval,
 		plantCount = #data.plants,
 		stats = data.stats,
@@ -6117,17 +5525,16 @@ return Sync
 ]]></ProtectedString>
 				</Properties>
 			</Item>
-			<Item class="ModuleScript" referent="RBX00000013">
+			<Item class="ModuleScript" referent="RBX00000014">
 				<Properties>
 					<string name="Name">Visuals</string>
-					<ProtectedString name="Source"><![CDATA[-- Visuals: constroi os modelos 3D de plantas, brotos, frutos, sprinklers, ovos,
+					<ProtectedString name="Source"><![CDATA[-- Visuals: constroi os modelos 3D de plantas, brotos, frutos, sprinklers,
 -- lanternas, gnomos e os efeitos (raios, meteoros, estrelas, tornado, tiros das defesas).
 --
 -- Modelos feitos no Blender: importe-os para ReplicatedStorage/Modelos com os nomes
 --   Planta_<IdDaSemente>  (ex.: Planta_Carrot)  -> corpo da planta
 --   Fruto_<IdDaSemente>   (ex.: Fruto_Apple)    -> fruto de plantas de varias colheitas
 --   Sprinkler_<IdDoItem>  (ex.: Sprinkler_CommonSprinkler)
---   Ovo_<IdDoOvo>         (ex.: Ovo_CommonEgg)
 --   Gnomo, Lanterna
 -- Se o modelo nao existir, o jogo cria um modelo com Parts automaticamente.
 -- Partes cujo nome contem "Produto" mudam de cor com as mutacoes e ao amadurecer.
@@ -7085,7 +6492,7 @@ function Visuals.applyMutations(parts: { BasePart }, mutations: { string })
 end
 
 ---------------------------------------------------------------------
--- Sprinklers, ovos, lanternas e gnomos
+-- Sprinklers, lanternas e gnomos
 ---------------------------------------------------------------------
 
 function Visuals.buildSprinkler(gear): Model
@@ -7147,22 +6554,6 @@ local function infoLabel(model: Model, text: string, height: number): TextLabel
 	label.Parent = gui
 	gui.Parent = model
 	return label
-end
-
-function Visuals.buildEgg(egg): (Model, TextLabel)
-	local model = fromLibrary("Ovo_" .. egg.id, 2, true, true)
-	if not model then
-		model = Instance.new("Model")
-		local shell = sphere(model, "Casca", Vector3.new(1.6, 2, 1.6), CFrame.new(0, 1, 0), egg.color)
-		for i = 1, 4 do
-			local cf = CFrame.new(0, 1, 0) * CFrame.Angles(0, i * math.pi / 2, 0) * CFrame.Angles(math.rad(20 * (i % 2)), 0, 0) * CFrame.new(0, 0.1, 0.72)
-			sphere(model, "Pinta", Vector3.new(0.4, 0.4, 0.15), cf, egg.color:Lerp(Color3.new(0, 0, 0), 0.25))
-		end
-		model.PrimaryPart = shell
-		model.WorldPivot = CFrame.new()
-	end
-	model.Name = egg.name
-	return model, infoLabel(model, egg.name, 3)
 end
 
 function Visuals.buildLantern(gear): Model
@@ -7348,7 +6739,7 @@ return Visuals
 ]]></ProtectedString>
 				</Properties>
 			</Item>
-			<Item class="ModuleScript" referent="RBX00000014">
+			<Item class="ModuleScript" referent="RBX00000015">
 				<Properties>
 					<string name="Name">WeatherService</string>
 					<ProtectedString name="Source"><![CDATA[-- WeatherService: eventos de clima.
@@ -7554,15 +6945,15 @@ return WeatherService
 			</Item>
 		</Item>
 	</Item>
-	<Item class="StarterPlayer" referent="RBX00000015">
+	<Item class="StarterPlayer" referent="RBX00000016">
 		<Properties>
 			<string name="Name">StarterPlayer</string>
 		</Properties>
-		<Item class="StarterPlayerScripts" referent="RBX00000016">
+		<Item class="StarterPlayerScripts" referent="RBX00000017">
 			<Properties>
 				<string name="Name">StarterPlayerScripts</string>
 			</Properties>
-			<Item class="LocalScript" referent="RBX00000017">
+			<Item class="LocalScript" referent="RBX00000018">
 				<Properties>
 					<string name="Name">GardenClient</string>
 					<ProtectedString name="Source"><![CDATA[-- GardenClient: script principal do jogador.
@@ -7584,7 +6975,6 @@ local remotes = {
 	RequestState = remotesFolder:WaitForChild("RequestState") :: RemoteEvent,
 	Buy = remotesFolder:WaitForChild("Buy") :: RemoteFunction,
 	Sell = remotesFolder:WaitForChild("Sell") :: RemoteFunction,
-	PetAction = remotesFolder:WaitForChild("PetAction") :: RemoteFunction,
 	QuestAction = remotesFolder:WaitForChild("QuestAction") :: RemoteFunction,
 }
 
@@ -7660,15 +7050,14 @@ end
 remotes.RequestState:FireServer()
 ]]></ProtectedString>
 				</Properties>
-				<Item class="ModuleScript" referent="RBX00000018">
+				<Item class="ModuleScript" referent="RBX00000019">
 					<Properties>
 						<string name="Name">Effects</string>
 						<ProtectedString name="Source"><![CDATA[-- Effects: efeitos visuais so do cliente.
---  * frutos e pets Arco-iris trocando de cor
+--  * frutos Arco-iris trocando de cor
 --  * chuva, neve, areia, chocolate, raios
 --  * luas, aurora, arco-iris e eclipse no ceu
 --  * botoes "Colher" (seu jardim) e "Roubar" (jardins alheios, a noite)
---  * pets seguindo os jogadores
 --  * NPCs das lojas animados e falando
 --  * dica ao passar o mouse nas plantas
 
@@ -7862,403 +7251,6 @@ local function startWeather()
 end
 
 ---------------------------------------------------------------------
--- Pets
----------------------------------------------------------------------
-
-local PET_OFFSETS = {
-	Vector3.new(-2.8, 0, 3),
-	Vector3.new(2.8, 0, 3),
-	Vector3.new(0, 0, 5),
-}
-
--- Detalhes de cada bicho (orelhas, focinho, asas, rabo...)
-local PET_LOOKS = {
-	Frog = { eyes = "top", ears = "none", nose = "none", mouth = true, tail = "none" },
-	Bunny = { ears = "long", tail = "puff", cheeks = true },
-	Cat = { ears = "pointy", tail = "thin", cheeks = true, whiskers = true },
-	Owl = { eyes = "big", ears = "tufts", nose = "beak", tail = "feather", wings = "folded", feet = "bird" },
-	Dog = { ears = "floppy", nose = "muzzle", tail = "wag", cheeks = true },
-	Chicken = { ears = "none", nose = "beak", comb = true, tail = "feather", wings = "folded", feet = "bird" },
-	Deer = { ears = "small", antlers = true, tail = "puff", spots = true },
-	Turtle = { ears = "none", shell = true, tail = "small" },
-	Pig = { ears = "small", nose = "snout", tail = "curly", cheeks = true },
-	Robin = { ears = "none", nose = "beak", tail = "feather", wings = "folded", chest = true, feet = "bird" },
-	Bee = { ears = "none", nose = "none", stripes = true, antennae = true, wings = "insect", tail = "stinger", feet = "none" },
-	Butterfly = { ears = "none", nose = "none", antennae = true, wings = "butterfly", tail = "none", slim = true, feet = "none" },
-	Monkey = { ears = "side", face = true, tail = "curly", cheeks = true },
-	Bear = { ears = "round", nose = "muzzle", tail = "puff" },
-	Unicorn = { ears = "pointy", horn = true, mane = true, tail = "mane" },
-	GoldenDragonfly = { ears = "none", nose = "none", eyes = "big", wings = "dragonfly", tail = "long", slim = true, feet = "none" },
-	Firefly = { ears = "none", nose = "none", antennae = true, wings = "insect", glow = true, tail = "none", feet = "none" },
-	BaldEagle = { ears = "none", nose = "beak", wings = "folded", tail = "feather", whiteHead = true, feet = "bird" },
-	Dragon = { ears = "none", horns = true, spikes = true, wings = "bat", tail = "dragon" },
-	Phoenix = { ears = "none", nose = "beak", crest = true, wings = "flame", tail = "flame", feet = "bird" },
-	Raccoon = { ears = "pointy", mask = true, tail = "striped", cheeks = true },
-	Kitsune = { ears = "pointy", tail = "kitsune", cheeks = true },
-}
-
-local function buildPet(info, variant, level: number): Model
-	local model = Instance.new("Model")
-	model.Name = info.name
-	local s = info.size * variant.scale
-	local look = PET_LOOKS[info.id] or {}
-	local color, accent = info.color, info.accent
-	local light = color:Lerp(Color3.new(1, 1, 1), 0.45)
-	local dark = Color3.fromRGB(25, 25, 30)
-	local white = Color3.new(1, 1, 1)
-	local orange = Color3.fromRGB(255, 175, 40)
-	local function add(name: string, size: Vector3, x: number, y: number, z: number, partColor: Color3, sphere: boolean, rotation: CFrame?): Part
-		local cf = CFrame.new(x * s, y * s, z * s)
-		if rotation then
-			cf *= rotation
-		end
-		return localPart(model, name, size * s, cf, partColor, sphere)
-	end
-	local function neon(piece: Part): Part
-		piece.Material = Enum.Material.Neon
-		return piece
-	end
-
-	-- corpo e cabeca
-	local body = add("Corpo", if look.slim then Vector3.new(0.7, 0.7, 1.5) else Vector3.new(1.4, 1.1, 1.6), 0, 0, 0, color, true)
-	if not look.slim then
-		add("Barriga", Vector3.new(1, 0.75, 1.1), 0, -0.2, -0.15, if look.chest then accent else light, true)
-	end
-	local head = add("Cabeca", Vector3.new(1.15, 1.1, 1.1), 0, 0.6, -0.85, if look.whiteHead then white else color, true)
-
-	-- olhos (branco + pupila + brilho)
-	local eyeScale = if look.eyes == "big" then 1.45 else 1
-	local eyeY, eyeZ, eyeX = 0.72, -1.33, 0.24
-	if look.eyes == "top" then
-		eyeY, eyeZ, eyeX = 1.12, -1.0, 0.3
-	end
-	for _, side in { -1, 1 } do
-		local x = side * eyeX
-		if look.eyes == "big" and look.nose == "beak" then
-			add("Aro", Vector3.new(0.5, 0.52, 0.08), x, eyeY, eyeZ + 0.04, accent, true)
-		end
-		add("Olho", Vector3.new(0.3, 0.34, 0.14) * eyeScale, x, eyeY, eyeZ, white, true)
-		add("Pupila", Vector3.new(0.17, 0.22, 0.08) * eyeScale, x, eyeY - 0.02, eyeZ - 0.06 * eyeScale, dark, true)
-		add("BrilhoOlho", Vector3.new(0.06, 0.07, 0.04) * eyeScale, x + 0.04, eyeY + 0.05, eyeZ - 0.1 * eyeScale, white, true)
-		if look.cheeks then
-			add("Bochecha", Vector3.new(0.2, 0.11, 0.06), side * 0.38, 0.5, -1.28, Color3.fromRGB(255, 150, 160), true)
-		end
-	end
-
-	-- nariz, bico ou focinho
-	if look.nose == "beak" then
-		add("Bico", Vector3.new(0.26, 0.2, 0.44), 0, 0.52, -1.48, orange, true)
-	elseif look.nose == "snout" then
-		add("Focinho", Vector3.new(0.5, 0.38, 0.3), 0, 0.5, -1.42, light, true)
-		for _, side in { -1, 1 } do
-			add("Narina", Vector3.new(0.08, 0.12, 0.05), side * 0.1, 0.5, -1.57, dark, true)
-		end
-	elseif look.nose == "muzzle" then
-		add("Focinho", Vector3.new(0.55, 0.4, 0.4), 0, 0.46, -1.36, light, true)
-		add("Nariz", Vector3.new(0.22, 0.16, 0.12), 0, 0.55, -1.55, dark, true)
-	elseif look.nose ~= "none" then
-		add("Nariz", Vector3.new(0.2, 0.15, 0.1), 0, 0.53, -1.42, accent, true)
-	end
-	if look.mouth then
-		add("Boca", Vector3.new(0.6, 0.05, 0.05), 0, 0.42, -1.38, dark, false)
-	end
-	if look.whiskers then
-		for _, side in { -1, 1 } do
-			for i = 0, 1 do
-				add("Bigode", Vector3.new(0.4, 0.03, 0.03), side * 0.42, 0.5 - i * 0.08, -1.3, white, false, CFrame.Angles(0, 0, math.rad(side * (8 - i * 16))))
-			end
-		end
-	end
-
-	-- orelhas
-	local ears = look.ears or "pointy"
-	for _, side in { -1, 1 } do
-		local tilt = CFrame.Angles(0, 0, math.rad(-side * 18))
-		if ears == "long" then
-			local lean = CFrame.Angles(0, 0, math.rad(-side * 8))
-			add("Orelha", Vector3.new(0.24, 0.95, 0.16), side * 0.24, 1.45, -0.78, color, false, lean)
-			add("OrelhaDentro", Vector3.new(0.12, 0.7, 0.04), side * 0.24, 1.45, -0.87, Color3.fromRGB(255, 170, 190), false, lean)
-		elseif ears == "pointy" then
-			add("Orelha", Vector3.new(0.34, 0.42, 0.14), side * 0.33, 1.15, -0.8, color, false, tilt)
-			add("OrelhaDentro", Vector3.new(0.18, 0.26, 0.04), side * 0.33, 1.13, -0.88, accent, false, tilt)
-		elseif ears == "round" then
-			add("Orelha", Vector3.new(0.4, 0.4, 0.16), side * 0.44, 1.08, -0.82, color, true)
-			add("OrelhaDentro", Vector3.new(0.22, 0.22, 0.06), side * 0.44, 1.08, -0.9, light, true)
-		elseif ears == "side" then
-			add("Orelha", Vector3.new(0.16, 0.42, 0.42), side * 0.6, 0.66, -0.85, light, true)
-		elseif ears == "floppy" then
-			add("Orelha", Vector3.new(0.3, 0.62, 0.18), side * 0.58, 0.62, -0.82, accent, true, CFrame.Angles(0, 0, math.rad(side * 18)))
-		elseif ears == "small" then
-			add("Orelha", Vector3.new(0.24, 0.3, 0.12), side * 0.36, 1.1, -0.78, color, false, CFrame.Angles(0, 0, math.rad(-side * 25)))
-		elseif ears == "tufts" then
-			add("Tufo", Vector3.new(0.18, 0.4, 0.12), side * 0.36, 1.2, -0.8, accent, false, CFrame.Angles(0, 0, math.rad(-side * 20)))
-		end
-	end
-
-	-- enfeites de cada bicho
-	if look.antlers then
-		local antler = Color3.fromRGB(205, 165, 110)
-		for _, side in { -1, 1 } do
-			add("Galhada", Vector3.new(0.09, 0.62, 0.09), side * 0.3, 1.45, -0.8, antler, false, CFrame.Angles(0, 0, math.rad(-side * 22)))
-			add("Galho", Vector3.new(0.07, 0.32, 0.07), side * 0.5, 1.55, -0.8, antler, false, CFrame.Angles(0, 0, math.rad(-side * 60)))
-		end
-	end
-	if look.horn then
-		neon(add("Chifre", Vector3.new(0.15, 0.7, 0.15), 0, 1.3, -1.05, Color3.fromRGB(255, 220, 90), false, CFrame.Angles(math.rad(-25), 0, 0)))
-	end
-	if look.horns then
-		for _, side in { -1, 1 } do
-			add("Chifre", Vector3.new(0.12, 0.42, 0.12), side * 0.25, 1.2, -0.66, Color3.fromRGB(245, 235, 210), false, CFrame.Angles(math.rad(30), 0, math.rad(-side * 12)))
-		end
-	end
-	if look.mane then
-		local rainbow = { Color3.fromRGB(255, 120, 180), Color3.fromRGB(170, 120, 255), Color3.fromRGB(110, 190, 255), Color3.fromRGB(255, 210, 90) }
-		for i = 0, 3 do
-			add("Crina", Vector3.new(0.3, 0.32, 0.36), 0, 1.08 - i * 0.22, -0.55 + i * 0.25, rainbow[i + 1], true)
-		end
-	end
-	if look.comb then
-		for i = -1, 1 do
-			add("Crista", Vector3.new(0.16, 0.22, 0.16), 0, 1.2 + (if i == 0 then 0.06 else 0), -0.85 + i * 0.16, Color3.fromRGB(230, 40, 40), true)
-		end
-		add("Barbela", Vector3.new(0.14, 0.22, 0.12), 0, 0.36, -1.44, Color3.fromRGB(230, 40, 40), true)
-	end
-	if look.crest then
-		for i = -1, 1 do
-			neon(add("Pena", Vector3.new(0.1, 0.5, 0.14), i * 0.12, 1.3, -0.75, Color3.fromRGB(255, 200, 60), false, CFrame.Angles(math.rad(-20), 0, math.rad(i * 18))))
-		end
-	end
-	if look.mask then
-		add("Mascara", Vector3.new(1.02, 0.26, 0.12), 0, 0.72, -1.25, Color3.fromRGB(45, 45, 50), false)
-	end
-	if look.face then
-		add("Rosto", Vector3.new(0.8, 0.7, 0.2), 0, 0.56, -1.28, light, true)
-	end
-	if look.shell then
-		local shellColor = accent
-		add("Casco", Vector3.new(1.6, 0.95, 1.8), 0, 0.28, 0.05, shellColor, true)
-		add("BordaCasco", Vector3.new(1.72, 0.22, 1.92), 0, -0.02, 0.05, shellColor:Lerp(white, 0.25), true)
-		for i = 0, 3 do
-			local angle = i * math.pi / 2 + math.pi / 4
-			add("Placa", Vector3.new(0.45, 0.2, 0.45), math.cos(angle) * 0.4, 0.68, 0.05 + math.sin(angle) * 0.42, shellColor:Lerp(dark, 0.25), true)
-		end
-	end
-	if look.stripes then
-		for _, z in { -0.15, 0.32 } do
-			add("Listra", Vector3.new(1.44, 1.14, 0.24), 0, 0, z, dark, true)
-		end
-	end
-	if look.spots then
-		for i = 1, 4 do
-			add("Pinta", Vector3.new(0.18, 0.08, 0.18), (i % 2 == 0 and 0.3 or -0.3), 0.5, -0.3 + i * 0.18, white, true)
-		end
-	end
-	if look.spikes then
-		for i = 0, 3 do
-			add("Espinho", Vector3.new(0.26, 0.26, 0.26), 0, 0.62 - i * 0.04, -0.35 + i * 0.32, accent, false, CFrame.Angles(math.rad(45), 0, 0))
-		end
-	end
-	if look.antennae then
-		for _, side in { -1, 1 } do
-			add("Antena", Vector3.new(0.05, 0.55, 0.05), side * 0.2, 1.3, -0.92, dark, false, CFrame.Angles(math.rad(-20), 0, math.rad(-side * 20)))
-			add("PontaAntena", Vector3.new(0.13, 0.13, 0.13), side * 0.31, 1.55, -1.02, if look.glow then accent else dark, true)
-		end
-	end
-	if look.glow then
-		neon(add("Luz", Vector3.new(0.6, 0.6, 0.6), 0, 0, 0.9, accent, true))
-	end
-
-	-- asas
-	local wings = look.wings
-	for _, side in { -1, 1 } do
-		if wings == "folded" then
-			add("Asa", Vector3.new(0.25, 0.75, 1.15), side * 0.72, 0.1, 0.05, color:Lerp(dark, 0.18), true, CFrame.Angles(math.rad(10), 0, math.rad(side * 8)))
-		elseif wings == "insect" then
-			local wing = add("Asa", Vector3.new(0.9, 0.08, 0.55), side * 0.75, 0.62, 0, white, true, CFrame.Angles(0, 0, math.rad(side * 25)))
-			wing.Transparency = 0.35
-		elseif wings == "butterfly" then
-			add("Asa", Vector3.new(1.3, 0.06, 1.0), side * 0.95, 0.35, -0.2, accent, true, CFrame.Angles(0, 0, math.rad(side * 30)))
-			add("Asa", Vector3.new(0.9, 0.06, 0.8), side * 0.75, 0.12, 0.45, color, true, CFrame.Angles(0, 0, math.rad(side * 20)))
-			add("Pinta", Vector3.new(0.3, 0.08, 0.3), side * 1.05, 0.44, -0.25, white, true, CFrame.Angles(0, 0, math.rad(side * 30)))
-		elseif wings == "dragonfly" then
-			for k = 0, 1 do
-				local wing = add("Asa", Vector3.new(1.4, 0.04, 0.32), side * 0.85, 0.42, -0.25 + k * 0.4, Color3.fromRGB(230, 245, 255), true, CFrame.Angles(0, math.rad(side * (k == 0 and -8 or 8)), 0))
-				wing.Transparency = 0.3
-			end
-		elseif wings == "bat" then
-			add("Asa", Vector3.new(1.3, 0.08, 1.0), side * 1.0, 0.55, 0.1, accent, true, CFrame.Angles(0, 0, math.rad(side * 30)))
-			add("Osso", Vector3.new(1.2, 0.1, 0.1), side * 1.0, 0.85, -0.25, color, false, CFrame.Angles(0, 0, math.rad(side * 30)))
-		elseif wings == "flame" then
-			neon(add("Asa", Vector3.new(1.2, 0.1, 0.8), side * 0.95, 0.4, 0.05, accent, true, CFrame.Angles(0, 0, math.rad(side * 25))))
-			neon(add("PontaAsa", Vector3.new(0.6, 0.08, 0.45), side * 1.45, 0.62, 0.1, Color3.fromRGB(255, 230, 120), true, CFrame.Angles(0, 0, math.rad(side * 25))))
-		end
-	end
-
-	-- rabo
-	local tail = look.tail or "puff"
-	if tail == "puff" then
-		add("Rabo", Vector3.new(0.42, 0.42, 0.42), 0, 0.15, 0.85, light, true)
-	elseif tail == "thin" then
-		add("Rabo", Vector3.new(0.14, 0.75, 0.14), 0, 0.5, 0.95, color, false, CFrame.Angles(math.rad(-30), 0, 0))
-		add("PontaRabo", Vector3.new(0.2, 0.2, 0.2), 0, 0.85, 1.12, accent, true)
-	elseif tail == "wag" then
-		add("Rabo", Vector3.new(0.22, 0.6, 0.22), 0, 0.42, 0.92, accent, true, CFrame.Angles(math.rad(-35), 0, 0))
-	elseif tail == "curly" then
-		for i = 0, 2 do
-			local angle = i * 2
-			add("Rabo", Vector3.new(0.16, 0.16, 0.16), math.cos(angle) * 0.12, 0.25 + math.sin(angle) * 0.12, 0.85 + i * 0.06, color:Lerp(dark, 0.1), true)
-		end
-	elseif tail == "feather" then
-		add("Rabo", Vector3.new(0.6, 0.12, 0.65), 0, 0.22, 0.95, color:Lerp(dark, 0.2), true, CFrame.Angles(math.rad(20), 0, 0))
-	elseif tail == "striped" then
-		for i = 0, 3 do
-			add("Rabo", Vector3.new(0.34, 0.34, 0.34), 0, 0.15 + i * 0.18, 0.85 + i * 0.12, if i % 2 == 0 then color else Color3.fromRGB(45, 45, 50), true)
-		end
-	elseif tail == "kitsune" then
-		for i = -1, 1 do
-			local turn = CFrame.Angles(math.rad(-40), math.rad(i * 30), 0)
-			add("Rabo", Vector3.new(0.38, 0.38, 0.9), i * 0.32, 0.45, 1.05, color, true, turn)
-			neon(add("PontaRabo", Vector3.new(0.3, 0.3, 0.3), i * 0.5, 0.82, 1.4, white, true))
-		end
-	elseif tail == "dragon" then
-		for i = 0, 2 do
-			local size = 0.42 - i * 0.1
-			add("Rabo", Vector3.new(size, size, 0.6), 0, 0.05 - i * 0.05, 0.9 + i * 0.45, color, true)
-		end
-		add("PontaRabo", Vector3.new(0.4, 0.08, 0.34), 0, -0.08, 2.0, accent, false, CFrame.Angles(0, math.rad(45), 0))
-	elseif tail == "flame" then
-		local flames = { accent, Color3.fromRGB(255, 140, 40), Color3.fromRGB(255, 220, 90) }
-		for i = 1, 3 do
-			neon(add("Chama", Vector3.new(0.3, 0.2, 0.9), (i - 2) * 0.28, 0.2, 1.1, flames[i], true, CFrame.Angles(math.rad(-15), math.rad((i - 2) * 22), 0)))
-		end
-	elseif tail == "stinger" then
-		add("Ferrao", Vector3.new(0.12, 0.12, 0.32), 0, 0, 0.9, dark, true)
-	elseif tail == "long" then
-		for i = 0, 2 do
-			add("Rabo", Vector3.new(0.22, 0.22, 0.5), 0, 0, 0.9 + i * 0.42, color, true)
-		end
-	elseif tail == "mane" then
-		add("Rabo", Vector3.new(0.34, 0.6, 0.34), 0, 0.2, 0.9, Color3.fromRGB(255, 120, 180), true, CFrame.Angles(math.rad(25), 0, 0))
-		add("Rabo", Vector3.new(0.28, 0.5, 0.28), 0, -0.05, 1.05, Color3.fromRGB(110, 190, 255), true, CFrame.Angles(math.rad(35), 0, 0))
-	elseif tail == "small" then
-		add("Rabo", Vector3.new(0.2, 0.2, 0.25), 0, -0.1, 0.92, color, true)
-	end
-
-	-- patas
-	local feet = look.feet or "paws"
-	if feet == "paws" then
-		for _, x in { -0.42, 0.42 } do
-			for _, z in { -0.45, 0.45 } do
-				add("Pata", Vector3.new(0.34, 0.34, 0.36), x, -0.5, z, color:Lerp(dark, 0.08), true)
-			end
-		end
-	elseif feet == "bird" then
-		for _, x in { -0.25, 0.25 } do
-			add("Pe", Vector3.new(0.22, 0.12, 0.3), x, -0.55, -0.1, orange, true)
-		end
-	end
-
-	if variant.id == "Rainbow" then
-		CollectionService:AddTag(body, "RainbowFruit")
-		CollectionService:AddTag(head, "RainbowFruit")
-	end
-	model.PrimaryPart = body
-	model.WorldPivot = CFrame.new()
-
-	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromOffset(140, 28)
-	gui.StudsOffset = Vector3.new(0, 1.6 * s, 0)
-	gui.MaxDistance = 50
-	gui.Adornee = body
-	local label = Instance.new("TextLabel")
-	label.BackgroundTransparency = 1
-	label.Size = UDim2.fromScale(1, 1)
-	label.Font = FONT
-	label.TextScaled = true
-	label.TextColor3 = Config.Rarities[info.rarity].color
-	label.TextStrokeTransparency = 0.3
-	label.Text = string.format("%s%s • Nv %d", info.name, if variant.name ~= "" then " " .. variant.name else "", level)
-	label.Parent = gui
-	gui.Parent = model
-	return model
-end
-
-local function startPets()
-	local folder = Instance.new("Folder")
-	folder.Name = "PetsLocais"
-	folder.Parent = workspace
-	local followers: { [Player]: { key: string, models: { Model }, current: { CFrame } } } = {}
-
-	local function rebuild(owner: Player)
-		local old = followers[owner]
-		if old then
-			for _, model in old.models do
-				model:Destroy()
-			end
-			followers[owner] = nil
-		end
-		local key = owner:GetAttribute("EquippedPets")
-		if type(key) ~= "string" or key == "" then
-			return
-		end
-		local entry = { key = key, models = {}, current = {} }
-		for _, item in string.split(key, ",") do
-			local parts = string.split(item, ":")
-			local info = Config.Pets[parts[1]]
-			if info and #entry.models < #PET_OFFSETS then
-				local variant = Formulas.petVariant(if parts[2] and parts[2] ~= "" then parts[2] else nil)
-				local model = buildPet(info, variant, tonumber(parts[3]) or 1)
-				model.Parent = folder
-				table.insert(entry.models, model)
-			end
-		end
-		followers[owner] = entry
-	end
-
-	local function watch(owner: Player)
-		owner:GetAttributeChangedSignal("EquippedPets"):Connect(function()
-			rebuild(owner)
-		end)
-		rebuild(owner)
-	end
-
-	for _, owner in Players:GetPlayers() do
-		watch(owner)
-	end
-	Players.PlayerAdded:Connect(watch)
-	Players.PlayerRemoving:Connect(function(owner)
-		local entry = followers[owner]
-		if entry then
-			for _, model in entry.models do
-				model:Destroy()
-			end
-			followers[owner] = nil
-		end
-	end)
-
-	RunService.RenderStepped:Connect(function(dt)
-		local t = os.clock()
-		for owner, entry in followers do
-			local character = owner.Character
-			local root = character and character:FindFirstChild("HumanoidRootPart")
-			if root and root:IsA("BasePart") then
-				local rootCF = root.CFrame
-				local flat = CFrame.lookAt(rootCF.Position, rootCF.Position + Vector3.new(rootCF.LookVector.X, 0, rootCF.LookVector.Z + 1e-4))
-				for index, model in entry.models do
-					local offset = PET_OFFSETS[index]
-					local bob = math.sin(t * 5 + index) * 0.2
-					local target = flat * CFrame.new(offset.X, -2.3 + bob, offset.Z)
-					local current = entry.current[index] or target
-					current = current:Lerp(target, math.min(1, dt * 7))
-					entry.current[index] = current
-					model:PivotTo(current)
-				end
-			end
-		end
-	end)
-end
-
----------------------------------------------------------------------
 -- Botoes "Colher" e "Roubar"
 ---------------------------------------------------------------------
 
@@ -8341,7 +7333,6 @@ local NPC_LINES = {
 	Sam = { "Sementes fresquinhas!", "A loja reabastece a cada 5 minutos!", "Já viu a Semente Arco-íris?", "Plante e espere crescer!" },
 	Steven = { "Compro qualquer fruto!", "Frutos mutados valem muito mais!", "Quanto mais pesado, melhor!", "Venda tudo aqui!" },
 	George = { "Proteja seu jardim com um Gnomo!", "A Espátula faz fusões secretas...", "Sprinklers deixam os frutos maiores!", "Lanternas revelam ladrões invisíveis!" },
-	Eloise = { "Ovos quentinhos!", "Pets Mega são 3x mais fortes!", "O Guaxinim é super raro...", "Pets sobem de nível com você!" },
 }
 
 local function startNpcs()
@@ -8505,13 +7496,9 @@ local function startTooltip(interface)
 	end)
 end
 
--- usado tambem para gerar as previas dos pets
-Effects.buildPet = buildPet
-
 function Effects.start(interface)
 	startRainbow()
 	startWeather()
-	startPets()
 	startPromptFilter()
 	startNpcs()
 	startTooltip(interface)
@@ -8521,10 +7508,10 @@ return Effects
 ]]></ProtectedString>
 					</Properties>
 				</Item>
-				<Item class="ModuleScript" referent="RBX00000019">
+				<Item class="ModuleScript" referent="RBX0000001A">
 					<Properties>
 						<string name="Name">Interface</string>
-						<ProtectedString name="Source"><![CDATA[-- Interface: toda a interface do jogador (HUD, lojas, venda, inventario, pets,
+						<ProtectedString name="Source"><![CDATA[-- Interface: toda a interface do jogador (HUD, lojas, venda, inventario,
 -- missoes, indice de mutacoes, avisos, dia/noite e roubo).
 -- Visual: paineis com sombra e gradiente, cartoes com icone, cores de raridade,
 -- botoes com relevo e pequenas animacoes.
@@ -9265,10 +8252,8 @@ function Interface.create(remotes)
 
 	local seedsPanel = makePanel("Seeds", "🌱 Sementes do Sam", COLORS.green)
 	local gearPanel = makePanel("Gear", "🔧 Equipamentos do George", COLORS.blue)
-	local eggsPanel = makePanel("Eggs", "🥚 Ovos & Pets da Eloise", COLORS.purple)
 	local sellPanel = makePanel("Sell", "💰 Venda do Steven", COLORS.yellow)
 	local inventoryPanel = makePanel("Inventory", "🎒 Inventário", COLORS.brown)
-	local petsPanel = makePanel("Pets", "🐾 Meus Pets", COLORS.pink)
 	local questsPanel = makePanel("Quests", "📜 Missões do Dia", COLORS.teal)
 	local indexPanel = makePanel("Index", "✨ Índice de Mutações", Color3.fromRGB(120, 90, 200))
 
@@ -9360,30 +8345,6 @@ function Interface.create(remotes)
 		for _, gear in Config.GearList do
 			local stock = state.stock.gear[gear.id] or 0
 			shopRow(panel.list, gear, "Gear", stock, state.gear[gear.id] or 0, gear.description, gear.color)
-		end
-	end
-
-	local function eggsInfo(): string
-		return restockText() .. "  •  Variantes: Grande 10%, Arco-íris 4%, Mega 1%"
-	end
-
-	local function renderEggs()
-		local panel = eggsPanel
-		panel.info.Text = eggsInfo()
-		clearList(panel.list)
-		for _, egg in Config.EggList do
-			local stock = state.stock.eggs[egg.id] or 0
-			local total = 0
-			for _, entry in egg.pets do
-				total += entry.weight
-			end
-			local chances = {}
-			for _, entry in egg.pets do
-				local pet = Config.Pets[entry.pet]
-				table.insert(chances, string.format("%s %s %d%%", iconOf(pet.id, ""), pet.name, math.floor(entry.weight / total * 100 + 0.5)))
-			end
-			local subtitle = "⏱️ " .. Formulas.formatTime(egg.hatchTime) .. " • " .. table.concat(chances, ", ")
-			shopRow(panel.list, egg, "Eggs", stock, state.eggs[egg.id] or 0, subtitle, egg.color)
 		end
 	end
 
@@ -9511,7 +8472,7 @@ function Interface.create(remotes)
 			{ "🪙", "Ganhos", Formulas.formatMoney(stats.earned or 0) },
 			{ "🦝", "Roubados", tostring(stats.stolen or 0) },
 			{ "😱", "Roubaram de você", tostring(stats.stolenFrom or 0) },
-			{ "🥚", "Pets chocados", tostring(stats.hatched or 0) },
+			{ "🌿", "Plantas agora", tostring(state.plantCount or 0) },
 			{ "🔮", "Fusões", tostring(stats.merged or 0) },
 		}
 		for index, entry in entries do
@@ -9523,71 +8484,6 @@ function Interface.create(remotes)
 		end
 		for order, fruit in sortedFruits() do
 			fruitRow(panel.list, fruit, order, false)
-		end
-	end
-
-	local function renderPets()
-		local panel = petsPanel
-		local bonuses = state.bonuses or {}
-		local equipped = 0
-		for _, pet in state.pets do
-			if pet.eq then
-				equipped += 1
-			end
-		end
-		panel.info.Text = string.format(
-			"🐾 Equipados %d/%d • 🌿 +%s • 💰 +%s • 🍀 +%s • 📏 +%s",
-			equipped,
-			Config.MaxPetsEquipped,
-			Formulas.formatPercent(bonuses.Growth or 0),
-			Formulas.formatPercent(bonuses.Sell or 0),
-			Formulas.formatPercent(bonuses.Luck or 0),
-			Formulas.formatPercent(bonuses.Size or 0)
-		)
-		panel.info.Size = UDim2.new(1, -36, 0, 36)
-		clearList(panel.list)
-		if #state.pets == 0 then
-			emptyRow(panel.list, "🥚", "Você ainda não tem pets. Compre um ovo com a Eloise e choque no seu jardim!")
-			return
-		end
-		local list = table.clone(state.pets)
-		table.sort(list, function(a, b)
-			if a.eq ~= b.eq then
-				return a.eq
-			end
-			local ra = Config.Rarities[Config.Pets[a.p].rarity].order
-			local rb = Config.Rarities[Config.Pets[b.p].rarity].order
-			if ra ~= rb then
-				return ra > rb
-			end
-			return a.id < b.id
-		end)
-		for order, pet in list do
-			local info = Config.Pets[pet.p]
-			local variant = Formulas.petVariant(pet.v ~= "" and pet.v or nil)
-			local row = makeRow(panel.list, order, 92)
-			local bubble = iconBubble(row, iconOf(info.id, "🐾"), info.color, info.rarity)
-			if variant.id == "Rainbow" then
-				local tint = bubble:FindFirstChildOfClass("UIGradient")
-				if tint then
-					tint.Color = RAINBOW
-				end
-			end
-			local name = info.name .. (if variant.name ~= "" then " " .. variant.name else "")
-			text(row, name, UDim2.fromOffset(84, 4), UDim2.new(1, -330, 0, 26), 20, COLORS.text)
-			if pet.eq then
-				pill(row, "✅ Equipado", COLORS.green, UDim2.new(1, -258, 0, 7), 100)
-			end
-			rarityPill(row, info.rarity, UDim2.fromOffset(84, 33), 86)
-			pill(row, "Nv " .. pet.lvl, COLORS.blue, UDim2.fromOffset(176, 33), 60)
-			text(row, table.concat(pet.ab, " • "), UDim2.fromOffset(242, 31), UDim2.new(1, -398, 0, 26), 13, COLORS.text)
-			local fraction = if pet.nextXp > 0 then pet.xp / pet.nextXp else 1
-			local xpText = if pet.nextXp > 0 then string.format("XP %d / %d", pet.xp, pet.nextXp) else "Nível máximo"
-			progressBar(row, fraction, UDim2.fromOffset(84, 62), UDim2.new(1, -250, 0, 18), COLORS.blue, xpText)
-			local action = if pet.eq then "unequip" else "equip"
-			button(row, if pet.eq then "Guardar" else "Equipar", if pet.eq then COLORS.gray else COLORS.green, UDim2.new(1, -140, 0.5, -10), UDim2.fromOffset(126, 36), function()
-				report(invoke(remotes.PetAction, action, pet.id))
-			end)
 		end
 	end
 
@@ -9657,7 +8553,7 @@ function Interface.create(remotes)
 		for _, id in growth do
 			mutationRow(id)
 		end
-		sectionRow(panel.list, nextOrder(), "🌦️ Mutações de clima, noite, pets e plantas (somam entre si)")
+		sectionRow(panel.list, nextOrder(), "🌦️ Mutações de clima, noite e plantas (somam entre si)")
 		table.sort(env, function(a, b)
 			return Config.Mutations[a].mult < Config.Mutations[b].mult
 		end)
@@ -9712,10 +8608,8 @@ function Interface.create(remotes)
 	local renderers = {
 		Seeds = renderSeeds,
 		Gear = renderGear,
-		Eggs = renderEggs,
 		Sell = renderSell,
 		Inventory = renderInventory,
-		Pets = renderPets,
 		Quests = renderQuests,
 		Index = renderIndex,
 	}
@@ -9759,7 +8653,6 @@ function Interface.create(remotes)
 
 	local sideButtons = {
 		{ "🎒 Inventário", COLORS.brown, "Inventory" },
-		{ "🐾 Pets", COLORS.pink, "Pets" },
 		{ "📜 Missões", COLORS.teal, "Quests" },
 		{ "✨ Mutações", Color3.fromRGB(120, 90, 200), "Index" },
 	}
@@ -9792,7 +8685,6 @@ function Interface.create(remotes)
 		{ label = "💰 Vender", place = "Sell", panel = "Sell", color = COLORS.yellow },
 		{ label = "🏡 Jardim", place = "Garden", panel = nil, color = COLORS.brown },
 		{ label = "🔧 Equip.", place = "Gear", panel = "Gear", color = COLORS.blue },
-		{ label = "🥚 Ovos", place = "Eggs", panel = "Eggs", color = COLORS.purple },
 	}
 	for order, info in teleports do
 		local b = button(top, info.label, info.color, UDim2.new(), UDim2.fromOffset(126, 46), function()
@@ -9971,8 +8863,8 @@ function Interface.create(remotes)
 			else
 				carryBanner.Visible = false
 			end
-			if state and (openName == "Seeds" or openName == "Gear" or openName == "Eggs") then
-				panels[openName].info.Text = if openName == "Eggs" then eggsInfo() else restockText()
+			if state and (openName == "Seeds" or openName == "Gear") then
+				panels[openName].info.Text = restockText()
 			end
 			task.wait(1)
 		end

@@ -36,17 +36,6 @@ local function wantedItems(data): { Wanted }
 			table.insert(list, { kind = "Gear", id = gear.id, label = label, tip = gear.description })
 		end
 	end
-	for _, egg in Config.EggList do
-		local count = data.eggs[egg.id] or 0
-		if count > 0 then
-			table.insert(list, {
-				kind = "Egg",
-				id = egg.id,
-				label = string.format("%s [x%d]", egg.name, count),
-				tip = "Clique no seu jardim para colocar o ovo",
-			})
-		end
-	end
 	return list
 end
 

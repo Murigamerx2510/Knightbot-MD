@@ -2,10 +2,10 @@
 -- Para balancear o jogo (precos, tempos, chances), altere apenas este arquivo.
 --
 -- Conteudo baseado no Grow a Garden 2 (plantas, raridades, clima, roubo a noite,
--- defesas, equipamentos e pets) com as mecanicas do Grow a Garden original
--- (mutacoes que se combinam, clima que muta frutos, crescimento offline, ovos no jardim)
+-- defesas e equipamentos) com as mecanicas do Grow a Garden original
+-- (mutacoes que se combinam, clima que muta frutos, crescimento offline)
 -- e varias novidades: variantes de cor, tamanhos, combinacoes de mutacoes,
--- fusoes secretas, niveis de pets, ovos com variantes e missoes diarias.
+-- fusoes secretas e missoes diarias. O jogo e so de plantas (sem pets).
 
 local Config = {}
 
@@ -20,9 +20,6 @@ Config.RestockInterval = 300 -- segundos entre reabastecimentos das lojas
 Config.MaxPlantsPerGarden = 80
 Config.MaxFruitsInInventory = 200
 Config.MaxSprinklersPerGarden = 6
-Config.MaxEggsPerGarden = 3
-Config.MaxPetsOwned = 60
-Config.MaxPetsEquipped = 3
 Config.MinPlantSpacing = 1.6
 Config.ShopInteractDistance = 30
 Config.AutoSaveInterval = 90
@@ -701,140 +698,6 @@ Config.LegacyIds = {
 	seeds = {
 		OrangeTulip = "Tulip",
 	},
-	pets = {
-		Fox = "Deer",
-		Panda = "Bear",
-	},
-}
-
----------------------------------------------------------------------
--- Pets: cada pet tem uma ou mais habilidades
----------------------------------------------------------------------
---[[
-	Tipos de habilidade:
-	  Growth, Sell, Luck, NightLuck, Gold, Rainbow, Size  -> bonus em fracao (0.1 = +10%)
-	  Speed, Jump, Inventory                              -> bonus fixo
-	  AutoHarvest (cooldown, seedChance)  -> colhe um fruto maduro sozinho
-	  AutoHarvestBest (cooldown)          -> colhe o fruto mais valioso
-	  GuardStun / GuardSting / GuardLaunch / GuardEject (cooldown) -> ataca ladroes no seu jardim
-	  Pollinate / Ignite (chance)         -> aplica mutacao nos seus frutos
-	  Raccoon                             -> uma vez por noite copia um fruto maduro de outro jardim
-]]
-Config.PetList = {
-	{ id = "Frog", name = "Sapo", rarity = "Common", color = Color3.fromRGB(90, 200, 70), accent = Color3.fromRGB(240, 240, 120), size = 0.85,
-		abilities = { { kind = "Jump", value = 4 } } },
-	{ id = "Bunny", name = "Coelho", rarity = "Common", color = Color3.fromRGB(240, 240, 240), accent = Color3.fromRGB(255, 180, 200), size = 0.9,
-		abilities = { { kind = "Speed", value = 3 } } },
-	{ id = "Cat", name = "Gato", rarity = "Common", color = Color3.fromRGB(250, 170, 70), accent = Color3.fromRGB(255, 240, 220), size = 0.9,
-		abilities = { { kind = "Sell", value = 0.05 } } },
-	{ id = "Owl", name = "Coruja", rarity = "Uncommon", color = Color3.fromRGB(140, 100, 70), accent = Color3.fromRGB(240, 210, 120), size = 0.9,
-		abilities = { { kind = "NightLuck", value = 0.3 } } },
-	{ id = "Dog", name = "Cachorro", rarity = "Uncommon", color = Color3.fromRGB(190, 140, 90), accent = Color3.fromRGB(120, 80, 50), size = 1,
-		abilities = { { kind = "GuardStun", value = 1, cooldown = 12 } } },
-	{ id = "Chicken", name = "Galinha", rarity = "Uncommon", color = Color3.fromRGB(255, 255, 250), accent = Color3.fromRGB(230, 40, 40), size = 0.9,
-		abilities = { { kind = "Growth", value = 0.08 } } },
-	{ id = "Deer", name = "Cervo", rarity = "Rare", color = Color3.fromRGB(170, 110, 60), accent = Color3.fromRGB(250, 240, 220), size = 1.1,
-		abilities = { { kind = "Growth", value = 0.1 } } },
-	{ id = "Turtle", name = "Tartaruga", rarity = "Rare", color = Color3.fromRGB(90, 160, 80), accent = Color3.fromRGB(150, 110, 60), size = 1,
-		abilities = { { kind = "Inventory", value = 10 }, { kind = "Speed", value = -2 } } },
-	{ id = "Pig", name = "Porco", rarity = "Rare", color = Color3.fromRGB(255, 170, 190), accent = Color3.fromRGB(230, 120, 150), size = 1,
-		abilities = { { kind = "Sell", value = 0.1 } } },
-	{ id = "Robin", name = "Pintarroxo", rarity = "Legendary", color = Color3.fromRGB(120, 90, 70), accent = Color3.fromRGB(240, 110, 50), size = 0.8,
-		abilities = { { kind = "AutoHarvest", value = 1, cooldown = 30, seedChance = 0.1 } } },
-	{ id = "Bee", name = "Abelha", rarity = "Legendary", color = Color3.fromRGB(255, 210, 40), accent = Color3.fromRGB(30, 30, 30), size = 0.8,
-		abilities = { { kind = "GuardSting", value = 12, cooldown = 4 }, { kind = "Pollinate", value = 0.002 } } },
-	{ id = "Butterfly", name = "Borboleta", rarity = "Legendary", color = Color3.fromRGB(120, 160, 255), accent = Color3.fromRGB(255, 150, 220), size = 0.8,
-		abilities = { { kind = "Growth", value = 0.2 } } },
-	{ id = "Monkey", name = "Macaco", rarity = "Mythic", color = Color3.fromRGB(140, 90, 60), accent = Color3.fromRGB(240, 200, 160), size = 1,
-		abilities = { { kind = "AutoHarvestBest", value = 1, cooldown = 45 } } },
-	{ id = "Bear", name = "Urso", rarity = "Mythic", color = Color3.fromRGB(120, 80, 50), accent = Color3.fromRGB(80, 50, 30), size = 1.3,
-		abilities = { { kind = "GuardLaunch", value = 1, cooldown = 15 } } },
-	{ id = "Unicorn", name = "Unicórnio", rarity = "Mythic", color = Color3.fromRGB(255, 250, 255), accent = Color3.fromRGB(255, 120, 220), size = 1.2,
-		abilities = { { kind = "Rainbow", value = 1 } } },
-	{ id = "GoldenDragonfly", name = "Libélula Dourada", rarity = "Mythic", color = Color3.fromRGB(255, 200, 40), accent = Color3.fromRGB(255, 240, 150), size = 0.8,
-		abilities = { { kind = "Gold", value = 1 } } },
-	{ id = "Firefly", name = "Vagalume", rarity = "Mythic", color = Color3.fromRGB(60, 60, 40), accent = Color3.fromRGB(230, 255, 100), size = 0.7,
-		abilities = { { kind = "Size", value = 0.25 } } },
-	{ id = "BaldEagle", name = "Águia", rarity = "Mythic", color = Color3.fromRGB(110, 70, 40), accent = Color3.fromRGB(255, 255, 255), size = 1.1,
-		abilities = { { kind = "GuardEject", value = 1, cooldown = 20 } } },
-	{ id = "Dragon", name = "Dragão", rarity = "Super", color = Color3.fromRGB(200, 40, 40), accent = Color3.fromRGB(255, 200, 40), size = 1.25,
-		abilities = { { kind = "Ignite", value = 0.0006 }, { kind = "Sell", value = 0.15 } } },
-	{ id = "Phoenix", name = "Fênix", rarity = "Super", color = Color3.fromRGB(255, 120, 30), accent = Color3.fromRGB(255, 230, 60), size = 1.15,
-		abilities = { { kind = "Growth", value = 0.35 }, { kind = "Luck", value = 0.2 } } },
-	{ id = "Raccoon", name = "Guaxinim", rarity = "Secret", color = Color3.fromRGB(120, 120, 130), accent = Color3.fromRGB(40, 40, 45), size = 1,
-		abilities = { { kind = "Raccoon", value = 1 } } },
-	{ id = "Kitsune", name = "Kitsune", rarity = "Secret", color = Color3.fromRGB(255, 160, 60), accent = Color3.fromRGB(255, 255, 255), size = 1.1,
-		abilities = { { kind = "Luck", value = 0.6 }, { kind = "Gold", value = 0.5 }, { kind = "Rainbow", value = 0.5 } } },
-}
-
-Config.PetAbilityText = {
-	Growth = "Crescimento +%s",
-	Sell = "Venda +%s",
-	Luck = "Sorte de mutação +%s",
-	NightLuck = "Sorte à noite +%s",
-	Gold = "Chance de Dourado +%s",
-	Rainbow = "Chance de Arco-íris +%s",
-	Size = "Frutos maiores +%s",
-	Speed = "Velocidade %s",
-	Jump = "Pulo %s",
-	Inventory = "Mochila %s espaços",
-	AutoHarvest = "Colhe um fruto sozinho a cada %ds",
-	AutoHarvestBest = "Colhe o fruto mais valioso a cada %ds",
-	GuardStun = "Atordoa ladrões (a cada %ds)",
-	GuardSting = "Ferroa ladrões (a cada %ds)",
-	GuardLaunch = "Arremessa ladrões para fora (a cada %ds)",
-	GuardEject = "Expulsa ladrões voando (a cada %ds)",
-	Pollinate = "Poliniza seus frutos",
-	Ignite = "Incendeia seus frutos (Inflamado)",
-	Raccoon = "Copia 1 fruto de outro jardim por noite",
-}
-
--- Variantes de pet ao chocar (novidade inspirada nos ovos Big/Rainbow/Mega do GAG2)
-Config.PetVariants = {
-	{ id = "Normal", name = "", weight = 85, mult = 1, scale = 1 },
-	{ id = "Big", name = "Grande", weight = 10, mult = 1.5, scale = 1.3 },
-	{ id = "Rainbow", name = "Arco-íris", weight = 4, mult = 2, scale = 1.1 },
-	{ id = "Mega", name = "Mega", weight = 1, mult = 3, scale = 1.8 },
-}
-Config.PetMaxLevel = 50
-Config.PetXpPerLevel = 20 -- nivel = 1 + raiz(xp / 20)
-Config.PetLevelBonus = 0.02 -- +2% de forca por nivel
-
--- Ovos (pesos = chance de cada pet)
-Config.EggList = {
-	{
-		id = "CommonEgg", name = "Ovo Comum", rarity = "Common", price = 10000, hatchTime = 60,
-		stockChance = 1, stockMin = 1, stockMax = 3, color = Color3.fromRGB(240, 235, 220),
-		pets = { { pet = "Frog", weight = 30 }, { pet = "Bunny", weight = 30 }, { pet = "Cat", weight = 25 }, { pet = "Owl", weight = 10 }, { pet = "Dog", weight = 5 } },
-	},
-	{
-		id = "UncommonEgg", name = "Ovo Incomum", rarity = "Uncommon", price = 50000, hatchTime = 180,
-		stockChance = 0.7, stockMin = 1, stockMax = 2, color = Color3.fromRGB(150, 230, 140),
-		pets = { { pet = "Owl", weight = 30 }, { pet = "Dog", weight = 30 }, { pet = "Chicken", weight = 30 }, { pet = "Deer", weight = 10 } },
-	},
-	{
-		id = "RareEgg", name = "Ovo Raro", rarity = "Rare", price = 300000, hatchTime = 360,
-		stockChance = 0.45, stockMin = 1, stockMax = 2, color = Color3.fromRGB(120, 170, 255),
-		pets = { { pet = "Deer", weight = 35 }, { pet = "Turtle", weight = 30 }, { pet = "Pig", weight = 30 }, { pet = "Robin", weight = 5 } },
-	},
-	{
-		id = "LegendaryEgg", name = "Ovo Lendário", rarity = "Legendary", price = 2500000, hatchTime = 600,
-		stockChance = 0.2, stockMin = 1, stockMax = 1, color = Color3.fromRGB(255, 215, 70),
-		pets = { { pet = "Robin", weight = 30 }, { pet = "Bee", weight = 30 }, { pet = "Butterfly", weight = 30 }, { pet = "Monkey", weight = 10 } },
-	},
-	{
-		id = "MythicEgg", name = "Ovo Mítico", rarity = "Mythic", price = 25000000, hatchTime = 900,
-		stockChance = 0.08, stockMin = 1, stockMax = 1, color = Color3.fromRGB(255, 110, 180),
-		pets = {
-			{ pet = "Monkey", weight = 15 }, { pet = "Bear", weight = 25 }, { pet = "Unicorn", weight = 15 },
-			{ pet = "GoldenDragonfly", weight = 15 }, { pet = "Firefly", weight = 20 }, { pet = "BaldEagle", weight = 10 },
-		},
-	},
-	{
-		id = "SuperEgg", name = "Ovo Super", rarity = "Super", price = 150000000, hatchTime = 1200,
-		stockChance = 0.03, stockMin = 1, stockMax = 1, color = Color3.fromRGB(255, 140, 50),
-		pets = { { pet = "Dragon", weight = 45 }, { pet = "Phoenix", weight = 45 }, { pet = "Raccoon", weight = 6 }, { pet = "Kitsune", weight = 4 } },
-	},
 }
 
 ---------------------------------------------------------------------
@@ -842,7 +705,7 @@ Config.EggList = {
 ---------------------------------------------------------------------
 --[[
 	kind = "growth": aparece quando o fruto nasce (so uma por fruto, fica a melhor).
-	kind = "env": vem do clima, da noite, de pets, plantas e sprinklers.
+	kind = "env": vem do clima, da noite, das plantas e dos sprinklers.
 	Valor final = crescimento x (1 + soma(mult - 1) das mutacoes de ambiente).
 	effect = efeito visual no fruto (sparkles, fire, smoke ou nenhum).
 ]]
@@ -853,7 +716,7 @@ Config.Mutations = {
 	Chilled = { name = "Gelado", kind = "env", mult = 2, color = Color3.fromRGB(160, 215, 255), material = "SmoothPlastic", blend = 0.55, source = "Geada" },
 	Choc = { name = "Chocolate", kind = "env", mult = 2, color = Color3.fromRGB(110, 60, 30), material = "SmoothPlastic", blend = 0.6, source = "Chuva de Chocolate" },
 	Moonlit = { name = "Lunar", kind = "env", mult = 3, color = Color3.fromRGB(170, 170, 255), material = "SmoothPlastic", blend = 0.5, effect = "sparkles", source = "Noite" },
-	Pollinated = { name = "Polinizado", kind = "env", mult = 3, color = Color3.fromRGB(255, 220, 60), material = "SmoothPlastic", blend = 0.4, source = "Pet Abelha" },
+	Pollinated = { name = "Polinizado", kind = "env", mult = 3, color = Color3.fromRGB(255, 220, 60), material = "SmoothPlastic", blend = 0.4, source = "Cerejeira (pétalas)" },
 	Sandy = { name = "Arenoso", kind = "env", mult = 3, color = Color3.fromRGB(225, 200, 140), material = "Sand", blend = 0.6, source = "Tempestade de Areia" },
 	Clay = { name = "Barro", kind = "env", mult = 5, color = Color3.fromRGB(170, 110, 70), material = "Slate", source = "Molhado + Arenoso" },
 	Frozen = { name = "Congelado", kind = "env", mult = 10, color = Color3.fromRGB(175, 235, 255), material = "Ice", effect = "sparkles", source = "Molhado + Gelado, ou Nevasca" },
@@ -1041,7 +904,6 @@ Config.Quests = {
 		{ id = "mutated", icon = "✨", text = "Colha %d frutos com mutação", min = 3, max = 12, reward = 400 },
 		{ id = "sell", icon = "💰", text = "Venda %d frutos", min = 20, max = 80, reward = 30 },
 		{ id = "steal", icon = "🦝", text = "Roube %d fruto(s) à noite", min = 1, max = 3, reward = 1500 },
-		{ id = "hatch", icon = "🥚", text = "Choque %d ovo(s)", min = 1, max = 2, reward = 2500 },
 	},
 }
 
@@ -1058,7 +920,7 @@ local function index(list)
 	return map
 end
 
--- Icones da interface (lojas, inventario, pets)
+-- Icones da interface (lojas e inventario)
 Config.Icons = {
 	-- sementes
 	Carrot = "🥕", Strawberry = "🍓", Blueberry = "🫐", Tulip = "🌷", Tomato = "🍅", Apple = "🍎",
@@ -1074,19 +936,10 @@ Config.Icons = {
 	WateringCan = "💧", Trowel = "🥄", Shovel = "⛏️", SpeedMushroom = "⚡", JumpMushroom = "🦘",
 	InvisibilityMushroom = "👻", CommonSprinkler = "💦", UncommonSprinkler = "💦", RareSprinkler = "💦",
 	LegendarySprinkler = "💦", SuperSprinkler = "💦", Lantern = "🏮", Gnome = "🧙", StrawberrySniper = "🎯",
-	-- ovos
-	CommonEgg = "🥚", UncommonEgg = "🥚", RareEgg = "🥚", LegendaryEgg = "🥚", MythicEgg = "🥚", SuperEgg = "🥚",
-	-- pets
-	Frog = "🐸", Bunny = "🐰", Cat = "🐱", Owl = "🦉", Dog = "🐶", Chicken = "🐔", Deer = "🦌", Turtle = "🐢",
-	Pig = "🐷", Robin = "🐦", Bee = "🐝", Butterfly = "🦋", Monkey = "🐵", Bear = "🐻", Unicorn = "🦄",
-	GoldenDragonfly = "✨", Firefly = "💡", BaldEagle = "🦅", Dragon = "🐉", Phoenix = "🔥", Raccoon = "🦝",
-	Kitsune = "🦊",
 }
 
 Config.Seeds = index(Config.SeedList)
 Config.Gear = index(Config.GearList)
-Config.Pets = index(Config.PetList)
-Config.Eggs = index(Config.EggList)
 Config.Weather = index(Config.WeatherList)
 
 for _, seed in Config.SeedList do

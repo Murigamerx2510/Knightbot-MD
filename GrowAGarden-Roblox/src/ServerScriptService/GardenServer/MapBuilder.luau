@@ -421,12 +421,9 @@ local function stallGoods(model: Model, cf: CFrame, info, rng: Random)
 				decor(model, "Etiqueta", Vector3.new(0.7, 0.35, 0.05), at(x, y + 0.95, 3.66) * CFrame.Angles(math.rad(-8), 0, 0), WHITE)
 			elseif info.id == "Sell" then -- potes e frutas
 				ball(model, "Fruta", Vector3.new(0.85, 0.85, 0.85), at(x, y + 0.55, 3.8), color)
-			elseif info.id == "Gear" then -- regadores e ferramentas
+			else -- regadores e ferramentas
 				decor(model, "Ferramenta", Vector3.new(0.9, 0.8, 0.6), at(x, y + 0.55, 3.8), color, Enum.Material.Metal)
 				decor(model, "Bico", Vector3.new(0.5, 0.12, 0.12), at(x + 0.55, y + 0.75, 3.8) * CFrame.Angles(0, 0, math.rad(30)), color, Enum.Material.Metal)
-			else -- ovos em ninhos
-				cylinderPart(model, "Ninho", 0.3, 1.1, at(x, y + 0.3, 3.8), Color3.fromRGB(170, 130, 80), Enum.Material.Fabric)
-				ball(model, "Ovo", Vector3.new(0.6, 0.8, 0.6), at(x, y + 0.75, 3.8), color)
 			end
 		end
 	end
@@ -435,9 +432,7 @@ local function stallGoods(model: Model, cf: CFrame, info, rng: Random)
 		decor(model, "Caixote", Vector3.new(2.6, 1.8, 2.6), at(x, 0.9, -4) * CFrame.Angles(0, math.rad(index * 7), 0), WOOD, Enum.Material.WoodPlanks)
 		for i = 1, 4 do
 			local color = info.goods[(i + index) % #info.goods + 1]
-			if info.id == "Eggs" then
-				ball(model, "Ovo", Vector3.new(0.8, 1, 0.8), at(x - 0.6 + (i % 2) * 1.2, 2, -4.6 + math.floor((i - 1) / 2) * 1.2), color)
-			elseif info.id == "Gear" then
+			if info.id == "Gear" then
 				decor(model, "Saco", Vector3.new(1, 1.2, 0.8), at(x - 0.6 + (i % 2) * 1.2, 2.2, -4.6 + math.floor((i - 1) / 2) * 1.2), Color3.fromRGB(190, 160, 110), Enum.Material.Fabric)
 			else
 				ball(model, "Produto", Vector3.new(1, 1, 1), at(x - 0.6 + (i % 2) * 1.2, 2, -4.6 + math.floor((i - 1) / 2) * 1.2), color)
@@ -524,6 +519,80 @@ local function buildStall(parent: Instance, info, rng: Random)
 
 	model.Parent = parent
 	return cf * CFrame.new(0, 3, -9) * CFrame.Angles(0, math.pi, 0)
+end
+
+---------------------------------------------------------------------
+-- Estufa de vidro (decoracao no 4o canto das lojas)
+---------------------------------------------------------------------
+
+local function buildGreenhouse(parent: Instance, position: Vector3, rotation: number, rng: Random)
+	local cf = CFrame.new(position) * CFrame.Angles(0, rotation, 0)
+	local model = Instance.new("Model")
+	model.Name = "Estufa"
+	local function at(x: number, y: number, z: number): CFrame
+		return cf * CFrame.new(x, y, z)
+	end
+	local frame = Color3.fromRGB(245, 245, 240)
+	local glassColor = Color3.fromRGB(190, 230, 245)
+	local function glass(size: Vector3, where: CFrame)
+		local pane = decor(model, "Vidro", size, where, glassColor, Enum.Material.Glass)
+		pane.Transparency = 0.6
+		pane.CastShadow = false
+		return pane
+	end
+	part(model, "Piso", Vector3.new(14, 0.3, 11), at(0, 0.15, 0), Color3.fromRGB(200, 190, 170), Enum.Material.Slate)
+	-- paredes de vidro (com porta na frente) e armacao branca
+	glass(Vector3.new(14, 6, 0.15), at(0, 3.3, 5.4))
+	glass(Vector3.new(0.15, 6, 11), at(-7, 3.3, 0))
+	glass(Vector3.new(0.15, 6, 11), at(7, 3.3, 0))
+	glass(Vector3.new(4.6, 6, 0.15), at(-4.7, 3.3, -5.4))
+	glass(Vector3.new(4.6, 6, 0.15), at(4.7, 3.3, -5.4))
+	glass(Vector3.new(4.8, 1.3, 0.15), at(0, 5.65, -5.4))
+	for _, x in { -7, -2.4, 2.4, 7 } do
+		for _, z in { -5.4, 5.4 } do
+			part(model, "Armacao", Vector3.new(0.3, 6.3, 0.3), at(x, 3.3, z), frame, Enum.Material.Metal)
+		end
+	end
+	for _, z in { -5.4, 0, 5.4 } do
+		decor(model, "Viga", Vector3.new(14.3, 0.3, 0.3), at(0, 6.4, z), frame, Enum.Material.Metal)
+	end
+	-- telhado de vidro em duas aguas
+	for _, side in { -1, 1 } do
+		glass(Vector3.new(7.6, 0.15, 11.4), at(side * 3.5, 7.75, 0) * CFrame.Angles(0, 0, math.rad(side * -21)))
+		decor(model, "Caibro", Vector3.new(7.6, 0.25, 0.25), at(side * 3.5, 7.75, -5.6) * CFrame.Angles(0, 0, math.rad(side * -21)), frame, Enum.Material.Metal)
+		decor(model, "Caibro", Vector3.new(7.6, 0.25, 0.25), at(side * 3.5, 7.75, 5.6) * CFrame.Angles(0, 0, math.rad(side * -21)), frame, Enum.Material.Metal)
+	end
+	decor(model, "Cumeeira", Vector3.new(0.35, 0.35, 11.6), at(0, 9.1, 0), frame, Enum.Material.Metal)
+	-- mesas com vasos de flores dentro
+	for _, x in { -4, 4 } do
+		decor(model, "Mesa", Vector3.new(3, 0.25, 8.5), at(x, 2.2, 0.5), WOOD_LIGHT, Enum.Material.WoodPlanks)
+		for _, dz in { -3.6, 3.6 } do
+			for _, dx in { -1.2, 1.2 } do
+				decor(model, "PeMesa", Vector3.new(0.25, 2.1, 0.25), at(x + dx, 1.1, 0.5 + dz), WOOD_DARK, Enum.Material.Wood)
+			end
+		end
+		for i = 0, 3 do
+			local potCF = at(x, 2.33, -2.6 + i * 2.1)
+			cylinderPart(model, "Vaso", 0.9, 1.1, potCF * CFrame.new(0, 0.45, 0), Color3.fromRGB(200, 110, 70), Enum.Material.Slate)
+			ball(model, "Folhas", Vector3.new(1.3, 1, 1.3), potCF * CFrame.new(0, 1.2, 0), Color3.fromRGB(70, 160, 60))
+			for j = 1, 3 do
+				local angle = j * math.pi * 2 / 3 + i
+				ball(model, "Flor", Vector3.new(0.42, 0.3, 0.42), potCF * CFrame.new(math.cos(angle) * 0.4, 1.6, math.sin(angle) * 0.4), FLOWER_COLORS[rng:NextInteger(1, #FLOWER_COLORS)])
+			end
+		end
+	end
+	-- vasos grandes no fundo e floreiras do lado de fora
+	for _, x in { -5.5, 0, 5.5 } do
+		cylinderPart(model, "VasoGrande", 1.6, 2, at(x, 1.1, 4.3), Color3.fromRGB(190, 100, 65), Enum.Material.Slate)
+		ball(model, "Planta", Vector3.new(2.6, 3.2, 2.6), at(x, 3.4, 4.3), Color3.fromRGB(60, 150 + rng:NextInteger(0, 30), 60))
+	end
+	for _, x in { -9.6, 9.6 } do
+		flowerBox(model, at(x, 0, -3), 4, rng)
+	end
+	local sign = part(model, "Placa", Vector3.new(7, 1.6, 0.3), at(0, 7.4, -5.75), WHITE)
+	sign.CanCollide = false
+	surfaceText(sign, "🌸 Estufa", Color3.fromRGB(90, 160, 70))
+	model.Parent = parent
 end
 
 ---------------------------------------------------------------------
@@ -752,10 +821,27 @@ local function setupLighting()
 	end
 end
 
--- area livre para enfeites (fora da rua, dos jardins, das lojas e da praca)
+-- lagos atras dos jardins do meio
+local PONDS = { Vector3.new(0, 0, 124), Vector3.new(0, 0, -124) }
+local POND_RADIUS = 15
+
+local function nearPond(x: number, z: number, margin: number): boolean
+	for _, pond in PONDS do
+		local dx, dz = x - pond.X, z - pond.Z
+		if dx * dx + dz * dz < (POND_RADIUS + 8 + margin) ^ 2 then
+			return true
+		end
+	end
+	return false
+end
+
+-- area livre para enfeites (fora da rua, dos jardins, das lojas, da praca e dos lagos)
 local function isFree(x: number, z: number, margin: number): boolean
 	local L = MapBuilder.Layout
 	if math.abs(x) > 200 or math.abs(z) > 150 then
+		return false
+	end
+	if nearPond(x, z, margin) then
 		return false
 	end
 	if math.abs(z) < 23 + margin and math.abs(x) < 190 then
@@ -789,6 +875,91 @@ local function randomFreeSpot(rng: Random, margin: number): Vector3?
 end
 
 ---------------------------------------------------------------------
+-- Terreno (grama de verdade, morros e lagos)
+---------------------------------------------------------------------
+
+-- Usa o terreno do Roblox: grama com folhinhas (Terrain > Decoration, ja ligado no arquivo
+-- do lugar), morros suaves e lagos com agua. Sem terreno, usa uma peca de grama.
+local function buildTerrain(map: Instance, rng: Random): Terrain?
+	local terrain = workspace:FindFirstChildOfClass("Terrain")
+	if not terrain then
+		part(map, "Chao", Vector3.new(900, 2, 800), CFrame.new(0, -1, 0), Color3.fromRGB(95, 170, 70), Enum.Material.Grass)
+		return nil
+	end
+	terrain:SetMaterialColor(Enum.Material.Grass, Color3.fromRGB(106, 178, 72))
+	terrain:SetMaterialColor(Enum.Material.LeafyGrass, Color3.fromRGB(88, 158, 62))
+	terrain:SetMaterialColor(Enum.Material.Sand, Color3.fromRGB(226, 206, 156))
+	terrain:SetMaterialColor(Enum.Material.Ground, Color3.fromRGB(122, 88, 58))
+	terrain:SetMaterialColor(Enum.Material.Rock, Color3.fromRGB(150, 146, 140))
+	terrain.WaterColor = Color3.fromRGB(55, 165, 205)
+	terrain.WaterTransparency = 0.55
+	terrain.WaterReflectance = 0.35
+	terrain.WaterWaveSize = 0.08
+	terrain.WaterWaveSpeed = 8
+	-- chao: o topo fica exatamente em y = 0
+	terrain:FillBlock(CFrame.new(0, -8, 0), Vector3.new(900, 16, 800), Enum.Material.Grass)
+	-- morros no horizonte (fora da area de jogo)
+	for i = 1, 26 do
+		local angle = i * math.pi * 2 / 26 + rng:NextNumber(-0.08, 0.08)
+		local distance = rng:NextNumber(280, 350)
+		local radius = rng:NextNumber(45, 80)
+		local center = Vector3.new(math.cos(angle) * distance * 1.2, -radius * 0.45, math.sin(angle) * distance)
+		terrain:FillBall(center, radius, if i % 3 == 0 then Enum.Material.LeafyGrass else Enum.Material.Grass)
+		if i % 4 == 0 then -- pedras aparecendo no morro
+			terrain:FillBall(center + Vector3.new(radius * 0.3, radius * 0.4, 0), radius * 0.25, Enum.Material.Rock)
+		end
+	end
+	-- lagos cheios (agua no nivel do chao) com margem de areia
+	for _, pond in PONDS do
+		terrain:FillCylinder(CFrame.new(pond + Vector3.new(0, -1, 0)), 2, POND_RADIUS + 5, Enum.Material.Sand)
+		terrain:FillCylinder(CFrame.new(pond + Vector3.new(0, -3, 0)), 6, POND_RADIUS, Enum.Material.Water)
+	end
+	return terrain
+end
+
+-- enfeites do lago: vitorias-regias, taboas, pedras e um deque de madeira
+local function buildPondDecor(parent: Instance, center: Vector3, rng: Random)
+	local pond = Instance.new("Model")
+	pond.Name = "Lago"
+	for i = 1, 9 do
+		local angle = rng:NextNumber(0, math.pi * 2)
+		local radius = rng:NextNumber(3, POND_RADIUS - 3)
+		local position = center + Vector3.new(math.cos(angle) * radius, 0.06, math.sin(angle) * radius)
+		local size = rng:NextNumber(1.6, 2.6)
+		cylinderPart(pond, "VitoriaRegia", 0.08, size, CFrame.new(position), Color3.fromRGB(70, 160, 70))
+		if i % 3 == 0 then
+			ball(pond, "Flor", Vector3.new(0.6, 0.45, 0.6), CFrame.new(position + Vector3.new(0.2, 0.25, 0.1)), Color3.fromRGB(255, 160, 200))
+		end
+	end
+	for i = 1, 16 do
+		local angle = i * math.pi * 2 / 16 + rng:NextNumber(-0.15, 0.15)
+		local radius = POND_RADIUS + rng:NextNumber(-0.5, 1.5)
+		local position = center + Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
+		if i % 2 == 0 then -- taboas
+			for j = 1, 3 do
+				local offset = Vector3.new(rng:NextNumber(-0.6, 0.6), 0, rng:NextNumber(-0.6, 0.6))
+				local height = rng:NextNumber(2.2, 3.4)
+				decor(pond, "Taboa", Vector3.new(0.12, height, 0.12), CFrame.new(position + offset + Vector3.new(0, height / 2, 0)), Color3.fromRGB(80, 150, 60))
+				decor(pond, "Espiga", Vector3.new(0.3, 0.7, 0.3), CFrame.new(position + offset + Vector3.new(0, height - 0.2, 0)), Color3.fromRGB(120, 80, 45))
+			end
+		else
+			local size = rng:NextNumber(1, 2.2)
+			ball(pond, "Pedra", Vector3.new(size * 1.4, size * 0.7, size), CFrame.new(position + Vector3.new(0, 0.15, 0)), Color3.fromRGB(150, 148, 140), Enum.Material.Slate)
+		end
+	end
+	-- deque de madeira entrando no lago (virado para o jardim)
+	local towardGarden = if center.Z > 0 then -1 else 1
+	for i = 0, 4 do
+		local z = center.Z + towardGarden * (POND_RADIUS + 3 - i * 2)
+		decor(pond, "Tabua", Vector3.new(4, 0.3, 1.8), CFrame.new(center.X + 4, 0.35, z), WOOD_LIGHT, Enum.Material.WoodPlanks).CanCollide = true
+		for _, x in { -1.8, 1.8 } do
+			decor(pond, "Estaca", Vector3.new(0.35, 2.4, 0.35), CFrame.new(center.X + 4 + x, -0.8, z), WOOD_DARK, Enum.Material.Wood)
+		end
+	end
+	pond.Parent = parent
+end
+
+---------------------------------------------------------------------
 -- Construcao completa
 ---------------------------------------------------------------------
 
@@ -803,7 +974,7 @@ function MapBuilder.build()
 
 	setupLighting()
 
-	part(map, "Chao", Vector3.new(900, 2, 800), CFrame.new(0, -1, 0), Color3.fromRGB(95, 170, 70), Enum.Material.Grass)
+	local terrain = buildTerrain(map, rng)
 	part(map, "Rua", Vector3.new(360, 0.2, 40), CFrame.new(0, 0, 0), Color3.fromRGB(220, 200, 150), Enum.Material.Sand)
 	-- meio-fio de pedra (com aberturas nas entradas dos jardins)
 	for _, z in { -20.3, 20.3 } do
@@ -837,6 +1008,15 @@ function MapBuilder.build()
 		local rotation = if row == 1 then 0 else math.pi
 		for _, x in L.columns do
 			table.insert(plots, buildPlot(#plots + 1, Vector3.new(x, 0, z), rotation, map, rng))
+		end
+	end
+
+	if terrain then
+		for _, plot in plots do
+			local base = plot.model:FindFirstChild("Base")
+			if base and base:IsA("BasePart") then
+				base.Transparency = 1
+			end
 		end
 	end
 
@@ -881,19 +1061,6 @@ function MapBuilder.build()
 				outfit = "vest", outfitColor = Color3.fromRGB(250, 130, 40),
 			},
 		},
-		{
-			id = "Eggs", title = "Ovos & Pets", icon = "🥚", npc = "Eloise", action = "Comprar ovos",
-			position = Vector3.new(40, 0, -30), rotation = math.pi,
-			roofA = Color3.fromRGB(200, 90, 200), roofB = Color3.fromRGB(240, 240, 230),
-			goods = { Color3.fromRGB(240, 235, 220), Color3.fromRGB(150, 230, 140), Color3.fromRGB(120, 170, 255), Color3.fromRGB(255, 215, 70) },
-			look = {
-				tagColor = Color3.fromRGB(230, 140, 255),
-				skin = Color3.fromRGB(255, 215, 185), hair = Color3.fromRGB(250, 140, 190), hairStyle = "long",
-				hat = "bow", hatColor = Color3.fromRGB(255, 255, 255),
-				shirt = Color3.fromRGB(250, 240, 250), sleeves = Color3.fromRGB(170, 90, 210), pants = Color3.fromRGB(170, 90, 210), shoes = Color3.fromRGB(250, 250, 250),
-				outfit = "dress", outfitColor = Color3.fromRGB(170, 90, 210),
-			},
-		},
 	}
 	local locations = {}
 	local shopPositions = {}
@@ -902,6 +1069,7 @@ function MapBuilder.build()
 		shopPositions[info.id] = info.position
 	end
 	locations.Spawn = CFrame.new(0, 3, -12)
+	buildGreenhouse(map, Vector3.new(40, 0, -30), math.pi, rng)
 
 	-- decoracao
 	local decorFolder = Instance.new("Folder")
@@ -926,8 +1094,19 @@ function MapBuilder.build()
 	end
 	-- arvores na borda do mapa e entre os jardins
 	for x = -180, 180, 30 do
-		buildTree(decorFolder, Vector3.new(x + (x % 20), 0, 115 + (x % 3) * 4), 1 + (x % 7) / 10, rng)
-		buildTree(decorFolder, Vector3.new(x - (x % 20), 0, -115 - (x % 3) * 4), 1 + (x % 5) / 10, rng)
+		local north = Vector3.new(x + (x % 20), 0, 115 + (x % 3) * 4)
+		local south = Vector3.new(x - (x % 20), 0, -115 - (x % 3) * 4)
+		if not (terrain and nearPond(north.X, north.Z, 2)) then
+			buildTree(decorFolder, north, 1 + (x % 7) / 10, rng)
+		end
+		if not (terrain and nearPond(south.X, south.Z, 2)) then
+			buildTree(decorFolder, south, 1 + (x % 5) / 10, rng)
+		end
+	end
+	if terrain then
+		for _, pond in PONDS do
+			buildPondDecor(decorFolder, pond, rng)
+		end
 	end
 	for _, x in { -150, -130, 130, 150 } do
 		for _, z in { -60, -30, 30, 60 } do
@@ -970,8 +1149,8 @@ function MapBuilder.build()
 			buildRock(decorFolder, spot, rng)
 		end
 	end
-	-- morros no horizonte (fora da area de jogo)
-	for i = 1, 26 do
+	-- morros no horizonte (fora da area de jogo); com terreno eles sao feitos de terreno
+	for i = 1, if terrain then 0 else 26 do
 		local angle = i * math.pi * 2 / 26 + rng:NextNumber(-0.08, 0.08)
 		local distance = rng:NextNumber(270, 340)
 		local width = rng:NextNumber(90, 150)

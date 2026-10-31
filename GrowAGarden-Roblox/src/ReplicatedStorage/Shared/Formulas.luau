@@ -1,4 +1,4 @@
--- Formulas: calculos de valor, peso, mutacoes, variantes, pets, ciclo do dia e formatacao.
+-- Formulas: calculos de valor, peso, mutacoes, variantes, ciclo do dia e formatacao.
 -- Usado tanto pelo servidor quanto pelo cliente.
 
 local Config = require(script.Parent:WaitForChild("Config"))
@@ -196,7 +196,7 @@ function Formulas.rollVariant(seed, rng: Random, luck: number?): string?
 end
 
 -- Valor de venda de um fruto
-function Formulas.fruitValue(seedId: string, weight: number, mutations: { string }?, sellBonus: number?, variantId: string?): number
+function Formulas.fruitValue(seedId: string, weight: number, mutations: { string }?, variantId: string?): number
 	local seed = Config.Seeds[seedId]
 	if not seed then
 		return 0
@@ -207,7 +207,6 @@ function Formulas.fruitValue(seedId: string, weight: number, mutations: { string
 	if variant then
 		value *= variant.mult
 	end
-	value *= 1 + (sellBonus or 0)
 	return math.max(1, math.floor(value + 0.5))
 end
 
@@ -286,103 +285,6 @@ function Formulas.weightedPick(entries, rng: Random)
 		end
 	end
 	return entries[#entries]
-end
-
----------------------------------------------------------------------
--- Pets
----------------------------------------------------------------------
-
-function Formulas.petLevel(xp: number?): number
-	local level = 1 + math.floor(math.sqrt(math.max(xp or 0, 0) / Config.PetXpPerLevel))
-	return math.min(level, Config.PetMaxLevel)
-end
-
--- XP necessaria para chegar a um nivel
-function Formulas.petXpForLevel(level: number): number
-	return Config.PetXpPerLevel * (level - 1) ^ 2
-end
-
-function Formulas.petVariant(variantId: string?)
-	for _, variant in Config.PetVariants do
-		if variant.id == (variantId or "Normal") then
-			return variant
-		end
-	end
-	return Config.PetVariants[1]
-end
-
--- Forca das habilidades do pet (variante x nivel)
-function Formulas.petStrength(pet): number
-	local variant = Formulas.petVariant(pet.v)
-	return variant.mult * (1 + Config.PetLevelBonus * (Formulas.petLevel(pet.xp) - 1))
-end
-
--- Nome de exibicao: "Cachorro", "Cachorro Mega"
-function Formulas.petName(pet): string
-	local info = Config.Pets[pet.p]
-	local name = if info then info.name else tostring(pet.p)
-	local variant = Formulas.petVariant(pet.v)
-	if variant.name ~= "" then
-		name ..= " " .. variant.name
-	end
-	return name
-end
-
-local PERCENT_KINDS = { Growth = true, Sell = true, Luck = true, NightLuck = true, Gold = true, Rainbow = true, Size = true }
-local FLAT_KINDS = { Speed = true, Jump = true, Inventory = true }
-
--- Texto da habilidade ja com a forca aplicada
-function Formulas.abilityText(ability, strength: number): string
-	local template = Config.PetAbilityText[ability.kind] or ability.kind
-	if PERCENT_KINDS[ability.kind] then
-		return string.format(template, Formulas.formatPercent(ability.value * strength))
-	elseif FLAT_KINDS[ability.kind] then
-		local value = if ability.value > 0 then math.floor(ability.value * strength + 0.5) else ability.value
-		return string.format(template, (if value > 0 then "+" else "") .. tostring(value))
-	elseif ability.cooldown then
-		return string.format(template, math.max(1, math.floor(ability.cooldown / strength + 0.5)))
-	end
-	return template
-end
-
--- Soma dos bonus dos pets equipados.
--- pets = { {id, p, v, xp} }, equipped = { id, ... }
--- active = habilidades com efeito proprio (guardas, colheita automatica...)
-function Formulas.petBonuses(pets, equipped)
-	local bonuses = {
-		Growth = 0, Sell = 0, Luck = 0, NightLuck = 0, Gold = 0, Rainbow = 0, Size = 0,
-		Speed = 0, Jump = 0, Inventory = 0, Pollinate = 0, Ignite = 0,
-		active = {},
-	}
-	if type(pets) ~= "table" or type(equipped) ~= "table" then
-		return bonuses
-	end
-	for _, pet in pets do
-		if table.find(equipped, pet.id) then
-			local info = Config.Pets[pet.p]
-			if info then
-				local strength = Formulas.petStrength(pet)
-				for _, ability in info.abilities do
-					local kind = ability.kind
-					if PERCENT_KINDS[kind] or kind == "Pollinate" or kind == "Ignite" then
-						bonuses[kind] += ability.value * strength
-					elseif FLAT_KINDS[kind] then
-						bonuses[kind] += if ability.value > 0 then math.floor(ability.value * strength + 0.5) else ability.value
-					else
-						table.insert(bonuses.active, {
-							kind = kind,
-							petUid = pet.id,
-							petId = pet.p,
-							value = ability.value * strength,
-							cooldown = (ability.cooldown or 0) / strength,
-							seedChance = ability.seedChance,
-						})
-					end
-				end
-			end
-		end
-	end
-	return bonuses
 end
 
 ---------------------------------------------------------------------

@@ -90,6 +90,20 @@ def servico(classe, filhos):
     return item(classe, classe, filhos, None, 1)
 
 
+def terreno(nivel):
+    """Terreno com a grama animada ligada (Decoration so pode ser ligada no arquivo, nao por script)."""
+    tab = "\t" * nivel
+    return "\n".join([
+        f'{tab}<Item class="Terrain" referent="{referente()}">',
+        f"{tab}\t<Properties>",
+        f'{tab}\t\t<string name="Name">Terrain</string>',
+        f'{tab}\t\t<bool name="Decoration">true</bool>',
+        f'{tab}\t\t<float name="GrassLength">0.7</float>',
+        f"{tab}\t</Properties>",
+        f"{tab}</Item>",
+    ])
+
+
 def principal():
     replicated = [
         no_da_pasta(os.path.join(SRC, "ReplicatedStorage", "Shared"), "Shared"),
@@ -106,6 +120,7 @@ def principal():
         '\t<Meta name="ExplicitAutoJoints">true</Meta>',
         "\t<External>null</External>",
         "\t<External>nil</External>",
+        servico("Workspace", [terreno]),
         servico("ReplicatedStorage", replicated),
         servico("ServerScriptService", server),
         servico("StarterPlayer", [starter_player_scripts]),

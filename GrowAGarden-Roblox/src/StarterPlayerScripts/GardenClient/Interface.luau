@@ -1,4 +1,4 @@
--- Interface: toda a interface do jogador (HUD, lojas, venda, inventario, pets,
+-- Interface: toda a interface do jogador (HUD, lojas, venda, inventario,
 -- missoes, indice de mutacoes, avisos, dia/noite e roubo).
 -- Visual: paineis com sombra e gradiente, cartoes com icone, cores de raridade,
 -- botoes com relevo e pequenas animacoes.
@@ -739,10 +739,8 @@ function Interface.create(remotes)
 
 	local seedsPanel = makePanel("Seeds", "🌱 Sementes do Sam", COLORS.green)
 	local gearPanel = makePanel("Gear", "🔧 Equipamentos do George", COLORS.blue)
-	local eggsPanel = makePanel("Eggs", "🥚 Ovos & Pets da Eloise", COLORS.purple)
 	local sellPanel = makePanel("Sell", "💰 Venda do Steven", COLORS.yellow)
 	local inventoryPanel = makePanel("Inventory", "🎒 Inventário", COLORS.brown)
-	local petsPanel = makePanel("Pets", "🐾 Meus Pets", COLORS.pink)
 	local questsPanel = makePanel("Quests", "📜 Missões do Dia", COLORS.teal)
 	local indexPanel = makePanel("Index", "✨ Índice de Mutações", Color3.fromRGB(120, 90, 200))
 
@@ -834,30 +832,6 @@ function Interface.create(remotes)
 		for _, gear in Config.GearList do
 			local stock = state.stock.gear[gear.id] or 0
 			shopRow(panel.list, gear, "Gear", stock, state.gear[gear.id] or 0, gear.description, gear.color)
-		end
-	end
-
-	local function eggsInfo(): string
-		return restockText() .. "  •  Variantes: Grande 10%, Arco-íris 4%, Mega 1%"
-	end
-
-	local function renderEggs()
-		local panel = eggsPanel
-		panel.info.Text = eggsInfo()
-		clearList(panel.list)
-		for _, egg in Config.EggList do
-			local stock = state.stock.eggs[egg.id] or 0
-			local total = 0
-			for _, entry in egg.pets do
-				total += entry.weight
-			end
-			local chances = {}
-			for _, entry in egg.pets do
-				local pet = Config.Pets[entry.pet]
-				table.insert(chances, string.format("%s %s %d%%", iconOf(pet.id, ""), pet.name, math.floor(entry.weight / total * 100 + 0.5)))
-			end
-			local subtitle = "⏱️ " .. Formulas.formatTime(egg.hatchTime) .. " • " .. table.concat(chances, ", ")
-			shopRow(panel.list, egg, "Eggs", stock, state.eggs[egg.id] or 0, subtitle, egg.color)
 		end
 	end
 
@@ -985,7 +959,7 @@ function Interface.create(remotes)
 			{ "🪙", "Ganhos", Formulas.formatMoney(stats.earned or 0) },
 			{ "🦝", "Roubados", tostring(stats.stolen or 0) },
 			{ "😱", "Roubaram de você", tostring(stats.stolenFrom or 0) },
-			{ "🥚", "Pets chocados", tostring(stats.hatched or 0) },
+			{ "🌿", "Plantas agora", tostring(state.plantCount or 0) },
 			{ "🔮", "Fusões", tostring(stats.merged or 0) },
 		}
 		for index, entry in entries do
@@ -997,71 +971,6 @@ function Interface.create(remotes)
 		end
 		for order, fruit in sortedFruits() do
 			fruitRow(panel.list, fruit, order, false)
-		end
-	end
-
-	local function renderPets()
-		local panel = petsPanel
-		local bonuses = state.bonuses or {}
-		local equipped = 0
-		for _, pet in state.pets do
-			if pet.eq then
-				equipped += 1
-			end
-		end
-		panel.info.Text = string.format(
-			"🐾 Equipados %d/%d • 🌿 +%s • 💰 +%s • 🍀 +%s • 📏 +%s",
-			equipped,
-			Config.MaxPetsEquipped,
-			Formulas.formatPercent(bonuses.Growth or 0),
-			Formulas.formatPercent(bonuses.Sell or 0),
-			Formulas.formatPercent(bonuses.Luck or 0),
-			Formulas.formatPercent(bonuses.Size or 0)
-		)
-		panel.info.Size = UDim2.new(1, -36, 0, 36)
-		clearList(panel.list)
-		if #state.pets == 0 then
-			emptyRow(panel.list, "🥚", "Você ainda não tem pets. Compre um ovo com a Eloise e choque no seu jardim!")
-			return
-		end
-		local list = table.clone(state.pets)
-		table.sort(list, function(a, b)
-			if a.eq ~= b.eq then
-				return a.eq
-			end
-			local ra = Config.Rarities[Config.Pets[a.p].rarity].order
-			local rb = Config.Rarities[Config.Pets[b.p].rarity].order
-			if ra ~= rb then
-				return ra > rb
-			end
-			return a.id < b.id
-		end)
-		for order, pet in list do
-			local info = Config.Pets[pet.p]
-			local variant = Formulas.petVariant(pet.v ~= "" and pet.v or nil)
-			local row = makeRow(panel.list, order, 92)
-			local bubble = iconBubble(row, iconOf(info.id, "🐾"), info.color, info.rarity)
-			if variant.id == "Rainbow" then
-				local tint = bubble:FindFirstChildOfClass("UIGradient")
-				if tint then
-					tint.Color = RAINBOW
-				end
-			end
-			local name = info.name .. (if variant.name ~= "" then " " .. variant.name else "")
-			text(row, name, UDim2.fromOffset(84, 4), UDim2.new(1, -330, 0, 26), 20, COLORS.text)
-			if pet.eq then
-				pill(row, "✅ Equipado", COLORS.green, UDim2.new(1, -258, 0, 7), 100)
-			end
-			rarityPill(row, info.rarity, UDim2.fromOffset(84, 33), 86)
-			pill(row, "Nv " .. pet.lvl, COLORS.blue, UDim2.fromOffset(176, 33), 60)
-			text(row, table.concat(pet.ab, " • "), UDim2.fromOffset(242, 31), UDim2.new(1, -398, 0, 26), 13, COLORS.text)
-			local fraction = if pet.nextXp > 0 then pet.xp / pet.nextXp else 1
-			local xpText = if pet.nextXp > 0 then string.format("XP %d / %d", pet.xp, pet.nextXp) else "Nível máximo"
-			progressBar(row, fraction, UDim2.fromOffset(84, 62), UDim2.new(1, -250, 0, 18), COLORS.blue, xpText)
-			local action = if pet.eq then "unequip" else "equip"
-			button(row, if pet.eq then "Guardar" else "Equipar", if pet.eq then COLORS.gray else COLORS.green, UDim2.new(1, -140, 0.5, -10), UDim2.fromOffset(126, 36), function()
-				report(invoke(remotes.PetAction, action, pet.id))
-			end)
 		end
 	end
 
@@ -1131,7 +1040,7 @@ function Interface.create(remotes)
 		for _, id in growth do
 			mutationRow(id)
 		end
-		sectionRow(panel.list, nextOrder(), "🌦️ Mutações de clima, noite, pets e plantas (somam entre si)")
+		sectionRow(panel.list, nextOrder(), "🌦️ Mutações de clima, noite e plantas (somam entre si)")
 		table.sort(env, function(a, b)
 			return Config.Mutations[a].mult < Config.Mutations[b].mult
 		end)
@@ -1186,10 +1095,8 @@ function Interface.create(remotes)
 	local renderers = {
 		Seeds = renderSeeds,
 		Gear = renderGear,
-		Eggs = renderEggs,
 		Sell = renderSell,
 		Inventory = renderInventory,
-		Pets = renderPets,
 		Quests = renderQuests,
 		Index = renderIndex,
 	}
@@ -1233,7 +1140,6 @@ function Interface.create(remotes)
 
 	local sideButtons = {
 		{ "🎒 Inventário", COLORS.brown, "Inventory" },
-		{ "🐾 Pets", COLORS.pink, "Pets" },
 		{ "📜 Missões", COLORS.teal, "Quests" },
 		{ "✨ Mutações", Color3.fromRGB(120, 90, 200), "Index" },
 	}
@@ -1266,7 +1172,6 @@ function Interface.create(remotes)
 		{ label = "💰 Vender", place = "Sell", panel = "Sell", color = COLORS.yellow },
 		{ label = "🏡 Jardim", place = "Garden", panel = nil, color = COLORS.brown },
 		{ label = "🔧 Equip.", place = "Gear", panel = "Gear", color = COLORS.blue },
-		{ label = "🥚 Ovos", place = "Eggs", panel = "Eggs", color = COLORS.purple },
 	}
 	for order, info in teleports do
 		local b = button(top, info.label, info.color, UDim2.new(), UDim2.fromOffset(126, 46), function()
@@ -1445,8 +1350,8 @@ function Interface.create(remotes)
 			else
 				carryBanner.Visible = false
 			end
-			if state and (openName == "Seeds" or openName == "Gear" or openName == "Eggs") then
-				panels[openName].info.Text = if openName == "Eggs" then eggsInfo() else restockText()
+			if state and (openName == "Seeds" or openName == "Gear") then
+				panels[openName].info.Text = restockText()
 			end
 			task.wait(1)
 		end

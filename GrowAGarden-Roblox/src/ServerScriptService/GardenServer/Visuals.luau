@@ -1,11 +1,10 @@
--- Visuals: constroi os modelos 3D de plantas, brotos, frutos, sprinklers, ovos,
+-- Visuals: constroi os modelos 3D de plantas, brotos, frutos, sprinklers,
 -- lanternas, gnomos e os efeitos (raios, meteoros, estrelas, tornado, tiros das defesas).
 --
 -- Modelos feitos no Blender: importe-os para ReplicatedStorage/Modelos com os nomes
 --   Planta_<IdDaSemente>  (ex.: Planta_Carrot)  -> corpo da planta
 --   Fruto_<IdDaSemente>   (ex.: Fruto_Apple)    -> fruto de plantas de varias colheitas
 --   Sprinkler_<IdDoItem>  (ex.: Sprinkler_CommonSprinkler)
---   Ovo_<IdDoOvo>         (ex.: Ovo_CommonEgg)
 --   Gnomo, Lanterna
 -- Se o modelo nao existir, o jogo cria um modelo com Parts automaticamente.
 -- Partes cujo nome contem "Produto" mudam de cor com as mutacoes e ao amadurecer.
@@ -963,7 +962,7 @@ function Visuals.applyMutations(parts: { BasePart }, mutations: { string })
 end
 
 ---------------------------------------------------------------------
--- Sprinklers, ovos, lanternas e gnomos
+-- Sprinklers, lanternas e gnomos
 ---------------------------------------------------------------------
 
 function Visuals.buildSprinkler(gear): Model
@@ -1025,22 +1024,6 @@ local function infoLabel(model: Model, text: string, height: number): TextLabel
 	label.Parent = gui
 	gui.Parent = model
 	return label
-end
-
-function Visuals.buildEgg(egg): (Model, TextLabel)
-	local model = fromLibrary("Ovo_" .. egg.id, 2, true, true)
-	if not model then
-		model = Instance.new("Model")
-		local shell = sphere(model, "Casca", Vector3.new(1.6, 2, 1.6), CFrame.new(0, 1, 0), egg.color)
-		for i = 1, 4 do
-			local cf = CFrame.new(0, 1, 0) * CFrame.Angles(0, i * math.pi / 2, 0) * CFrame.Angles(math.rad(20 * (i % 2)), 0, 0) * CFrame.new(0, 0.1, 0.72)
-			sphere(model, "Pinta", Vector3.new(0.4, 0.4, 0.15), cf, egg.color:Lerp(Color3.new(0, 0, 0), 0.25))
-		end
-		model.PrimaryPart = shell
-		model.WorldPivot = CFrame.new()
-	end
-	model.Name = egg.name
-	return model, infoLabel(model, egg.name, 3)
 end
 
 function Visuals.buildLantern(gear): Model

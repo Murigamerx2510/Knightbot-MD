@@ -1,4 +1,4 @@
--- ShopService: lojas de sementes, equipamentos e ovos, venda de frutos
+-- ShopService: lojas de sementes e equipamentos, venda de frutos
 -- e reabastecimento a cada 5 minutos (estoque igual para todos os servidores).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -17,7 +17,6 @@ local shopPositions: { [string]: Vector3 } = {}
 local CATEGORIES = {
 	Seeds = { items = Config.Seeds, stockKey = "seeds", shop = "Seeds" },
 	Gear = { items = Config.Gear, stockKey = "gear", shop = "Gear" },
-	Eggs = { items = Config.Eggs, stockKey = "eggs", shop = "Eggs" },
 }
 
 local function currentWindow(): number
@@ -37,7 +36,6 @@ function ShopService.ensureStock(data): boolean
 	data.stock.window = window
 	data.stock.seeds = Formulas.rollStock(Config.SeedList, window, 1)
 	data.stock.gear = Formulas.rollStock(Config.GearList, window, 2)
-	data.stock.eggs = Formulas.rollStock(Config.EggList, window, 3)
 	return true
 end
 
@@ -86,11 +84,9 @@ function ShopService.buy(player: Player, category: any, itemId: any): (boolean, 
 	stockList[itemId] = stock - 1
 	if category == "Seeds" then
 		data.seeds[itemId] = (data.seeds[itemId] or 0) + 1
-	elseif category == "Gear" then
+	else
 		local amount = if item.kind == "water" then item.uses else 1
 		data.gear[itemId] = (data.gear[itemId] or 0) + amount
-	else
-		data.eggs[itemId] = (data.eggs[itemId] or 0) + 1
 	end
 	Sync.markDirty(player)
 	return true, "Você comprou " .. item.name .. "!"
@@ -106,7 +102,6 @@ function ShopService.sell(player: Player, mode: any, index: any, seedId: any, we
 	if not isNear(player, "Sell") then
 		return false, "Vá até a barraca de Venda do Steven!"
 	end
-	local bonuses = Formulas.petBonuses(data.pets, data.equippedPets)
 	if mode == "all" then
 		local count = #data.fruits
 		if count == 0 then
@@ -114,7 +109,7 @@ function ShopService.sell(player: Player, mode: any, index: any, seedId: any, we
 		end
 		local total = 0
 		for _, fruit in data.fruits do
-			total += Formulas.fruitValue(fruit.s, fruit.w, fruit.m, bonuses.Sell, fruit.v)
+			total += Formulas.fruitValue(fruit.s, fruit.w, fruit.m, fruit.v)
 		end
 		table.clear(data.fruits)
 		data.sheckles += total
@@ -131,7 +126,7 @@ function ShopService.sell(player: Player, mode: any, index: any, seedId: any, we
 		if not fruit or fruit.s ~= seedId or fruit.w ~= weight then
 			return false, "Fruto não encontrado. Tente de novo."
 		end
-		local value = Formulas.fruitValue(fruit.s, fruit.w, fruit.m, bonuses.Sell, fruit.v)
+		local value = Formulas.fruitValue(fruit.s, fruit.w, fruit.m, fruit.v)
 		table.remove(data.fruits, index)
 		data.sheckles += value
 		data.stats.earned += value

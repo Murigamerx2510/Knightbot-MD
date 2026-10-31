@@ -4,11 +4,11 @@ Cultive um Jardim - gerador de modelos 3D para Blender (4.2 ou mais novo).
 
 O que este script faz:
   1. Cria todos os modelos low-poly do jogo: as 45 plantas, os frutos de todas as plantas
-     de varias colheitas, os 5 sprinklers, os 6 ovos, o Gnomo e a Lanterna.
+     de varias colheitas, os 5 sprinklers, o Gnomo e a Lanterna.
   2. Pinta tudo com uma unica textura de paleta (Paleta.png), que o Roblox importa.
   3. Exporta cada modelo como .fbx com o nome que o jogo procura
-     (Planta_Carrot.fbx, Fruto_Apple.fbx, Sprinkler_CommonSprinkler.fbx, Ovo_CommonEgg.fbx,
-     Gnomo.fbx, Lanterna.fbx...).
+     (Planta_Carrot.fbx, Fruto_Apple.fbx, Sprinkler_CommonSprinkler.fbx, Gnomo.fbx,
+     Lanterna.fbx...).
   4. Monta uma vitrine com todos os modelos, salva o .blend e renderiza imagens de previa.
 
 Como usar:
@@ -92,16 +92,6 @@ SPRINKLERS = [
     ("RareSprinkler", "Sprinkler Raro", (80, 160, 230), 3),
     ("LegendarySprinkler", "Sprinkler Lendário", (255, 210, 60), 4),
     ("SuperSprinkler", "Sprinkler Super", (255, 120, 40), 5),
-]
-
-# (id, nome, cor) - o nivel e a posicao na lista
-OVOS = [
-    ("CommonEgg", "Ovo Comum", (240, 235, 220)),
-    ("UncommonEgg", "Ovo Incomum", (150, 230, 140)),
-    ("RareEgg", "Ovo Raro", (120, 170, 255)),
-    ("LegendaryEgg", "Ovo Lendário", (255, 215, 70)),
-    ("MythicEgg", "Ovo Mítico", (255, 110, 180)),
-    ("SuperEgg", "Ovo Super", (255, 140, 50)),
 ]
 
 CAULE = (85, 140, 60)
@@ -1445,7 +1435,7 @@ def construir_fruto(m, s):
 
 
 # ---------------------------------------------------------------------------
-# Sprinklers, ovos, gnomo e lanterna
+# Sprinklers, gnomo e lanterna
 # ---------------------------------------------------------------------------
 
 def construir_sprinkler(m, cor, nivel):
@@ -1465,40 +1455,6 @@ def construir_sprinkler(m, cor, nivel):
             m.adicionar("Cabeca", "cone", T(0, 0, 2.2) @ Rz(i * 60) @ T(0.24, 0, 0.06), (0.12, 0.12, 0.22), OURO, 5)
     if nivel >= 5:  # gema
         m.adicionar("Cabeca", "gema", T(0, 0, 2.38), (0.3, 0.3, 0.36), (255, 80, 200), 6)
-
-
-def construir_ovo(m, cor, nivel):
-    m.adicionar("Casca", "esfera", T(0, 0, 1.0), (1.6, 1.6, 2.0), cor, 20)
-    pinta = escurecer(cor, 0.25)
-    claro = clarear(cor, 0.4)
-    for i in range(6):  # pintas
-        a = math.radians(i * 60 + 15)
-        e = math.radians(28 if i % 2 else -12)
-        normal = Vector((math.cos(a) * math.cos(e), math.sin(a) * math.cos(e), math.sin(e)))
-        pos = Vector((normal.x * 0.79, normal.y * 0.79, 1.0 + normal.z * 0.99))
-        m.adicionar("Casca", "esfera", T(*pos) @ alinhar_z(normal), (0.38, 0.38, 0.08), pinta, 8)
-    if nivel >= 2:  # faixa
-        m.adicionar("Casca", "esfera", T(0, 0, 0.95), (1.63, 1.63, 0.18), claro, 20)
-    if nivel >= 3:  # zigue-zague
-        for k in range(14):
-            a = math.radians(k * 360 / 14)
-            base = Vector((math.cos(a) * 0.8, math.sin(a) * 0.8, 0.95))
-            m.entre("Casca", base, base + Vector((math.cos(a) * 0.02, math.sin(a) * 0.02, 0.2 if k % 2 else -0.2)), 0.14, claro, 4, "cone")
-    if nivel >= 4:  # gemas na faixa
-        for k in range(8):
-            a = math.radians(k * 45 + 22.5)
-            m.adicionar("Casca", "gema", T(math.cos(a) * 0.82, math.sin(a) * 0.82, 0.95), (0.16, 0.16, 0.16), (255, 250, 220), 6)
-    if nivel >= 5:  # espiral
-        for i in range(20):
-            t = i / 19
-            a = math.radians(t * 720)
-            z = 0.2 + 1.6 * t
-            raio = 0.8 * math.sqrt(max(0.0, 1 - ((z - 1.0) / 1.0) ** 2)) + 0.01
-            m.adicionar("Casca", "esfera", T(math.cos(a) * raio, math.sin(a) * raio, z), (0.12, 0.12, 0.12), BRANCO, 5)
-    if nivel >= 6:  # coroa
-        for k in range(6):
-            m.adicionar("Casca", "cone", T(0, 0, 1.9) @ Rz(k * 60) @ T(0.24, 0, 0.05), (0.14, 0.14, 0.26), OURO, 5)
-        m.adicionar("Casca", "gema", T(0, 0, 2.05), (0.24, 0.24, 0.3), (255, 60, 90), 6)
 
 
 def construir_gnomo(m):
@@ -1667,16 +1623,12 @@ def principal():
         sprinkler = Modelo("Sprinkler_" + gid)
         construir_sprinkler(sprinkler, cor, nivel)
         modelos.append((sprinkler, (indice * 2.6, y_itens), 1.0))
-    for indice, (oid, _nome, cor) in enumerate(OVOS):
-        ovo = Modelo("Ovo_" + oid)
-        construir_ovo(ovo, cor, indice + 1)
-        modelos.append((ovo, (14.0 + indice * 2.4, y_itens), 1.0))
     gnomo = Modelo("Gnomo")
     construir_gnomo(gnomo)
-    modelos.append((gnomo, (29.5, y_itens), 1.0))
+    modelos.append((gnomo, (16.0, y_itens), 1.0))
     lanterna = Modelo("Lanterna")
     construir_lanterna(lanterna)
-    modelos.append((lanterna, (32.0, y_itens), 1.0))
+    modelos.append((lanterna, (19.5, y_itens), 1.0))
 
     # 2) cria a textura de paleta e o material
     for cor in (GRAMA, TERRA):

@@ -7,7 +7,7 @@
 --     e precisa leva-lo ate o PROPRIO jardim para ficar com ele.
 --   * Se morrer, for atingido por certas defesas, levar uma "pazada" do dono,
 --     sair do jogo ou demorar demais, o fruto volta para o dono.
---   * Plantas de defesa e pets guardas atacam intrusos a noite.
+--   * Plantas de defesa atacam intrusos a noite.
 --   * Cogumelos: velocidade, pulo e invisibilidade (defesas nao veem, exceto perto de lanternas).
 
 local Players = game:GetService("Players")
@@ -323,9 +323,8 @@ local function updateMovement(player: Player)
 	if not humanoid then
 		return
 	end
-	local bonuses = GardenService.bonuses(player)
-	local speed = Config.BaseWalkSpeed + (if bonuses then bonuses.Speed else 0)
-	local jump = Config.BaseJumpHeight + (if bonuses then bonuses.Jump else 0)
+	local speed = Config.BaseWalkSpeed
+	local jump = Config.BaseJumpHeight
 	if effectActive(player, "speed") then
 		speed += Config.Gear.SpeedMushroom.amount
 	end
@@ -386,7 +385,7 @@ local function hit(intruder: Player, garden, kind: string, amount: number?, sour
 		return
 	end
 	if from then
-		local color = if kind == "dragon" then Color3.fromRGB(255, 100, 20) elseif kind == "sniper" then Color3.fromRGB(225, 30, 55) else Color3.fromRGB(130, 230, 50)
+		local color = if kind == "dragon" then Color3.fromRGB(255, 100, 20) else Color3.fromRGB(130, 230, 50)
 		Visuals.projectile(from, root.Position, color)
 	end
 	if amount and amount > 0 then
@@ -394,9 +393,7 @@ local function hit(intruder: Player, garden, kind: string, amount: number?, sour
 	end
 	if kind == "poison" then
 		setEffect(intruder, "slow", 3)
-	elseif kind == "stun" then
-		setEffect(intruder, "stun", S.stunTime)
-	elseif kind == "hypno" or kind == "launch" or kind == "eject" then
+	elseif kind == "hypno" then
 		setEffect(intruder, "stun", 1.5)
 		Visuals.ring(root.Position, Color3.fromRGB(200, 90, 255), 5)
 		if carriers[intruder] then
@@ -414,15 +411,12 @@ local function hit(intruder: Player, garden, kind: string, amount: number?, sour
 	end
 end
 
-local GUARD_KINDS = { GuardStun = "stun", GuardSting = "sting", GuardLaunch = "launch", GuardEject = "eject" }
-
 -- Defesas do jardim contra intrusos (so a noite)
 local function defendGarden(garden)
 	if not garden.player.Parent then
 		return
 	end
 	local defenses = GardenService.defenses(garden)
-	local bonuses = GardenService.bonuses(garden.player)
 	for _, intruder in Players:GetPlayers() do
 		if intruder ~= garden.player then
 			local root = rootOf(intruder)
@@ -438,18 +432,6 @@ local function defendGarden(garden)
 								local kind = info.kind
 								local from = if kind == "ranged" or kind == "dragon" then defense.position else nil
 								hit(intruder, garden, kind, info.damage, defense.seed.name, from)
-							end
-						end
-					end
-					if bonuses then
-						for _, ability in bonuses.active do
-							local kind = GUARD_KINDS[ability.kind]
-							if kind then
-								local key = string.format("pet:%d:%d", ability.petUid, intruder.UserId)
-								if ready(key, ability.cooldown) then
-									local damage = if kind == "sting" then ability.value else nil
-									hit(intruder, garden, kind, damage, Config.Pets[ability.petId].name, nil)
-								end
 							end
 						end
 					end

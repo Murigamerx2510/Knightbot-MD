@@ -44,22 +44,18 @@ end
 
 function DataService.defaultData()
 	return {
-		version = 2,
+		version = 3,
 		sheckles = Config.StartingSheckles,
 		seeds = deepCopy(Config.StartingSeeds),
 		gear = {},
-		eggs = {},
 		fruits = {},
 		plants = {},
 		sprinklers = {},
 		props = {},
-		placedEggs = {},
-		pets = {},
-		equippedPets = {},
-		stock = { window = -1, seeds = {}, gear = {}, eggs = {} },
+		stock = { window = -1, seeds = {}, gear = {} },
 		quests = { day = -1, list = {} },
 		nextId = 1,
-		stats = { harvested = 0, earned = 0, planted = 0, sold = 0, stolen = 0, stolenFrom = 0, hatched = 0, merged = 0 },
+		stats = { harvested = 0, earned = 0, planted = 0, sold = 0, stolen = 0, stolenFrom = 0, merged = 0 },
 	}
 end
 
@@ -90,9 +86,16 @@ local function reconcile(data)
 			end
 		end
 	end
+	-- versoes antigas tinham pets e ovos: o jogo agora e so de plantas
+	data.eggs = nil
+	data.placedEggs = nil
+	data.pets = nil
+	data.equippedPets = nil
+	data.stock.eggs = nil
+	data.stats.hatched = nil
 	migrateIds(data.gear, Config.LegacyIds.gear)
 	migrateIds(data.seeds, Config.LegacyIds.seeds)
-	for _, key in { "seeds", "gear", "eggs" } do
+	for _, key in { "seeds", "gear" } do
 		for id, count in data[key] do
 			if type(count) ~= "number" or count <= 0 then
 				data[key][id] = nil
@@ -107,11 +110,6 @@ local function reconcile(data)
 	for id in data.gear do
 		if not Config.Gear[id] then
 			data.gear[id] = nil
-		end
-	end
-	for id in data.eggs do
-		if not Config.Eggs[id] then
-			data.eggs[id] = nil
 		end
 	end
 	for i = #data.plants, 1, -1 do
@@ -172,32 +170,12 @@ local function reconcile(data)
 			table.remove(data.props, i)
 		end
 	end
-	for i = #data.placedEggs, 1, -1 do
-		local egg = data.placedEggs[i]
-		if type(egg) ~= "table" or not Config.Eggs[egg.e] then
-			table.remove(data.placedEggs, i)
-		end
-	end
-	for i = #data.pets, 1, -1 do
-		local pet = data.pets[i]
-		if type(pet) == "table" and Config.LegacyIds.pets[pet.p] then
-			pet.p = Config.LegacyIds.pets[pet.p]
-		end
-		if type(pet) ~= "table" or not Config.Pets[pet.p] then
-			table.remove(data.pets, i)
-		else
-			pet.xp = if type(pet.xp) == "number" then pet.xp else 0
-			if pet.v ~= nil and type(pet.v) ~= "string" then
-				pet.v = nil
-			end
-		end
-	end
 	if type(data.quests.list) ~= "table" then
 		data.quests.list = {}
 	end
 	-- o maior id em uso define o proximo id livre
 	local maxId = 0
-	for _, list in { data.plants, data.sprinklers, data.props, data.placedEggs, data.pets } do
+	for _, list in { data.plants, data.sprinklers, data.props } do
 		for _, item in list do
 			if type(item.id) == "number" then
 				maxId = math.max(maxId, item.id)
@@ -205,7 +183,7 @@ local function reconcile(data)
 		end
 	end
 	data.nextId = math.max(data.nextId, maxId + 1)
-	data.version = 2
+	data.version = 3
 	return data
 end
 

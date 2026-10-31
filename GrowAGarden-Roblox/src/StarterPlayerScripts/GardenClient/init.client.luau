@@ -17,7 +17,6 @@ local remotes = {
 	RequestState = remotesFolder:WaitForChild("RequestState") :: RemoteEvent,
 	Buy = remotesFolder:WaitForChild("Buy") :: RemoteFunction,
 	Sell = remotesFolder:WaitForChild("Sell") :: RemoteFunction,
-	PetAction = remotesFolder:WaitForChild("PetAction") :: RemoteFunction,
 	QuestAction = remotesFolder:WaitForChild("QuestAction") :: RemoteFunction,
 }
 

@@ -1856,6 +1856,30 @@ state[camera].props.ViewportSize = V2(1280, 720)
 setParent(camera, workspace)
 state[workspace].props.CurrentCamera = camera
 
+-- Terreno (o Roblox sempre tem um no Workspace): guarda o que foi preenchido para as previas
+H.terrainFills = {}
+H.terrainColors = {}
+local terrain = newInstance("Terrain", true)
+state[terrain].props.Name = "Terrain"
+setParent(terrain, workspace)
+implementations.Terrain = {
+	FillBlock = function(_, cframe, size, material)
+		table.insert(H.terrainFills, { "block", cframe, size, material })
+	end,
+	FillBall = function(_, center, radius, material)
+		table.insert(H.terrainFills, { "ball", center, radius, material })
+	end,
+	FillCylinder = function(_, cframe, height, radius, material)
+		table.insert(H.terrainFills, { "cyl", cframe, height, radius, material })
+	end,
+	FillWedge = function(_, cframe, size, material)
+		table.insert(H.terrainFills, { "wedge", cframe, size, material })
+	end,
+	SetMaterialColor = function(_, material, color)
+		H.terrainColors[material.Name] = color
+	end,
+}
+
 for _, name in { "Players", "ReplicatedStorage", "ServerScriptService", "Lighting", "StarterPlayer", "StarterGui", "StarterPack", "RunService", "TweenService", "Debris", "CollectionService", "ProximityPromptService", "DataStoreService", "UserInputService", "HttpService", "SoundService", "TextChatService" } do
 	GetService(game, name)
 end

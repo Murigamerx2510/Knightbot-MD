@@ -1,9 +1,9 @@
 # 🌱 Cultive um Jardim 2 — jogo estilo "Grow a Garden 2" para Roblox
 
 Jogo completo de fazenda para Roblox inspirado no **Grow a Garden 2**, com as mecânicas do **Grow a Garden
-original**: compre sementes, plante, veja as plantas crescerem, colha, venda, compre equipamentos, choque
-ovos de pets e aproveite os climas que criam mutações valiosas. Quando cai a **noite**, os jardins sem
-dono por perto podem ser **roubados**, e as plantas de defesa e os pets entram em ação.
+original**: compre sementes, plante, veja as plantas crescerem, colha, venda, compre equipamentos e
+aproveite os climas que criam mutações valiosas. Quando cai a **noite**, os jardins sem dono por perto
+podem ser **roubados**, e as plantas de defesa entram em ação. O jogo é **só de plantas** (sem pets).
 
 Os modelos 3D foram feitos no **Blender** (por script) e a lógica do jogo roda no **Roblox Studio** (Luau).
 
@@ -34,43 +34,42 @@ Os modelos 3D foram feitos no **Blender** (por script) e a lógica do jogo roda 
 | 🎨 **Variantes e tamanhos** | Quase todas as plantas têm uma variante de cor rara (Morango Branco, Tulipa Negra, Milho Azul...) e qualquer uma pode sair de **Cristal** (x2,5). Os frutos vão de Pequeno a Colossal. |
 | 🌙 **Dia e noite** | 7 min e 30 s de dia, 30 s de pôr do sol e 2 min de noite, com postes que acendem. |
 | 🦝 **Roubo à noite** | Segure **Roubar** num fruto maduro de outro jardim e leve até o **seu** jardim antes de ser pego. O jardim fica trancado quando o dono está nele ou tem um Gnomo ativo. |
-| 🛡️ **Defesas** | Cacto (espinhos), Hera Venenosa (veneno e lentidão), Dioneia (mordida forte), Cuspidor de Veneno e Sopro do Dragão (tiros), Flor Hipnótica (expulsa ladrões), pets guardiões, Atirador de Morango, Pá (acerte o ladrão e ele solta o fruto) e Lanternas (revelam ladrões invisíveis). |
+| 🛡️ **Defesas** | Cacto (espinhos), Hera Venenosa (veneno e lentidão), Dioneia (mordida forte), Cuspidor de Veneno e Sopro do Dragão (tiros), Flor Hipnótica (expulsa ladrões), Atirador de Morango, Pá (acerte o ladrão e ele solta o fruto) e Lanternas (revelam ladrões invisíveis). |
 | ✨ **25 mutações e combinações** | De Molhado (x2) a Cósmico (x300). Algumas se juntam: Molhado + Gelado = Congelado, Molhado + Arenoso = Barro, Barro + Ressecado = Cerâmica, Eletrizado + Inflamado = Plasma, Eclipsado + Sangrento = Abissal, Celestial + Estelar = Cósmico. |
 | 🌦️ **18 climas** | De dia: Chuva, Tempestade, Geada, Nevasca, Tempestade de Areia, Onda de Calor, Tornado, Arco-íris, Explosão Solar e Chuva de Chocolate. De noite: Lua de Sangue, Lua Dourada, Lua Arco-íris, Lua Gigante, Chuva de Meteoros, Aurora e Chuva de Estrelas. E o **Eclipse**, invocado pela Flor do Eclipse. |
 | 🔧 **14 equipamentos** | Regador, Espátula (move plantas e faz fusões), Pá, cogumelos de Velocidade, Pulo e Invisibilidade, 5 Sprinklers, Lanterna, Gnomo e Atirador de Morango. |
-| 🐾 **22 pets e 6 ovos** | Pets com variantes (Normal, Grande, Arco-íris e Mega), níveis até 50 e habilidades: colher sozinho, guardar o jardim, polinizar, dar sorte, deixar frutos maiores... |
-| 📜 **Missões diárias** | 3 missões novas por dia (colher, plantar, vender, roubar, chocar ovos...) com recompensa em Sheckles. |
+| 📜 **Missões diárias** | 3 missões novas por dia (colher, plantar, vender, colher frutos mutados, roubar...) com recompensa em Sheckles. |
 | 📖 **Índice de mutações** | Mostra todas as mutações, os multiplicadores e como conseguir cada uma. |
-| 🧑‍🌾 **Vendedores** | Sam (sementes), Steven (compra frutos), George (equipamentos) e Eloise (ovos e pets): bonecos no estilo Roblox que acenam e falam com você. |
+| 🧑‍🌾 **Vendedores** | Sam (sementes), Steven (compra frutos) e George (equipamentos): bonecos no estilo Roblox que acenam e falam com você. No quarto canto fica uma estufa de vidro cheia de flores. |
 | 🛒 **Estoque global** | As lojas reabastecem a cada 5 minutos, com o mesmo estoque em todos os servidores. |
 | ⏱️ **Crescimento offline** | As plantas continuam crescendo com você fora do jogo. |
 | 💾 **Salvamento** | DataStore com novas tentativas, salvamento automático e ao fechar o servidor. Dados da versão anterior são convertidos sozinhos. |
 | 📱 **Interface caprichada** | Painéis com sombra e gradiente, ícone em cada item, cores por raridade (Super com arco-íris), botões com relevo que crescem ao passar o mouse, dinheiro que sobe animado, barra do dia/noite, missões com barra de progresso e avisos com ícones. Funciona no PC e no celular. |
 | 🏞️ **Mapa bonito** | Praça com chafariz, bancos e canteiros de flores, portal de boas-vindas, arcos de entrada com o nome do dono, canteiros com moldura de madeira, lojas com toldo de babado, prateleiras e caixotes, árvores variadas (pinheiros, cerejeiras, macieiras), flores, arbustos, pedras e morros no horizonte. |
 | 🌤️ **Iluminação** | Cores mais vivas, brilho suave nas luzes, raios de sol, nuvens de verdade no céu e postes que acendem à noite. |
-| 🐶 **Pets com cara própria** | Cada um dos 22 pets tem detalhes próprios: orelhas, focinho ou bico, asas, chifres, casco, rabo (o da Kitsune tem 3 caudas) e patas. |
+| 🏞️ **Terreno de verdade** | Chão de grama do Roblox com folhinhas que balançam, morros suaves no horizonte e dois lagos com água, vitórias-régias, taboas, pedras e deque de madeira. |
 
 ### 🏆 O que este jogo faz melhor que o original
 
 - Junta o **Grow a Garden 2** (noite, roubo, plantas de defesa, Espátula e fusões) com o **original**
-  (climas com mutações, sprinklers, ovos, crescimento offline e plantas de colheita única).
+  (climas com mutações, sprinklers, crescimento offline e plantas de colheita única).
 - **Combinações de mutações** e luas especiais à noite que deixam os frutos muito mais valiosos.
 - **Variantes de cor e de Cristal**, além das classes de tamanho (de Pequeno a Colossal).
-- **Missões diárias**, **índice de mutações**, **níveis e variantes de pets**.
+- **Missões diárias** e **índice de mutações**.
 - **3 plantas secretas de fusão**: Flor do Sol + Flor da Lua = **Flor do Eclipse** (invoca o Eclipse),
   Pimenta Fantasma + Samambaia de Fogo = **Pimenta Infernal**, Carambola + Semente Arco-íris =
   **Fruta Galáctica**.
 - Plantas com poderes: a Cerejeira solta pétalas e poliniza, o Cogumelo Brilhante faz os frutos de perto
   brilharem à noite e a Samambaia de Fogo pode deixar seus frutos Inflamados.
-- Visual mais caprichado: interface com ícones e animações, praça com chafariz, lojas decoradas, iluminação
-  com efeitos e pets cheios de detalhes.
+- Visual mais caprichado: interface com ícones e animações, terreno com grama e lagos, praça com chafariz,
+  lojas decoradas, estufa de flores e iluminação com efeitos.
 
 <p>
-<img src="docs/praca.jpg" width="49%"> <img src="docs/pets.jpg" width="49%">
+<img src="docs/praca.jpg" width="49%"> <img src="docs/lago.jpg" width="49%">
 <img src="docs/tela_noite.jpg" width="49%"> <img src="docs/tela_roubo.jpg" width="49%">
 <img src="docs/tela_loja.jpg" width="49%"> <img src="docs/tela_venda.jpg" width="49%">
 <img src="docs/tela_missoes.jpg" width="49%"> <img src="docs/tela_indice.jpg" width="49%">
-<img src="docs/tela_pets.jpg" width="49%"> <img src="docs/tela_chuva.jpg" width="49%">
+<img src="docs/estufa.jpg" width="49%"> <img src="docs/tela_chuva.jpg" width="49%">
 <img src="docs/loja.jpg" width="49%"> <img src="docs/mapa.jpg" width="49%">
 </p>
 
@@ -107,7 +106,6 @@ ServerScriptService
     ├── GardenService   (ModuleScript)  ← GardenService.luau
     ├── Inventory       (ModuleScript)  ← Inventory.luau
     ├── MapBuilder      (ModuleScript)  ← MapBuilder.luau
-    ├── PetService      (ModuleScript)  ← PetService.luau
     ├── QuestService    (ModuleScript)  ← QuestService.luau
     ├── Remotes         (ModuleScript)  ← Remotes.luau
     ├── ShopService     (ModuleScript)  ← ShopService.luau
@@ -152,10 +150,10 @@ rojo build -o CultiveUmJardim.rbxlx
 
 A pasta `blender/` tem:
 
-- **`gerar_modelos.py`** — script do Blender que cria os **95 modelos** low-poly: as 45 plantas,
-  37 frutos (todas as plantas de várias colheitas), 5 sprinklers, 6 ovos, o Gnomo e a Lanterna.
+- **`gerar_modelos.py`** — script do Blender que cria os **89 modelos** low-poly: as 45 plantas,
+  37 frutos (todas as plantas de várias colheitas), 5 sprinklers, o Gnomo e a Lanterna.
   Pinta tudo com uma textura de paleta e exporta em `.fbx`.
-- **`modelos_exportados/fbx/`** — os 95 arquivos `.fbx` **já prontos** (com a textura embutida).
+- **`modelos_exportados/fbx/`** — os 89 arquivos `.fbx` **já prontos** (com a textura embutida).
 - **`modelos_exportados/CultiveUmJardim_Modelos.blend`** — o arquivo do Blender com a vitrine montada.
 
 ### Gerar de novo / editar no Blender (4.2 ou mais novo)
@@ -175,7 +173,7 @@ Para usar os modelos do Blender:
 1. No Roblox Studio abra o **Importador 3D** (*File › Import 3D* ou *Home › Import 3D*).
 2. Escolha os `.fbx` de `blender/modelos_exportados/fbx/` e importe.
 3. Arraste os modelos importados para **ReplicatedStorage › Modelos**, **sem mudar os nomes**
-   (ex.: `Planta_CherryBlossom`, `Fruto_Apple`, `Sprinkler_CommonSprinkler`, `Ovo_CommonEgg`, `Gnomo`).
+   (ex.: `Planta_CherryBlossom`, `Fruto_Apple`, `Sprinkler_CommonSprinkler`, `Gnomo`).
 4. Dê Play. O jogo ajusta o tamanho dos modelos sozinho.
 
 Regras de nome (se você fizer seus próprios modelos):
@@ -185,7 +183,6 @@ Regras de nome (se você fizer seus próprios modelos):
 | `Planta_<IdDaSemente>` | corpo da planta (ex.: `Planta_Mango`) |
 | `Fruto_<IdDaSemente>` | fruto das plantas de várias colheitas |
 | `Sprinkler_<IdDoItem>` | sprinkler |
-| `Ovo_<IdDoOvo>` | ovo chocando no jardim |
 | `Gnomo` · `Lanterna` | gnomo de proteção e lanterna |
 
 | Peça com no nome… | O que o jogo faz |
@@ -206,7 +203,7 @@ Os IDs estão no `Config.luau` (`id = "Carrot"`, `id = "CherryBlossom"`, ...).
 2. Fale com o **Sam** (ou clique em **🌱 Sementes**) para comprar sementes.
 3. Equipe a semente (tecla **1** ou toque na barra) e **clique na terra marrom** do seu jardim.
 4. Veja o broto virar planta. Quando o fruto ficar maduro, aperte **E** para **Colher**.
-5. Venda com o **Steven** (**💰 Vender**) e compre equipamentos com o **George** e ovos com a **Eloise**.
+5. Venda com o **Steven** (**💰 Vender**) e compre equipamentos com o **George**.
 6. Faça as **📜 Missões** do dia e confira o **✨ Índice de Mutações**.
 7. Passe o mouse em cima das plantas para ver peso, tamanho, variante, mutações e quanto falta.
 
@@ -218,18 +215,17 @@ te acertar com a Pá ou com o Atirador de Morango, você solta o fruto.
 adultas da receita certa para fazer uma **fusão secreta**.
 
 **Pá:** clique duas vezes na mesma planta para removê-la.
-**Sprinkler / Ovo / Lanterna / Gnomo:** equipe e clique em qualquer lugar do seu jardim.
+**Sprinkler / Lanterna / Gnomo:** equipe e clique em qualquer lugar do seu jardim.
 
 ### Comandos de teste (só funcionam dentro do Roblox Studio)
 
 | Comando no chat | O que faz |
 |---|---|
 | `/sheckles 100000` | ganha Sheckles |
-| `/crescer` | todas as suas plantas e ovos ficam prontos |
+| `/crescer` | todas as suas plantas ficam prontas |
 | `/estoque` | enche o estoque das lojas |
 | `/noite` · `/dia` | pula para a noite ou para o dia |
 | `/clima chuva` · `/clima lua de sangue` · `/clima eclipse` · `/clima parar` | controla o clima |
-| `/pet unicornio` · `/pet dragao mega` · `/pet libelula dourada grande` | ganha um pet (a variante é opcional) |
 
 ---
 
@@ -239,7 +235,7 @@ Quase tudo fica em **`src/ReplicatedStorage/Shared/Config.luau`**:
 
 - preços, tempo de crescimento, valor, peso, variante e defesa de cada semente;
 - chance de aparecer na loja e quantidade em estoque;
-- equipamentos, ovos, pets, habilidades e variantes de pets;
+- equipamentos, lanternas, gnomos e sprinklers;
 - mutações, combinações e multiplicadores;
 - climas, duração do dia e da noite e regras de roubo;
 - missões diárias, receitas de fusão, dinheiro inicial e limite de plantas.
@@ -260,13 +256,13 @@ dos valores).
 
 O cenário de teste joga o jogo inteiro: entra com vários jogadores, compra e planta **todas** as
 sementes da loja, acompanha broto, crescimento e amadurecimento, colhe, vende, faz fusões com a
-Espátula, usa todos os equipamentos e cogumelos, choca ovos, sobe pets de nível, completa missões,
+Espátula, usa todos os equipamentos e cogumelos, completa missões,
 passa pelos 18 climas, pelo dia e pela noite, rouba e defende jardins (tranca, Gnomo, plantas de defesa,
 Pá, Flor Hipnótica), renasce, sai e volta (crescimento offline), converte dados da versão anterior,
 simula falha do DataStore, enche o servidor e usa modelos importados do Blender.
 
 ```
-CHECAGENS: 290, falharam: 0, erros: 0
+CHECAGENS: 274, falharam: 0, erros: 0
 Metodos sem simulacao: (nenhum)
 APIs obsoletas usadas: (nenhuma)
 ```
@@ -285,7 +281,7 @@ bash ferramentas/teste/testar.sh
 
 ## 🔎 Pesquisa
 
-As plantas, mutações, climas, pets e regras de roubo e defesa foram baseados em guias e wikis públicos
+As plantas, mutações, climas e regras de roubo e defesa foram baseados em guias e wikis públicos
 do Grow a Garden 2 e do Grow a Garden original (Fandom, Game8, GameRant, Beebom, Allthings.how,
 Nerdschalk, TheGamer e outros). Os valores foram ajustados para este jogo.
 

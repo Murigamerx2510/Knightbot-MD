@@ -1,10 +1,10 @@
--- GardenService: jardins dos jogadores, plantio, crescimento, colheita, itens
--- (regador, pa, espatula, sprinklers, lanternas, gnomos, ovos) e habilidades dos pets.
+-- GardenService: jardins dos jogadores, plantio, crescimento, colheita e itens
+-- (regador, pa, espatula, sprinklers, lanternas e gnomos).
 --
 -- O crescimento usa os.time(), entao as plantas continuam crescendo
 -- mesmo com o jogador offline.
 --   idade da planta = agora - plantadaEm + bonus
--- Clima, sprinklers, regador, lanternas e pets aumentam o "bonus".
+-- Clima, sprinklers, regador e lanternas aumentam o "bonus".
 --
 -- Crescimento visivel: broto na terra -> planta jovem que vai crescendo -> adulta.
 -- Os frutos nascem pequenos e verdes, crescem e mudam para a cor final ao amadurecer.
@@ -17,7 +17,6 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Formulas = require(Shared:WaitForChild("Formulas"))
 local MapBuilder = require(script.Parent.MapBuilder)
-local PetService = require(script.Parent.PetService)
 local QuestService = require(script.Parent.QuestService)
 local Sync = require(script.Parent.Sync)
 local Visuals = require(script.Parent.Visuals)
@@ -39,7 +38,6 @@ local plots = {}
 local gardens: { [Player]: any } = {}
 local weather = { growthBonus = 0, goldBoost = 1, rainbowBoost = 1, sizeBoost = 0 }
 local phase = "Day"
-local nightIndex = 0
 
 local function round2(n: number): number
 	return math.floor(n * 100 + 0.5) / 100
@@ -133,7 +131,7 @@ local function resolvePosition(garden, position: any, check: (number, number) ->
 	return nil, nil
 end
 
-local function isFarFromEverything(garden, lx: number, lz: number, plantSpacing: number, eggSpacing: number, ignorePlantId: number?): boolean
+local function isFarFromEverything(garden, lx: number, lz: number, plantSpacing: number, itemSpacing: number, ignorePlantId: number?): boolean
 	local plantMin = plantSpacing * plantSpacing
 	for _, plant in garden.data.plants do
 		if plant.id ~= ignorePlantId then
@@ -143,33 +141,19 @@ local function isFarFromEverything(garden, lx: number, lz: number, plantSpacing:
 			end
 		end
 	end
-	local eggMin = eggSpacing * eggSpacing
-	for _, list in { garden.data.placedEggs, garden.data.props } do
-		for _, item in list do
-			local dx, dz = item.x - lx, item.z - lz
-			if dx * dx + dz * dz < eggMin then
-				return false
-			end
+	local itemMin = itemSpacing * itemSpacing
+	for _, item in garden.data.props do
+		local dx, dz = item.x - lx, item.z - lz
+		if dx * dx + dz * dz < itemMin then
+			return false
 		end
 	end
 	return true
 end
 
-local function bonusesOf(garden)
-	if not garden.bonuses then
-		garden.bonuses = Formulas.petBonuses(garden.data.pets, garden.data.equippedPets)
-	end
-	return garden.bonuses
-end
-
-local function luckOf(garden): number
-	local bonuses = bonusesOf(garden)
-	return bonuses.Luck + (if phase == "Night" then bonuses.NightLuck else 0)
-end
-
--- Bonus de tamanho para frutos novos (pets, clima e sprinklers por perto)
+-- Bonus de tamanho para frutos novos (clima e sprinklers por perto)
 local function sizeBonusFor(garden, plant): number
-	local bonus = bonusesOf(garden).Size + weather.sizeBoost
+	local bonus = weather.sizeBoost
 	local best = 0
 	for _, entry in garden.data.sprinklers do
 		local gear = Config.Gear[entry.g]
@@ -184,21 +168,14 @@ local function sizeBonusFor(garden, plant): number
 end
 
 local function newFruit(garden, plant, seed, startAge: number?)
-	local luck = luckOf(garden)
-	local bonuses = bonusesOf(garden)
-	local mutations = Formulas.rollGrowthMutations(
-		rng,
-		luck,
-		(1 + bonuses.Gold) * weather.goldBoost,
-		(1 + bonuses.Rainbow) * weather.rainbowBoost
-	)
+	local mutations = Formulas.rollGrowthMutations(rng, 0, weather.goldBoost, weather.rainbowBoost)
 	local special = seed.special or {}
 	if special.alwaysMutation then
 		Formulas.addMutation(mutations, special.alwaysMutation)
 	end
 	if special.fruitMutations then
 		for id, chance in special.fruitMutations do
-			if rng:NextNumber() < chance * (1 + luck) then
+			if rng:NextNumber() < chance then
 				Formulas.addMutation(mutations, id)
 			end
 		end
@@ -239,8 +216,8 @@ local function applyChanceToPlant(plant, mutationId: string, chance: number, now
 	end)
 end
 
-local function capacityOf(garden): number
-	return Config.MaxFruitsInInventory + math.max(0, bonusesOf(garden).Inventory)
+local function capacityOf(_garden): number
+	return Config.MaxFruitsInInventory
 end
 
 ---------------------------------------------------------------------
@@ -525,14 +502,12 @@ function GardenService.addFruit(player: Player, fruit): boolean
 	return true
 end
 
--- Colheita pelo dono (ou pelos pets do dono)
-local function ownerHarvest(garden, view, slotIndex: number?, source: string?): any
+-- Colheita pelo dono do jardim
+local function ownerHarvest(garden, view, slotIndex: number?): any
 	local player = garden.player
 	local data = garden.data
 	if #data.fruits >= capacityOf(garden) then
-		if not source then
-			Sync.notify(player, "Sua mochila está cheia! Venda seus frutos para o Steven.", "error")
-		end
+		Sync.notify(player, "Sua mochila está cheia! Venda seus frutos para o Steven.", "error")
 		return nil
 	end
 	local seed = view.seed
@@ -548,11 +523,7 @@ local function ownerHarvest(garden, view, slotIndex: number?, source: string?): 
 	end
 	Sync.markDirty(player)
 	local label = fruitLabel(seed, fruit.w, fruit.m, fruit.v)
-	if source then
-		Sync.notify(player, source .. " colheu: " .. label, "info")
-	else
-		Sync.notify(player, "+ " .. label, if #fruit.m > 0 or fruit.v then "rare" else "success")
-	end
+	Sync.notify(player, "+ " .. label, if #fruit.m > 0 or fruit.v then "rare" else "success")
 	local special = seed.special or {}
 	if special.triggersWeather and GardenService.hooks.weatherTrigger then
 		GardenService.hooks.weatherTrigger(special.triggersWeather)
@@ -570,30 +541,9 @@ onPromptTriggered = function(who: Player, garden, view, slotIndex: number?)
 		end
 		return
 	end
-	ownerHarvest(garden, view, slotIndex, nil)
+	ownerHarvest(garden, view, slotIndex)
 end
 
--- Frutos maduros do jardim: { {view, slot, value} }
-local function ripeFruits(garden, now: number)
-	local list = {}
-	local sellBonus = bonusesOf(garden).Sell
-	for _, view in garden.plantViews do
-		if not view.destroyed then
-			local plant, seed = view.plant, view.seed
-			if seed.multiHarvest then
-				for index, slot in plant.slots do
-					if isFruitRipe(view, index, now) then
-						table.insert(list, { view = view, slot = index, value = Formulas.fruitValue(seed.id, slot.w, slot.m, sellBonus, plant.v) })
-					end
-				end
-			elseif isFruitRipe(view, nil, now) then
-				table.insert(list, { view = view, slot = nil, value = Formulas.fruitValue(seed.id, plant.f.w, plant.f.m, sellBonus, plant.v) })
-			end
-		end
-	end
-	return list
-end
-GardenService.ripeFruits = ripeFruits
 
 function GardenService.fruitWorldPosition(view, slotIndex: number?): Vector3
 	if slotIndex and view.fruits[slotIndex] then
@@ -648,92 +598,6 @@ local function removeProp(garden, propId: number)
 	end
 end
 
-local hatchEgg: (Player, any, any) -> ()
-
-local function updateEggView(garden, view, now: number)
-	local remaining = view.entry.t - now
-	local text
-	if remaining > 0 then
-		text = view.egg.name .. "\n" .. Formulas.formatTime(remaining)
-	else
-		text = view.egg.name .. "\nPronto para chocar!"
-		if not view.prompt then
-			local target = primaryOf(view.model)
-			if target then
-				local prompt = makePrompt(target, "Chocar", view.egg.name, garden.player.UserId, "Hatch")
-				prompt.Triggered:Connect(function(who)
-					hatchEgg(who, garden, view)
-				end)
-				view.prompt = prompt
-			end
-		end
-	end
-	if view.label.Text ~= text then
-		view.label.Text = text
-	end
-end
-
-local function createEggView(garden, entry)
-	local egg = Config.Eggs[entry.e]
-	if not egg then
-		return
-	end
-	local model, label = Visuals.buildEgg(egg)
-	model:PivotTo(garden.plot.cframe * CFrame.new(entry.x, groundHeight(entry.x, entry.z), entry.z))
-	model:SetAttribute("OwnerUserId", garden.player.UserId)
-	model.Parent = garden.plot.plantsFolder
-	local view = { entry = entry, egg = egg, model = model, label = label, prompt = nil, destroyed = false }
-	garden.eggViews[entry.id] = view
-	updateEggView(garden, view, os.time())
-end
-
-local function removeEgg(garden, eggId: number)
-	local eggs = garden.data.placedEggs
-	for i = #eggs, 1, -1 do
-		if eggs[i].id == eggId then
-			table.remove(eggs, i)
-		end
-	end
-	local view = garden.eggViews[eggId]
-	if view then
-		view.destroyed = true
-		view.model:Destroy()
-		garden.eggViews[eggId] = nil
-	end
-end
-
-hatchEgg = function(player: Player, garden, view)
-	if player ~= garden.player or gardens[player] ~= garden or view.destroyed then
-		return
-	end
-	if os.time() < view.entry.t then
-		return
-	end
-	local data = garden.data
-	if #data.pets >= Config.MaxPetsOwned then
-		Sync.notify(player, string.format("Você já tem %d pets (máximo).", Config.MaxPetsOwned), "error")
-		return
-	end
-	local pick = Formulas.weightedPick(view.egg.pets, rng)
-	local variant = Formulas.weightedPick(Config.PetVariants, rng)
-	removeEgg(garden, view.entry.id)
-	local pet = PetService.addPet(player, data, pick.pet, if variant.id == "Normal" then nil else variant.id)
-	garden.bonuses = nil
-	data.stats.hatched += 1
-	QuestService.progress(player, "hatch", 1)
-	local info = Config.Pets[pick.pet]
-	local strength = Formulas.petStrength(pet)
-	local abilities = {}
-	for _, ability in info.abilities do
-		table.insert(abilities, Formulas.abilityText(ability, strength))
-	end
-	Sync.notify(
-		player,
-		string.format("🎉 Você chocou: %s (%s)! %s", Formulas.petName(pet), Config.Rarities[info.rarity].name, table.concat(abilities, " • ")),
-		"rare"
-	)
-end
-
 ---------------------------------------------------------------------
 -- Uso de itens
 ---------------------------------------------------------------------
@@ -766,7 +630,7 @@ local function plantSeed(player: Player, garden, seed, position: any)
 		z = round2(lz),
 		p = os.time(),
 		b = 0,
-		v = Formulas.rollVariant(seed, rng, luckOf(garden)),
+		v = Formulas.rollVariant(seed, rng),
 	}
 	data.nextId += 1
 	if seed.multiHarvest then
@@ -1016,28 +880,6 @@ local function placeProp(player: Player, garden, gear, position: any)
 	end
 end
 
-local function placeEgg(player: Player, garden, egg, position: any)
-	local data = garden.data
-	if #data.placedEggs >= Config.MaxEggsPerGarden then
-		Sync.notify(player, string.format("Máximo de %d ovos chocando ao mesmo tempo.", Config.MaxEggsPerGarden), "error")
-		return
-	end
-	local lx, lz = resolvePosition(garden, position, function(x, z)
-		return inPlot(x, z) and isFarFromEverything(garden, x, z, 1.8, 2.5)
-	end)
-	if not lx or not lz then
-		Sync.notify(player, "Coloque o ovo em um espaço livre do seu jardim.", "error")
-		return
-	end
-	consume(data.eggs, egg.id, 1)
-	local entry = { id = data.nextId, e = egg.id, x = round2(lx), z = round2(lz), t = os.time() + egg.hatchTime }
-	data.nextId += 1
-	table.insert(data.placedEggs, entry)
-	createEggView(garden, entry)
-	Sync.markDirty(player)
-	Sync.notify(player, string.format("🥚 %s vai chocar em %s.", egg.name, Formulas.formatTime(egg.hatchTime)), "success")
-end
-
 function GardenService.useItem(player: Player, kind: any, id: any, position: any)
 	local garden = gardens[player]
 	if not garden or type(kind) ~= "string" or type(id) ~= "string" then
@@ -1079,11 +921,6 @@ function GardenService.useItem(player: Player, kind: any, id: any, position: any
 				GardenService.hooks.snipe(player, gear, if isValidVector(position) then position else nil)
 			end
 		end
-	elseif kind == "Egg" then
-		local egg = Config.Eggs[id]
-		if egg and (data.eggs[id] or 0) > 0 then
-			placeEgg(player, garden, egg, position)
-		end
 	end
 end
 
@@ -1098,17 +935,15 @@ function GardenService.setWeatherEffects(effects)
 	weather.sizeBoost = effects.sizeBoost or 0
 end
 
-function GardenService.setPhase(newPhase: string, index: number)
+function GardenService.setPhase(newPhase: string, _index: number)
 	phase = newPhase
-	nightIndex = index
 end
 
 function GardenService.applyWeatherMutation(mutationId: string, chance: number)
 	local now = os.time()
 	for _, garden in gardens do
-		local luck = luckOf(garden)
 		for _, plant in garden.data.plants do
-			applyChanceToPlant(plant, mutationId, chance * (1 + luck), now)
+			applyChanceToPlant(plant, mutationId, chance, now)
 		end
 	end
 end
@@ -1140,65 +975,10 @@ end
 -- Atualizacao periodica
 ---------------------------------------------------------------------
 
-local function petAbilities(garden, bonuses, dt: number, now: number)
-	local player = garden.player
-	local data = garden.data
-	garden.petTimers = garden.petTimers or {}
-	for _, ability in bonuses.active do
-		if ability.kind == "AutoHarvest" or ability.kind == "AutoHarvestBest" then
-			local key = ability.petUid .. ability.kind
-			garden.petTimers[key] = (garden.petTimers[key] or 0) + dt
-			if garden.petTimers[key] >= ability.cooldown then
-				garden.petTimers[key] = 0
-				local ripe = ripeFruits(garden, now)
-				if #ripe > 0 then
-					local pick = ripe[rng:NextInteger(1, #ripe)]
-					if ability.kind == "AutoHarvestBest" then
-						for _, candidate in ripe do
-							if candidate.value > pick.value then
-								pick = candidate
-							end
-						end
-					end
-					local seedId = pick.view.seed.id
-					local petName = Config.Pets[ability.petId].name
-					local fruit = ownerHarvest(garden, pick.view, pick.slot, "🐾 " .. petName)
-					if fruit and ability.seedChance and rng:NextNumber() < ability.seedChance and Config.Seeds[seedId].inShop then
-						data.seeds[seedId] = (data.seeds[seedId] or 0) + 1
-						Sync.notify(player, string.format("🐾 %s achou uma semente de %s!", petName, Config.Seeds[seedId].name), "rare")
-					end
-				end
-			end
-		elseif ability.kind == "Raccoon" and phase == "Night" and garden.raccoonNight ~= nightIndex then
-			garden.raccoonNight = nightIndex
-			local options = {}
-			for _, other in gardens do
-				if other ~= garden then
-					for _, item in ripeFruits(other, now) do
-						table.insert(options, item)
-					end
-				end
-			end
-			if #options > 0 then
-				local pick = options[rng:NextInteger(1, #options)]
-				local plant, seed = pick.view.plant, pick.view.seed
-				local source = if pick.slot then plant.slots[pick.slot] else plant.f
-				local copy = { s = seed.id, w = source.w, m = table.clone(source.m), v = plant.v }
-				if GardenService.addFruit(player, copy) then
-					Sync.notify(player, "🦝 Seu Guaxinim trouxe um fruto de outro jardim: " .. fruitLabel(seed, copy.w, copy.m, copy.v), "rare")
-				end
-			end
-		end
-	end
-end
-
 local function tickGarden(garden, dt: number, now: number)
 	local data = garden.data
-	local bonuses = Formulas.petBonuses(data.pets, data.equippedPets)
-	garden.bonuses = bonuses
 	local night = phase == "Night"
-	local luck = bonuses.Luck + (if night then bonuses.NightLuck else 0)
-	local baseRate = weather.growthBonus + bonuses.Growth
+	local baseRate = weather.growthBonus
 
 	local activeSprinklers = {}
 	for i = #data.sprinklers, 1, -1 do
@@ -1278,15 +1058,9 @@ local function tickGarden(garden, dt: number, now: number)
 		if rate ~= 0 then
 			plant.b += dt * rate
 		end
-		local factor = dt * (1 + luck)
+		local factor = dt
 		if wetChance > 0 then
 			applyChanceToPlant(plant, "Wet", wetChance * factor, now)
-		end
-		if bonuses.Pollinate > 0 then
-			applyChanceToPlant(plant, "Pollinated", bonuses.Pollinate * factor, now)
-		end
-		if bonuses.Ignite > 0 then
-			applyChanceToPlant(plant, "Ignited", bonuses.Ignite * factor, now)
 		end
 		for _, source in glowSources do
 			if source.plant ~= plant then
@@ -1301,13 +1075,6 @@ local function tickGarden(garden, dt: number, now: number)
 			updatePlantView(garden, view, now)
 		end
 	end
-
-	for _, view in garden.eggViews do
-		updateEggView(garden, view, now)
-	end
-
-	petAbilities(garden, bonuses, dt, now)
-	PetService.addXp(garden.player, data, dt)
 end
 
 ---------------------------------------------------------------------
@@ -1332,13 +1099,9 @@ function GardenService.assignPlot(player: Player, data): boolean
 				plantViews = {},
 				sprinklerViews = {},
 				propViews = {},
-				eggViews = {},
 				shovelPending = nil,
 				trowel = nil,
 				lastUse = 0,
-				bonuses = nil,
-				petTimers = {},
-				raccoonNight = -1,
 			}
 			gardens[player] = garden
 			player:SetAttribute("PlotIndex", plot.index)
@@ -1350,9 +1113,6 @@ function GardenService.assignPlot(player: Player, data): boolean
 			end
 			for _, entry in data.props do
 				createPropView(garden, entry)
-			end
-			for _, entry in data.placedEggs do
-				createEggView(garden, entry)
 			end
 			return true
 		end
@@ -1371,9 +1131,6 @@ function GardenService.releasePlot(player: Player)
 		if view.body then
 			view.body:Destroy()
 		end
-	end
-	for _, view in garden.eggViews do
-		view.destroyed = true
 	end
 	local plot = garden.plot
 	plot.plantsFolder:ClearAllChildren()
@@ -1447,21 +1204,6 @@ function GardenService.defenses(garden): { any }
 	return list
 end
 
-function GardenService.bonuses(player: Player)
-	local garden = gardens[player]
-	if garden then
-		return bonusesOf(garden)
-	end
-	return nil
-end
-
-function GardenService.invalidateBonuses(player: Player)
-	local garden = gardens[player]
-	if garden then
-		garden.bonuses = nil
-	end
-end
-
 -- Comando de teste: faz todas as plantas crescerem
 function GardenService.growAll(player: Player)
 	local garden = gardens[player]
@@ -1471,9 +1213,6 @@ function GardenService.growAll(player: Player)
 	for _, plant in garden.data.plants do
 		local seed = Config.Seeds[plant.s]
 		plant.b += seed.growTime + (seed.fruitTime or 0) * (seed.maxFruits or 1)
-	end
-	for _, entry in garden.data.placedEggs do
-		entry.t = os.time()
 	end
 end
 

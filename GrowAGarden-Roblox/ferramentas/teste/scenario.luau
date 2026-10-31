@@ -23,7 +23,7 @@ shared.Parent = RS
 H.makeScript("ModuleScript", "Config", "Shared/Config", shared)
 H.makeScript("ModuleScript", "Formulas", "Shared/Formulas", shared)
 local serverScript = H.makeScript("Script", "GardenServer", "Server/init", SSS)
-for _, name in { "DataService", "DayNightService", "GardenService", "Inventory", "MapBuilder", "PetService", "QuestService", "Remotes", "ShopService", "StealService", "Sync", "Visuals", "WeatherService" } do
+for _, name in { "DataService", "DayNightService", "GardenService", "Inventory", "MapBuilder", "QuestService", "Remotes", "ShopService", "StealService", "Sync", "Visuals", "WeatherService" } do
 	H.makeScript("ModuleScript", name, "Server/" .. name, serverScript)
 end
 
@@ -53,7 +53,6 @@ local Config = require(shared.Config)
 local Formulas = require(shared.Formulas)
 local DataService = require(serverScript.DataService)
 local GardenService = require(serverScript.GardenService)
-local PetService = require(serverScript.PetService)
 local QuestService = require(serverScript.QuestService)
 local StealService = require(serverScript.StealService)
 local DayNightService = require(serverScript.DayNightService)
@@ -68,7 +67,7 @@ for _, d in workspace.Mapa:GetDescendants() do
 		npcCount += 1
 	end
 end
-check(npcCount == 4, "4 NPCs nas lojas (Sam, Steven, George, Eloise): " .. npcCount)
+check(npcCount == 3, "3 NPCs nas lojas (Sam, Steven, George): " .. npcCount)
 
 local function startClient(player)
 	local clientScript = H.makeScript("LocalScript", "GardenClient", "Client/init", player:WaitForChild("PlayerScripts"))
@@ -145,7 +144,7 @@ local function bedPoint(player, lx, lz)
 	local base = plot:FindFirstChild("Base")
 	return base.CFrame:PointToWorldSpace(Vector3.new(lx, 0.25, lz))
 end
-local KIND = { Colher = "Harvest", Chocar = "Hatch" }
+local KIND = { Colher = "Harvest" }
 local function promptsIn(root, action)
 	local list = {}
 	for _, d in root:GetDescendants() do
@@ -460,30 +459,21 @@ if __DUMP then
 				size.X, size.Y, size.Z, color.R, color.G, color.B, d.Transparency, d.Material.Name))
 		end
 	end
-end
-
-if __DUMP then
-	local P = H.realPrint
-	local EffectsModule = require(clientScript1:WaitForChild("Effects"))
-	for index, info in Config.PetList do
-		local variant = Formulas.petVariant(nil)
-		local pet = EffectsModule.buildPet(info, variant, 1)
-		local column, line = (index - 1) % 8, (index - 1) // 8
-		pet:PivotTo(CFrame.new(column * 3.4, 1.6, line * 4) * CFrame.Angles(0, math.pi * 0.85, 0))
-		for _, d in pet:GetDescendants() do
-			if d:IsA("BasePart") and d.Transparency < 0.95 then
-				local shape = "block"
-				local mesh = d:FindFirstChildOfClass("SpecialMesh")
-				if mesh and mesh.MeshType.Name == "Sphere" then
-					shape = "ball"
-				end
-				local c = { d.CFrame:GetComponents() }
-				P(string.format("PET|%s|%.3f|%.3f|%.3f|%.5f|%.5f|%.5f|%.5f|%.5f|%.5f|%.5f|%.5f|%.5f|%.3f|%.3f|%.3f|%.4f|%.4f|%.4f|%.2f|%s",
-					shape, c[1], c[2], c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12],
-					d.Size.X, d.Size.Y, d.Size.Z, d.Color.R, d.Color.G, d.Color.B, d.Transparency, d.Material.Name))
-			end
+	-- terreno (chao, morros e lagos)
+	for _, fill in H.terrainFills do
+		local kind = fill[1]
+		if kind == "block" then
+			local c = { fill[2]:GetComponents() }
+			P(string.format("TERRAIN|block|%s|%.3f|%.3f|%.3f|%.3f|%.3f|%.3f", fill[4].Name, c[1], c[2], c[3], fill[3].X, fill[3].Y, fill[3].Z))
+		elseif kind == "ball" then
+			P(string.format("TERRAIN|ball|%s|%.3f|%.3f|%.3f|%.3f", fill[4].Name, fill[2].X, fill[2].Y, fill[2].Z, fill[3]))
+		elseif kind == "cyl" then
+			local position = fill[2].Position
+			P(string.format("TERRAIN|cyl|%s|%.3f|%.3f|%.3f|%.3f|%.3f", fill[5].Name, position.X, position.Y, position.Z, fill[3], fill[4]))
 		end
-		pet:Destroy()
+	end
+	for name, color in H.terrainColors do
+		P(string.format("TERRAINCOLOR|%s|%.4f|%.4f|%.4f", name, color.R, color.G, color.B))
 	end
 end
 
@@ -627,96 +617,6 @@ check(workspace.CeuLocal:FindFirstChild("Sol") ~= nil, "eclipse aparece no ceu")
 chat(p1, "/clima parar")
 
 ---------------------------------------------------------------------
-section("Ovos e pets")
-click(findButton(gui, "🥚 Ovos"))
-check(gui.PainelEggs.Visible == true, "loja de ovos aberta")
-chat(p1, "/estoque")
-dumpGui("6_ovos", p1)
-for _, egg in Config.EggList do
-	click(findButton(gui, "🥚 Ovos"))
-	local b = shopRowButton(gui, "PainelEggs", egg.name)
-	if b then
-		click(b)
-	end
-end
-check((data.eggs.CommonEgg or 0) >= 1 and (data.eggs.SuperEgg or 0) >= 1, "comprou ovos")
-click(findButton(gui, "🏡 Jardim"))
-H.run(1)
-local placed = 0
-for _, egg in Config.EggList do
-	local tool = equip(p1, "Egg", egg.id)
-	if tool and placed < Config.MaxEggsPerGarden then
-		activate(p1, tool, plot1.Base.CFrame:PointToWorldSpace(Vector3.new(0, 0.2, -18 + placed * 4)))
-		placed += 1
-	end
-end
-check(#data.placedEggs == Config.MaxEggsPerGarden, "ovos colocados (" .. #data.placedEggs .. ")")
-chat(p1, "/crescer")
-H.run(2)
-local hatchPrompts = promptsIn(plot1, "Chocar")
-check(#hatchPrompts == #data.placedEggs, "ovos prontos para chocar")
-for _, prompt in hatchPrompts do
-	trigger(prompt, p1)
-end
-check(#data.pets >= 3, "chocou pets (" .. #data.pets .. ")")
-check(data.stats.hatched == 3, "estatistica de ovos chocados")
-local attr = p1:GetAttribute("EquippedPets")
-check(type(attr) == "string" and string.find(attr, ":", 1, true) ~= nil, "atributo de pets com variante e nivel: " .. tostring(attr))
-H.run(1)
-local petsFolder = workspace:FindFirstChild("PetsLocais")
-check(petsFolder ~= nil and #petsFolder:GetChildren() >= 1, "pets aparecem seguindo o jogador")
--- XP e nivel
-local equippedPet = nil
-for _, pet in data.pets do
-	if table.find(data.equippedPets, pet.id) then
-		equippedPet = pet
-	end
-end
-local levelBefore = Formulas.petLevel(equippedPet.xp)
-H.run(30)
-check(Formulas.petLevel(equippedPet.xp) > levelBefore, "pet subiu de nivel com XP")
-click(findButton(gui, "🐾 Pets"))
-check(gui.PainelPets.Visible == true, "painel de pets aberto")
-dumpGui("7_pets", p1)
-local guardar = findButton(gui.PainelPets, "Guardar")
-if guardar then
-	local equippedBefore = #data.equippedPets
-	click(guardar)
-	check(#data.equippedPets == equippedBefore - 1, "guardou um pet")
-	local equipar = findButton(gui.PainelPets, "Equipar")
-	if equipar then
-		click(equipar)
-		check(#data.equippedPets == equippedBefore, "equipou de novo")
-	end
-end
--- pets com habilidades especiais
-for _, pet in data.pets do
-	PetService.handleAction(p1, "unequip", pet.id)
-end
-chat(p1, "/pet robin")
-chat(p1, "/pet monkey mega")
-chat(p1, "/pet raccoon")
-check(#data.equippedPets == 3, "3 pets especiais equipados")
-local fruitsBefore = #data.fruits
-chat(p1, "/crescer")
-H.run(50)
-check(#data.fruits > fruitsBefore, "Pintarroxo/Macaco colhem sozinhos")
--- comandos aceitam nomes em portugues sem acento
-local petsBefore = #data.pets
-chat(p1, "/pet unicornio")
-chat(p1, "/pet libelula dourada grande")
-local unicorn, dragonfly = false, false
-for index = petsBefore + 1, #data.pets do
-	local pet = data.pets[index]
-	if pet.p == "Unicorn" then
-		unicorn = true
-	elseif pet.p == "GoldenDragonfly" and pet.v == "Big" then
-		dragonfly = true
-	end
-end
-check(unicorn and dragonfly, "/pet aceita nome sem acento e variante em portugues")
-
----------------------------------------------------------------------
 section("Missoes")
 click(findButton(gui, "📜 Missões"))
 check(gui.PainelQuests.Visible == true, "painel de missoes aberto")
@@ -760,7 +660,7 @@ check(combo({ "Celestial" }, "Starstruck") == "Cosmic", "Celestial + Estelar = C
 check(combo({ "Wet", "Shocked" }, "Frozen") == "Frozen,Shocked", "Congelado direto remove Molhado")
 check(combo({ "Rainbow" }, "Gold") == "Rainbow", "Arco-iris vale mais que Dourado")
 check(Formulas.mutationMultiplier({ "Rainbow", "Shocked" }) == 5000, "multiplicador arco-iris + eletrizado = 5000")
-check(Formulas.fruitValue("Strawberry", 0.29, {}, 0, "White") == math.floor(3 * 1.6 + 0.5), "variante branca vale 1.6x")
+check(Formulas.fruitValue("Strawberry", 0.29, {}, "White") == math.floor(3 * 1.6 + 0.5), "variante branca vale 1.6x")
 check(Formulas.sizeClass("Strawberry", 0.29 * 3) == "Gigante", "classe de tamanho Gigante")
 local multiPlant = nil
 for _, plant in data.plants do
@@ -1025,7 +925,6 @@ check(true, "simulou 700s")
 section("Sair, crescer offline e voltar")
 local plantsSaved = #data.plants
 local fruitsSaved = #data.fruits
-local petsSaved = #data.pets
 local sheckSaved = data.sheckles
 H.removePlayer(p1)
 H.run(2)
@@ -1041,7 +940,6 @@ H.run(3)
 local dataB = DataService.get(p1b)
 check(dataB ~= nil and #dataB.plants == plantsSaved, "plantas restauradas (" .. (dataB and #dataB.plants or -1) .. "/" .. plantsSaved .. ")")
 check(dataB and #dataB.fruits >= fruitsSaved, "frutos restaurados")
-check(dataB and #dataB.pets == petsSaved, "pets restaurados")
 check(dataB and dataB.sheckles >= sheckSaved, "sheckles restaurados")
 local newPlot = plotOf(p1b)
 check(newPlot ~= nil and #newPlot.Plantas:GetChildren() >= plantsSaved, "plantas recriadas no mapa")
@@ -1051,16 +949,12 @@ section("Dados antigos (migracao)")
 local p7 = H.addPlayer(7007, "Veterano", false)
 H.run(3)
 local data7 = DataService.get(p7)
-check(data7 ~= nil and data7.version == 2, "dados antigos atualizados para a versao 2")
+check(data7 ~= nil and data7.version == 3, "dados antigos atualizados para a versao 3")
 check(data7.seeds.Tulip == 3 and data7.seeds.Inexistente == nil, "semente antiga trocada pela nova")
 check(data7.gear.CommonSprinkler == 2 and data7.gear.SuperSprinkler == 1 and data7.gear.BasicSprinkler == nil, "sprinklers antigos trocados")
 check(data7.fruits[1].s == "Tulip" and data7.plants[1].s == "Tulip", "frutos e plantas antigos trocados")
-local petNames = {}
-for _, pet in data7.pets do
-	table.insert(petNames, pet.p)
-end
-table.sort(petNames)
-check(table.concat(petNames, ",") == "Bear,Deer,Dog", "pets antigos trocados: " .. table.concat(petNames, ","))
+check(data7.pets == nil and data7.eggs == nil and data7.placedEggs == nil and data7.equippedPets == nil, "pets e ovos antigos removidos (jogo so de plantas)")
+check(data7.stock.eggs == nil and data7.stats.hatched == nil, "estoque e estatistica de ovos removidos")
 H.removePlayer(p7)
 H.run(2)
 
@@ -1105,7 +999,6 @@ end
 meshModel("Planta_Carrot", { { "Corpo_Carrot", Vector3.new(0.8, 1.2, 0.8), Vector3.new(0, 1.5, 0) }, { "Produto_Carrot", Vector3.new(0.5, 1, 0.5), Vector3.new(0, 0.4, 0) } })
 meshModel("Fruto_Strawberry", { { "Produto_Strawberry", Vector3.new(30, 36, 30), Vector3.new(100, 100, 100) }, { "Cabo_Strawberry", Vector3.new(5, 10, 5), Vector3.new(100, 120, 100) } })
 meshModel("Sprinkler_CommonSprinkler", { { "Base_CommonSprinkler", Vector3.new(1.4, 0.4, 1.4), Vector3.new(0, 0.2, 0) }, { "Cabeca_CommonSprinkler", Vector3.new(0.8, 0.8, 0.8), Vector3.new(0, 1.9, 0) } })
-meshModel("Ovo_CommonEgg", { { "Casca_CommonEgg", Vector3.new(16, 20, 16), Vector3.new(0, 10, 0) } })
 meshModel("Gnomo", { { "Corpo_Gnomo", Vector3.new(1, 1, 1), Vector3.new(0, 0.5, 0) }, { "Chapeu_Gnomo", Vector3.new(0.8, 1, 0.8), Vector3.new(0, 1.5, 0) } })
 meshModel("Lanterna", { { "Vidro_Lanterna", Vector3.new(0.5, 0.6, 0.5), Vector3.new(0, 2.6, 0) }, { "Poste_Lanterna", Vector3.new(0.2, 3, 0.2), Vector3.new(0, 1.5, 0) } })
 meshModel("Planta_MoonBloom", { { "Corpo_MoonBloom", Vector3.new(1, 3, 1), Vector3.new(0, 1.5, 0) }, { "Brilho_MoonBloom", Vector3.new(0.6, 0.6, 0.6), Vector3.new(0, 3.6, 0) } })
@@ -1130,7 +1023,6 @@ dataB.seeds.CherryBlossom = 1
 dataB.gear.CommonSprinkler = 1
 dataB.gear.Gnome = 1
 dataB.gear.Lantern = 1
-dataB.eggs.CommonEgg = 1
 Sync.markDirty(p1b)
 H.run(0.5)
 for n, id in { "Carrot", "Strawberry", "Tomato" } do
@@ -1167,10 +1059,6 @@ for _, id in { "Gnome", "Lantern" } do
 		activate(p1b, tool, newPlot.Base.CFrame:PointToWorldSpace(Vector3.new(if id == "Gnome" then -2 else 2, 0.2, -30)))
 	end
 end
-local libEgg = equip(p1b, "Egg", "CommonEgg")
-if libEgg then
-	activate(p1b, libEgg, bedPoint(p1b, -1, 29))
-end
 chat(p1b, "/crescer")
 H.run(3)
 check(#promptsIn(newPlot, "Colher") > 0, "plantas com modelos importados funcionam")
@@ -1188,7 +1076,6 @@ for _, d in newPlot:GetDescendants() do
 	end
 end
 check(waterOnHead, "agua sai da cabeca do sprinkler importado")
-check(#promptsIn(newPlot, "Chocar") >= 1, "ovo importado pode chocar")
 local importedGnome, importedLantern = false, false
 for _, d in newPlot:GetDescendants() do
 	if d:IsA("MeshPart") and d.Name == "Chapeu_Gnomo" then

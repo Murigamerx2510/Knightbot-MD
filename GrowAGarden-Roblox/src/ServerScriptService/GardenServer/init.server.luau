@@ -10,7 +10,6 @@ local Remotes = require(script.Remotes)
 local DataService = require(script.DataService)
 local MapBuilder = require(script.MapBuilder)
 local Sync = require(script.Sync)
-local PetService = require(script.PetService)
 local QuestService = require(script.QuestService)
 local GardenService = require(script.GardenService)
 local ShopService = require(script.ShopService)
@@ -30,7 +29,6 @@ GardenService.hooks.consume = StealService.consume
 GardenService.hooks.weatherTrigger = function(weatherId)
 	WeatherService.trigger(weatherId)
 end
-PetService.onChanged(GardenService.invalidateBonuses)
 Sync.addProvider(function(player, snapshot)
 	local data = DataService.get(player)
 	if data then
@@ -98,29 +96,6 @@ local function findWeather(name: string)
 	return nil
 end
 
-local function findPet(name: string)
-	name = plain(name)
-	for _, pet in Config.PetList do
-		if plain(pet.id) == name or plain(pet.name) == name then
-			return pet
-		end
-	end
-	return nil
-end
-
-local function findPetVariant(name: string?): string?
-	if not name then
-		return nil
-	end
-	name = plain(name)
-	for _, variant in Config.PetVariants do
-		if plain(variant.id) == name or (variant.name ~= "" and plain(variant.name) == name) then
-			return variant.id
-		end
-	end
-	return nil
-end
-
 local function handleCommand(player: Player, message: string)
 	local data = DataService.get(player)
 	if not data then
@@ -156,17 +131,6 @@ local function handleCommand(player: Player, message: string)
 	elseif command == "/estoque" then
 		ShopService.fillStock(data)
 		Sync.notify(player, "[Teste] Estoque das lojas cheio!", "info")
-	elseif command == "/pet" then
-		-- "/pet libelula dourada mega": a ultima palavra pode ser a variante
-		local variantId = findPetVariant(words[#words])
-		local last = if variantId and #words > 2 then #words - 1 else #words
-		local pet = findPet(table.concat(words, "", 2, last))
-		if pet then
-			PetService.addPet(player, data, pet.id, variantId)
-			Sync.notify(player, "[Teste] Pet " .. pet.name .. " adicionado!", "info")
-		else
-			Sync.notify(player, "[Teste] Pet não encontrado. Ex.: /pet unicornio, /pet dragao mega", "error")
-		end
 	end
 	Sync.markDirty(player)
 end
@@ -196,7 +160,6 @@ local function onPlayerAdded(player: Player)
 		return
 	end
 	ShopService.ensureStock(data)
-	PetService.setup(player, data)
 	QuestService.ensure(player, data)
 	if not GardenService.assignPlot(player, data) then
 		DataService.release(player)
@@ -209,7 +172,7 @@ local function onPlayerAdded(player: Player)
 		Sync.notify(player, "⚠️ Salvamento indisponível: seu progresso NÃO será salvo nesta sessão.", "error")
 	end
 	if RunService:IsStudio() then
-		Sync.notify(player, "Modo Studio: /sheckles 1000, /crescer, /estoque, /noite, /dia, /clima chuva, /pet unicornio", "info")
+		Sync.notify(player, "Modo Studio: /sheckles 1000, /crescer, /estoque, /noite, /dia, /clima chuva", "info")
 		player.Chatted:Connect(function(message)
 			handleCommand(player, message)
 		end)
@@ -261,7 +224,6 @@ end
 
 Remotes.Buy.OnServerInvoke = safe(ShopService.buy)
 Remotes.Sell.OnServerInvoke = safe(ShopService.sell)
-Remotes.PetAction.OnServerInvoke = safe(PetService.handleAction)
 Remotes.QuestAction.OnServerInvoke = safe(QuestService.claim)
 
 Remotes.UseItem.OnServerEvent:Connect(function(player, kind, id, position)
