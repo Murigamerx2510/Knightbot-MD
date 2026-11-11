@@ -1,0 +1,4 @@
+node_modules/
+package-lock.json
+Full-API-Dump.json
+api_data.luau

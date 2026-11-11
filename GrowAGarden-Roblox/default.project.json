@@ -1,0 +1,31 @@
+{
+  "name": "CultiveUmJardim",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "Shared": {
+        "$path": "src/ReplicatedStorage/Shared"
+      },
+      "Modelos": {
+        "$className": "Folder",
+        "$ignoreUnknownInstances": true
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "GardenServer": {
+        "$path": "src/ServerScriptService/GardenServer"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "GardenClient": {
+          "$path": "src/StarterPlayerScripts/GardenClient"
+        }
+      }
+    }
+  }
+}
